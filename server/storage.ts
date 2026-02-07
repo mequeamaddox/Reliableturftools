@@ -26,6 +26,7 @@ import {
   type InsertMeetupSpot,
   type MessageTemplate,
   type InsertMessageTemplate,
+  type Setting,
 } from "@shared/schema";
 
 export const storage = {
@@ -206,6 +207,15 @@ export const storage = {
     return followUp;
   },
 
+  async updateFollowUp(id: string, data: Partial<InsertFollowUp>): Promise<FollowUp> {
+    const [followUp] = await db
+      .update(followUps)
+      .set(data)
+      .where(eq(followUps.id, id))
+      .returning();
+    return followUp;
+  },
+
   async completeFollowUp(id: string): Promise<FollowUp> {
     const [followUp] = await db
       .update(followUps)
@@ -213,6 +223,19 @@ export const storage = {
       .where(eq(followUps.id, id))
       .returning();
     return followUp;
+  },
+
+  async uncompleteFollowUp(id: string): Promise<FollowUp> {
+    const [followUp] = await db
+      .update(followUps)
+      .set({ isCompleted: false, completedAt: null })
+      .where(eq(followUps.id, id))
+      .returning();
+    return followUp;
+  },
+
+  async deleteFollowUp(id: string): Promise<void> {
+    await db.delete(followUps).where(eq(followUps.id, id));
   },
 
   async getInquiries(): Promise<Inquiry[]> {
@@ -242,6 +265,15 @@ export const storage = {
     return spot;
   },
 
+  async updateMeetupSpot(id: string, data: Partial<InsertMeetupSpot>): Promise<MeetupSpot> {
+    const [spot] = await db
+      .update(meetupSpots)
+      .set(data)
+      .where(eq(meetupSpots.id, id))
+      .returning();
+    return spot;
+  },
+
   async deleteMeetupSpot(id: string): Promise<void> {
     await db.delete(meetupSpots).where(eq(meetupSpots.id, id));
   },
@@ -256,6 +288,15 @@ export const storage = {
     const [template] = await db
       .insert(messageTemplates)
       .values(data)
+      .returning();
+    return template;
+  },
+
+  async updateMessageTemplate(id: string, data: Partial<InsertMessageTemplate>): Promise<MessageTemplate> {
+    const [template] = await db
+      .update(messageTemplates)
+      .set(data)
+      .where(eq(messageTemplates.id, id))
       .returning();
     return template;
   },
@@ -277,6 +318,14 @@ export const storage = {
       .insert(settings)
       .values({ key, value })
       .onConflictDoUpdate({ target: settings.key, set: { value } });
+  },
+
+  async getAllSettings(): Promise<Setting[]> {
+    return db.select().from(settings);
+  },
+
+  async deleteSetting(key: string): Promise<void> {
+    await db.delete(settings).where(eq(settings.key, key));
   },
 
   async getDashboardStats(): Promise<{

@@ -315,10 +315,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/followups/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const followUp = await storage.updateFollowUp(req.params.id, req.body);
+      return res.json(followUp);
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
   app.put("/api/followups/:id/complete", requireAuth, async (req: Request, res: Response) => {
     try {
       const followUp = await storage.completeFollowUp(req.params.id);
       return res.json(followUp);
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  app.put("/api/followups/:id/uncomplete", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const followUp = await storage.uncompleteFollowUp(req.params.id);
+      return res.json(followUp);
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  app.delete("/api/followups/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteFollowUp(req.params.id);
+      return res.json({ success: true });
     } catch (err) {
       return res.status(500).json({ error: "Server error" });
     }
@@ -369,6 +396,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/meetup-spots/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const spot = await storage.updateMeetupSpot(req.params.id, req.body);
+      return res.json(spot);
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
   app.delete("/api/meetup-spots/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       await storage.deleteMeetupSpot(req.params.id);
@@ -396,10 +432,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/message-templates/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const template = await storage.updateMessageTemplate(req.params.id, req.body);
+      return res.json(template);
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
   app.delete("/api/message-templates/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       await storage.deleteMessageTemplate(req.params.id);
       return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  app.get("/api/settings", requireAuth, async (_req: Request, res: Response) => {
+    try {
+      const list = await storage.getAllSettings();
+      return res.json(list);
     } catch (err) {
       return res.status(500).json({ error: "Server error" });
     }
@@ -417,6 +471,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/settings/:key", requireAuth, async (req: Request, res: Response) => {
     try {
       await storage.setSetting(req.params.key, req.body.value);
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  app.delete("/api/settings/:key", requireAuth, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteSetting(req.params.key);
       return res.json({ success: true });
     } catch (err) {
       return res.status(500).json({ error: "Server error" });
