@@ -1,0 +1,180 @@
+Build a production-ready system for my business “Reliable Turf Tools” that I will deploy on Hostinger (NOT staying on Replit).
+
+I want:
+1) Admin “Mobile App” experience as a PWA (mobile-first web app I can install to my phone home screen)
+2) Customer-facing Storefront (public web pages)
+3) Shared backend + database
+4) Barcode scanning using phone camera inside the PWA (no native app required)
+
+GOALS
+- Barcode-first inventory workflows
+- One-click publish items from admin to storefront
+- Meetup-based sales (public meetup location), not pickup/delivery
+- No daily inventory counting: only update when adding items or selling
+- ADHD-friendly: minimal typing/clicks, big buttons, quick actions
+
+========================
+STACK (Hostinger-friendly)
+========================
+- Frontend: Next.js + TypeScript (single app with two sections: /admin and /store)
+- UI: Tailwind + shadcn/ui
+- Backend: Next.js API routes OR separate Node/Express server (choose the simplest stable approach)
+- Database: PostgreSQL (hosted on Hostinger if available, otherwise use a managed Postgres like Neon/Supabase and document it)
+- ORM: Prisma
+- Auth: secure email/password login (bcrypt hashing) + session/JWT
+- File uploads: store listing photos on disk under /public/uploads with a path saved to DB (include notes for upgrading to S3 later)
+- Barcode scanning: implement with phone camera in browser using ZXing or QuaggaJS (UPC/EAN/Code128). Must work on Android Chrome. Provide manual fallback.
+
+DEPLOYMENT TARGET
+- Hostinger VPS or Hostinger Node/Next hosting (document both)
+- Provide a production build and start script.
+- Use environment variables.
+- Include a complete deployment guide in README for Hostinger.
+
+========================
+APP SECTIONS / ROUTES
+========================
+A) Admin (protected)
+- /admin/login
+- /admin/dashboard
+- /admin/inventory
+- /admin/inventory/new
+- /admin/inventory/[id]
+- /admin/buyers
+- /admin/buyers/[id]
+- /admin/sales
+- /admin/followups
+- /admin/settings
+
+B) Storefront (public)
+- /store
+- /store/[id]
+- Reserve/Ask button on each item (collect name + phone + message; creates an inquiry record in admin)
+
+========================
+CORE FEATURES
+========================
+1) Inventory / Listings
+- Fields:
+  - title
+  - sku (auto-generated but editable)
+  - barcode (optional; from scan)
+  - condition (NEW_BOXED, USED_UNBOXED, USED, DAMAGED)
+  - powerType (GAS, ELECTRIC_18V, ELECTRIC_40V, OTHER)
+  - category (TRIMMER, BLOWER, MOWER, CHAINSAW, BATTERY, CHARGER, OTHER)
+  - brand (generic allowed, do not mention retailer branding)
+  - price
+  - cost (optional for profit)
+  - quantity
+  - status (AVAILABLE, PENDING, SOLD, ARCHIVED)
+  - notes
+  - isPublished (boolean for storefront)
+  - photos (multi upload)
+  - createdAt/updatedAt
+- Quick Add mode: title, price, powerType, condition, qty (everything else optional)
+- Inventory list with search + filters (status, powerType, category, brand, price)
+- Listing detail actions:
+  - Toggle Publish to storefront
+  - Mark Pending (select/create buyer + choose meetup spot + optional time)
+  - Mark Sold (buyer + payment type + meetup spot + notes) and auto-decrement quantity, auto SOLD when qty hits 0
+  - Duplicate listing
+  - Archive listing
+
+2) Barcode Scanning (in Admin PWA)
+- “Scan” button on Inventory screen and Quick Add screen
+- Scan barcode:
+  - If listing exists with barcode -> open listing
+  - If not -> open create listing screen with barcode prefilled
+- Must include manual entry fallback.
+
+3) Buyers CRM (lightweight)
+- Auto-create buyer when marking Pending/Sold if phone number is new
+- Buyer fields:
+  - name (optional)
+  - phone (unique required)
+  - notes
+  - tags (repeat buyer, flake risk, good buyer)
+  - preferred meetup spot
+  - last contacted date
+  - total purchases, total spend
+- Buyer profile shows purchase history + follow-ups
+
+4) Sales Tracking
+- Sale fields:
+  - buyer
+  - listing(s)
+  - sale price
+  - payment type (Cash, CashApp, Zelle, etc.)
+  - meetup spot label
+  - date/time
+  - notes
+- Dashboard stats:
+  - revenue last 7/30 days
+  - profit estimate (sale - cost)
+  - days-to-sell averages by category/powerType
+  - inventory counts by status
+
+5) Follow-ups + Retention
+- Follow-up types: new inventory drop, back in stock, meetup reminder, check-in
+- Templates that produce SMS-style text
+- “Copy message” button (I paste into phone)
+- Suggested follow-ups:
+  - If buyer bought GAS -> suggest when a GAS listing is added
+  - If buyer bought 40V -> suggest when a 40V listing is added
+  - Repeat buyers -> monthly check-in suggestion
+
+6) Storefront
+- Only show listings where:
+  - isPublished = true
+  - status = AVAILABLE
+  - quantity > 0
+- Product grid + search + filters
+- Product detail page with photos and “Meetup only” note
+- Reserve/Ask button:
+  - creates an Inquiry record visible in admin
+  - also optionally creates a FollowUp task for me
+
+7) Settings
+- Business name
+- Default meetup spots list
+- Default message templates
+
+========================
+PWA REQUIREMENTS
+========================
+- Must be installable as a PWA (manifest + service worker)
+- Offline-tolerant UI shell is a bonus (not required)
+- Mobile-first layouts, large buttons, quick actions
+- Barcode scanning must run in mobile browser
+
+========================
+SEED DATA
+========================
+- Seed:
+  - Admin user: demo@reliable.com / password123
+  - 10 listings, 10 meetup spots, a few buyers/sales/follow-ups
+- Include a script: npm run db:seed
+
+========================
+DELIVERABLES
+========================
+- Full project code + README
+- Hostinger deployment guide in README:
+  - create Postgres DB
+  - set env vars
+  - run Prisma migrations
+  - build Next.js app
+  - run with PM2 (VPS) OR Hostinger Node manager
+  - configure domain + SSL
+- Must be fully functional end-to-end (no placeholders).
+- Do not integrate Facebook APIs.
+- Do not mention Home Depot or retailer branding in templates.
+- Use the term “meetup” (not pickup/delivery).
+
+DEPLOYMENT TARGET: Hostinger VPS (preferred)
+- Provide Dockerfile + docker-compose.yml for production
+- Include Postgres service in docker-compose for simple setup (or document Neon/Supabase alternative)
+- Include an Nginx reverse proxy config sample
+- Include PM2 config as a non-Docker option
+- Must include instructions for setting up domain + SSL (Let’s Encrypt)
+- Must store uploads to /var/www/uploads (mounted volume) so uploads persist across deploys
