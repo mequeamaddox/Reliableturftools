@@ -17,6 +17,8 @@ import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { useAuth } from "@/lib/auth-context";
 
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const { logout } = useAuth();
@@ -35,6 +37,14 @@ export default function DashboardScreen() {
     router.push(route as any);
   }
 
+  function getWeeklyTrend() {
+    const thisWeek = stats?.revenueThisWeek || 0;
+    const lastWeek = stats?.revenueLastWeek || 0;
+    if (lastWeek === 0) return thisWeek > 0 ? { pct: 100, dir: "up" as const } : { pct: 0, dir: "flat" as const };
+    const pct = Math.round(((thisWeek - lastWeek) / lastWeek) * 100);
+    return { pct: Math.abs(pct), dir: pct > 0 ? "up" as const : pct < 0 ? "down" as const : "flat" as const };
+  }
+
   if (isLoading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
@@ -42,6 +52,10 @@ export default function DashboardScreen() {
       </View>
     );
   }
+
+  const trend = getWeeklyTrend();
+  const dailySales: { date: string; revenue: number; count: number }[] = stats?.dailySales || [];
+  const maxDayRevenue = Math.max(...dailySales.map((d) => d.revenue), 1);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
@@ -75,6 +89,101 @@ export default function DashboardScreen() {
           </Pressable>
         </View>
 
+        <Text style={styles.sectionTitle}>Today</Text>
+        <View style={styles.todayRow}>
+          <View style={styles.todayCard}>
+            <View style={[styles.todayIcon, { backgroundColor: "rgba(34,197,94,0.15)" }]}>
+              <Ionicons name="cash-outline" size={20} color={Colors.success} />
+            </View>
+            <Text style={styles.todayValue}>{formatMoney(stats?.revenueToday)}</Text>
+            <Text style={styles.todayLabel}>Revenue</Text>
+          </View>
+          <View style={styles.todayCard}>
+            <View style={[styles.todayIcon, { backgroundColor: "rgba(59,130,246,0.15)" }]}>
+              <Ionicons name="cart-outline" size={20} color={Colors.info} />
+            </View>
+            <Text style={styles.todayValue}>{stats?.salesTodayCount || 0}</Text>
+            <Text style={styles.todayLabel}>Sales</Text>
+          </View>
+          <View style={styles.todayCard}>
+            <View style={[styles.todayIcon, { backgroundColor: "rgba(168,85,247,0.15)" }]}>
+              <Ionicons name="cube-outline" size={20} color="#a855f7" />
+            </View>
+            <Text style={styles.todayValue}>{stats?.itemsListedToday || 0}</Text>
+            <Text style={styles.todayLabel}>Listed</Text>
+          </View>
+          <View style={styles.todayCard}>
+            <View style={[styles.todayIcon, { backgroundColor: "rgba(245,158,11,0.15)" }]}>
+              <Ionicons name="chatbubble-outline" size={20} color={Colors.warning} />
+            </View>
+            <Text style={styles.todayValue}>{stats?.inquiriesToday || 0}</Text>
+            <Text style={styles.todayLabel}>Inquiries</Text>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>This Week</Text>
+        <View style={styles.weekCard}>
+          <View style={styles.weekTopRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.weekRevenue}>{formatMoney(stats?.revenueThisWeek)}</Text>
+              <Text style={styles.weekSalesCount}>{stats?.salesThisWeekCount || 0} sales</Text>
+            </View>
+            <View style={[styles.trendBadge, {
+              backgroundColor: trend.dir === "up" ? "rgba(34,197,94,0.15)" : trend.dir === "down" ? "rgba(239,68,68,0.15)" : "rgba(100,116,139,0.15)"
+            }]}>
+              {trend.dir !== "flat" && (
+                <Ionicons
+                  name={trend.dir === "up" ? "trending-up" : "trending-down"}
+                  size={16}
+                  color={trend.dir === "up" ? Colors.success : Colors.danger}
+                />
+              )}
+              <Text style={[styles.trendText, {
+                color: trend.dir === "up" ? Colors.success : trend.dir === "down" ? Colors.danger : Colors.textMuted
+              }]}>
+                {trend.dir === "flat" ? "No change" : `${trend.pct}%`}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.weekCompare}>
+            vs {formatMoney(stats?.revenueLastWeek)} last week ({stats?.salesLastWeekCount || 0} sales)
+          </Text>
+          {stats?.avgSalePrice7d > 0 && (
+            <Text style={styles.avgPrice}>Avg sale: {formatMoney(stats.avgSalePrice7d)}</Text>
+          )}
+        </View>
+
+        <Text style={styles.sectionTitle}>Last 7 Days</Text>
+        <View style={styles.chartCard}>
+          <View style={styles.chartBars}>
+            {dailySales.map((day, i) => {
+              const barHeight = Math.max((day.revenue / maxDayRevenue) * 80, 4);
+              const dayDate = new Date(day.date + "T12:00:00");
+              const label = DAY_LABELS[dayDate.getDay()];
+              const isToday = i === dailySales.length - 1;
+              return (
+                <View key={day.date} style={styles.chartBarCol}>
+                  <Text style={styles.chartBarAmount}>
+                    {day.revenue > 0 ? "$" + Math.round(day.revenue) : ""}
+                  </Text>
+                  <View
+                    style={[
+                      styles.chartBar,
+                      {
+                        height: barHeight,
+                        backgroundColor: isToday ? Colors.primary : day.revenue > 0 ? "rgba(34,197,94,0.6)" : "rgba(100,116,139,0.2)",
+                      },
+                    ]}
+                  />
+                  <Text style={[styles.chartBarLabel, isToday && { color: Colors.primary, fontFamily: "Inter_700Bold" }]}>
+                    {label}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
         <Text style={styles.sectionTitle}>Revenue</Text>
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
@@ -92,6 +201,30 @@ export default function DashboardScreen() {
             </Text>
           </View>
         </View>
+
+        {(stats?.topCategories?.length || 0) > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Top Categories (30d)</Text>
+            <View style={styles.categoriesCard}>
+              {stats.topCategories.map((cat: any, i: number) => {
+                const maxCount = stats.topCategories[0]?.count || 1;
+                const barWidth = Math.max((cat.count / maxCount) * 100, 8);
+                return (
+                  <View key={cat.name} style={styles.categoryRow}>
+                    <Text style={styles.categoryRank}>{i + 1}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.categoryName}>{cat.name}</Text>
+                      <View style={styles.categoryBarBg}>
+                        <View style={[styles.categoryBarFill, { width: `${barWidth}%` }]} />
+                      </View>
+                    </View>
+                    <Text style={styles.categoryCount}>{cat.count}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        )}
 
         <Text style={styles.sectionTitle}>Inventory</Text>
         <View style={styles.inventoryGrid}>
@@ -183,6 +316,120 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 12,
   },
+  todayRow: {
+    flexDirection: "row",
+    gap: 10,
+    paddingHorizontal: 20,
+    marginBottom: 28,
+  },
+  todayCard: {
+    flex: 1,
+    backgroundColor: Colors.cardBg,
+    borderRadius: 14,
+    padding: 14,
+    alignItems: "center",
+    gap: 6,
+  },
+  todayIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  todayValue: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 18,
+    color: Colors.text,
+  },
+  todayLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 11,
+    color: Colors.textMuted,
+    textTransform: "uppercase" as const,
+    letterSpacing: 0.5,
+  },
+  weekCard: {
+    backgroundColor: Colors.cardBg,
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 28,
+  },
+  weekTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  weekRevenue: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 28,
+    color: Colors.text,
+  },
+  weekSalesCount: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  trendBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  trendText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 14,
+  },
+  weekCompare: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+  avgPrice: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: Colors.textMuted,
+    marginTop: 6,
+  },
+  chartCard: {
+    backgroundColor: Colors.cardBg,
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 20,
+    marginBottom: 28,
+  },
+  chartBars: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    height: 120,
+  },
+  chartBarCol: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 4,
+  },
+  chartBarAmount: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 9,
+    color: Colors.textMuted,
+  },
+  chartBar: {
+    width: "60%",
+    borderRadius: 4,
+    minHeight: 4,
+  },
+  chartBarLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginTop: 4,
+  },
   statsRow: {
     flexDirection: "row",
     gap: 12,
@@ -210,6 +457,50 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     fontSize: 13,
     marginTop: 4,
+  },
+  categoriesCard: {
+    backgroundColor: Colors.cardBg,
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 20,
+    marginBottom: 28,
+    gap: 12,
+  },
+  categoryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  categoryRank: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 14,
+    color: Colors.textMuted,
+    width: 18,
+    textAlign: "center",
+  },
+  categoryName: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+    color: Colors.text,
+    marginBottom: 4,
+  },
+  categoryBarBg: {
+    height: 6,
+    backgroundColor: "rgba(100,116,139,0.15)",
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  categoryBarFill: {
+    height: 6,
+    backgroundColor: Colors.primary,
+    borderRadius: 3,
+  },
+  categoryCount: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 14,
+    color: Colors.textSecondary,
+    minWidth: 24,
+    textAlign: "right",
   },
   inventoryGrid: {
     flexDirection: "row",

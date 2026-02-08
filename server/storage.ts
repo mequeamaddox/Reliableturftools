@@ -400,6 +400,17 @@ export const storage = {
     recentSales: Sale[];
     pendingInquiries: number;
     pendingFollowUps: number;
+    salesTodayCount: number;
+    revenueToday: number;
+    itemsListedToday: number;
+    inquiriesToday: number;
+    salesThisWeekCount: number;
+    revenueThisWeek: number;
+    salesLastWeekCount: number;
+    revenueLastWeek: number;
+    avgSalePrice7d: number;
+    topCategories: { name: string; count: number }[];
+    dailySales: { date: string; revenue: number; count: number }[];
   }> {
     const now = new Date();
     const d7 = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
