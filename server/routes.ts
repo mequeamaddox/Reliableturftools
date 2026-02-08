@@ -144,6 +144,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/sales/analytics", requireAuth, async (_req: Request, res: Response) => {
+    try {
+      const analytics = await storage.getSalesAnalytics();
+      return res.json(analytics);
+    } catch (err) {
+      console.error("Sales analytics error:", err);
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
   app.get("/api/listings", requireAuth, async (req: Request, res: Response) => {
     try {
       const { status, powerType, category, search } = req.query;

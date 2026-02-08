@@ -430,4 +430,102 @@ export const storage = {
       pendingFollowUps: allFollowUps.length,
     };
   },
+
+  async getSalesAnalytics() {
+    const allSales = await db.select().from(sales);
+    const allListings = await db.select().from(listings);
+    const allBuyers = await db.select().from(buyers);
+
+    const now = new Date();
+    const d7 = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const d30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const d90 = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+
+    const sales7d = allSales.filter((s) => new Date(s.soldAt) >= d7);
+    const sales30d = allSales.filter((s) => new Date(s.soldAt) >= d30);
+    const sales90d = allSales.filter((s) => new Date(s.soldAt) >= d90);
+
+    function calcRevenue(arr: typeof allSales) {
+      return arr.reduce((sum, s) => sum + parseFloat(s.salePrice), 0);
+    }
+    function calcProfit(arr: typeof allSales) {
+      return arr.reduce((sum, s) => {
+        const listing = allListings.find((l) => l.id === s.listingId);
+        const cost = listing?.cost ? parseFloat(listing.cost) : 0;
+        return sum + parseFloat(s.salePrice) - cost;
+      }, 0);
+    }
+
+    const avgSalePrice = allSales.length > 0
+      ? allSales.reduce((sum, s) => sum + parseFloat(s.salePrice), 0) / allSales.length
+      : 0;
+
+    const categoryBreakdown: Record<string, { count: number; revenue: number }> = {};
+    for (const sale of allSales) {
+      const listing = allListings.find((l) => l.id === sale.listingId);
+      const cat = listing?.category || "OTHER";
+      if (!categoryBreakdown[cat]) categoryBreakdown[cat] = { count: 0, revenue: 0 };
+      categoryBreakdown[cat].count += 1;
+      categoryBreakdown[cat].revenue += parseFloat(sale.salePrice);
+    }
+
+    const paymentBreakdown: Record<string, number> = {};
+    for (const sale of allSales) {
+      const pt = sale.paymentType || "CASH";
+      paymentBreakdown[pt] = (paymentBreakdown[pt] || 0) + 1;
+    }
+
+    const weeklyTrend: { week: string; revenue: number; count: number }[] = [];
+    for (let i = 7; i >= 0; i--) {
+      const weekStart = new Date(now.getTime() - (i + 1) * 7 * 24 * 60 * 60 * 1000);
+      const weekEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+      const weekSales = allSales.filter((s) => {
+        const d = new Date(s.soldAt);
+        return d >= weekStart && d < weekEnd;
+      });
+      weeklyTrend.push({
+        week: weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        revenue: calcRevenue(weekSales),
+        count: weekSales.length,
+      });
+    }
+
+    const topBuyers: { id: string; name: string; totalSpent: number; count: number }[] = [];
+    const buyerTotals: Record<string, { totalSpent: number; count: number }> = {};
+    for (const sale of allSales) {
+      if (!sale.buyerId) continue;
+      if (!buyerTotals[sale.buyerId]) buyerTotals[sale.buyerId] = { totalSpent: 0, count: 0 };
+      buyerTotals[sale.buyerId].totalSpent += parseFloat(sale.salePrice);
+      buyerTotals[sale.buyerId].count += 1;
+    }
+    for (const [buyerId, totals] of Object.entries(buyerTotals)) {
+      const buyer = allBuyers.find((b) => b.id === buyerId);
+      topBuyers.push({
+        id: buyerId,
+        name: buyer?.name || buyer?.phone || "Unknown",
+        ...totals,
+      });
+    }
+    topBuyers.sort((a, b) => b.totalSpent - a.totalSpent);
+
+    return {
+      totalSales: allSales.length,
+      totalRevenue: calcRevenue(allSales),
+      totalProfit: calcProfit(allSales),
+      avgSalePrice,
+      revenue7d: calcRevenue(sales7d),
+      revenue30d: calcRevenue(sales30d),
+      revenue90d: calcRevenue(sales90d),
+      profit7d: calcProfit(sales7d),
+      profit30d: calcProfit(sales30d),
+      profit90d: calcProfit(sales90d),
+      count7d: sales7d.length,
+      count30d: sales30d.length,
+      count90d: sales90d.length,
+      categoryBreakdown,
+      paymentBreakdown,
+      weeklyTrend,
+      topBuyers: topBuyers.slice(0, 5),
+    };
+  },
 };
