@@ -12,15 +12,15 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { apiRequest, queryClient } from "@/lib/query-client";
 
-const CONDITIONS = ["NEW_BOXED", "USED_UNBOXED", "USED", "DAMAGED"] as const;
-const POWER_TYPES = ["GAS", "ELECTRIC_18V", "ELECTRIC_40V", "OTHER"] as const;
-const CATEGORIES = ["TRIMMER", "BLOWER", "MOWER", "CHAINSAW", "BATTERY", "CHARGER", "OTHER"] as const;
+const FALLBACK_CONDITIONS = ["NEW_BOXED", "USED_UNBOXED", "USED", "DAMAGED"];
+const FALLBACK_POWER_TYPES = ["GAS", "ELECTRIC_18V", "ELECTRIC_40V", "OTHER"];
+const FALLBACK_CATEGORIES = ["TRIMMER", "BLOWER", "MOWER", "CHAINSAW", "BATTERY", "CHARGER", "OTHER"];
 
 function ChipSelect({ options, value, onChange, label }: { options: readonly string[]; value: string; onChange: (v: string) => void; label: string }) {
   return (
@@ -57,6 +57,16 @@ export default function NewListingScreen() {
   const [category, setCategory] = useState("OTHER");
   const [notes, setNotes] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const { data: inventoryOptions } = useQuery<{
+    conditions: string[];
+    powerTypes: string[];
+    categories: string[];
+  }>({ queryKey: ["/api/inventory-options"] });
+
+  const CONDITIONS = inventoryOptions?.conditions ?? FALLBACK_CONDITIONS;
+  const POWER_TYPES = inventoryOptions?.powerTypes ?? FALLBACK_POWER_TYPES;
+  const CATEGORIES = inventoryOptions?.categories ?? FALLBACK_CATEGORIES;
 
   const createMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/listings", data),

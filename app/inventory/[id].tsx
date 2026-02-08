@@ -18,9 +18,9 @@ import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { apiRequest, queryClient } from "@/lib/query-client";
 
-const CONDITIONS = ["NEW_BOXED", "USED_UNBOXED", "USED", "DAMAGED"] as const;
-const POWER_TYPES = ["GAS", "ELECTRIC_18V", "ELECTRIC_40V", "OTHER"] as const;
-const CATEGORIES = ["TRIMMER", "BLOWER", "MOWER", "CHAINSAW", "BATTERY", "CHARGER", "OTHER"] as const;
+const FALLBACK_CONDITIONS = ["NEW_BOXED", "USED_UNBOXED", "USED", "DAMAGED"];
+const FALLBACK_POWER_TYPES = ["GAS", "ELECTRIC_18V", "ELECTRIC_40V", "OTHER"];
+const FALLBACK_CATEGORIES = ["TRIMMER", "BLOWER", "MOWER", "CHAINSAW", "BATTERY", "CHARGER", "OTHER"];
 const PAYMENT_TYPES = ["CASH", "CASHAPP", "ZELLE", "VENMO", "OTHER"] as const;
 
 function ChipSelect({ options, value, onChange, label }: { options: readonly string[]; value: string; onChange: (v: string) => void; label: string }) {
@@ -53,6 +53,15 @@ export default function ListingDetailScreen() {
     queryKey: [`/api/listings/${id}`],
   });
   const { data: meetupSpots = [] } = useQuery<any[]>({ queryKey: ["/api/meetup-spots"] });
+  const { data: inventoryOptions } = useQuery<{
+    conditions: string[];
+    powerTypes: string[];
+    categories: string[];
+  }>({ queryKey: ["/api/inventory-options"] });
+
+  const CONDITIONS = inventoryOptions?.conditions ?? FALLBACK_CONDITIONS;
+  const POWER_TYPES = inventoryOptions?.powerTypes ?? FALLBACK_POWER_TYPES;
+  const CATEGORIES = inventoryOptions?.categories ?? FALLBACK_CATEGORIES;
 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
@@ -257,6 +266,16 @@ export default function ListingDetailScreen() {
                   <Text style={styles.actionBtnText}>Sell</Text>
                 </Pressable>
               )}
+              <Pressable
+                style={[styles.actionBtn, { backgroundColor: "rgba(168, 85, 247, 0.9)" }]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push(`/inventory/label?id=${id}` as any);
+                }}
+              >
+                <Ionicons name="pricetag" size={18} color="#fff" />
+                <Text style={styles.actionBtnText}>Label</Text>
+              </Pressable>
             </View>
 
             <View style={styles.fieldGroup}>
