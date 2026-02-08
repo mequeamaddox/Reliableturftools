@@ -112,7 +112,7 @@ export default function BuyersScreen() {
               <Text style={styles.emptySubtext}>Buyers are auto-created when you make a sale</Text>
             </View>
           }
-          scrollEnabled={filtered.length > 0}
+          scrollEnabled={true}
         />
       )}
     </View>

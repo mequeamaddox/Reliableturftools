@@ -212,7 +212,7 @@ export default function InventoryScreen() {
               </Pressable>
             </View>
           }
-          scrollEnabled={listings.length > 0}
+          scrollEnabled={true}
         />
       )}
     </View>
