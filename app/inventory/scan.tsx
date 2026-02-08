@@ -40,10 +40,7 @@ export default function ScanScreen() {
       if (res.ok) {
         const listing = await res.json();
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        router.back();
-        setTimeout(() => {
-          router.push({ pathname: "/inventory/[id]", params: { id: listing.id } });
-        }, 100);
+        router.replace({ pathname: "/inventory/[id]", params: { id: listing.id } });
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         Alert.alert(
@@ -54,10 +51,7 @@ export default function ScanScreen() {
             {
               text: "Create New",
               onPress: () => {
-                router.back();
-                setTimeout(() => {
-                  router.push("/inventory/new" as any);
-                }, 100);
+                router.replace("/inventory/new" as any);
               },
             },
           ],
