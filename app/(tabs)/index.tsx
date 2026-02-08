@@ -62,12 +62,16 @@ export default function DashboardScreen() {
       >
         <View style={styles.quickActions}>
           <Pressable style={[styles.quickBtn, { backgroundColor: Colors.primary }]} onPress={() => quickAction("/inventory/new")}>
-            <Ionicons name="add-circle" size={28} color="#fff" />
-            <Text style={styles.quickBtnText}>Quick Add</Text>
+            <Ionicons name="add-circle" size={26} color="#fff" />
+            <Text style={styles.quickBtnText}>Add Item</Text>
           </Pressable>
           <Pressable style={[styles.quickBtn, { backgroundColor: Colors.info }]} onPress={() => quickAction("/inventory/scan")}>
-            <Ionicons name="barcode" size={28} color="#fff" />
+            <Ionicons name="barcode" size={26} color="#fff" />
             <Text style={styles.quickBtnText}>Scan</Text>
+          </Pressable>
+          <Pressable style={[styles.quickBtn, { backgroundColor: "#d97706" }]} onPress={() => quickAction("/buyers/new")}>
+            <Ionicons name="person-add" size={24} color="#fff" />
+            <Text style={styles.quickBtnText}>Buyer</Text>
           </Pressable>
         </View>
 
@@ -160,16 +164,16 @@ const styles = StyleSheet.create({
   },
   quickBtn: {
     flex: 1,
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
-    padding: 18,
+    gap: 8,
+    paddingVertical: 18,
+    paddingHorizontal: 8,
     borderRadius: 16,
   },
   quickBtnText: {
     fontFamily: "Inter_700Bold",
-    fontSize: 16,
+    fontSize: 13,
     color: "#fff",
   },
   sectionTitle: {

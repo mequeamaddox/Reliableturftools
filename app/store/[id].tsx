@@ -33,6 +33,7 @@ export default function StoreDetailScreen() {
   const insets = useSafeAreaInsets();
   const webTopInset = Platform.OS === "web" ? 67 : 0;
   const [showInquiry, setShowInquiry] = useState(false);
+  const [inquirySent, setInquirySent] = useState(false);
   const [inquiryName, setInquiryName] = useState("");
   const [inquiryPhone, setInquiryPhone] = useState("");
   const [inquiryMessage, setInquiryMessage] = useState("");
@@ -62,8 +63,8 @@ export default function StoreDetailScreen() {
     },
     onSuccess: () => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("Sent!", "Your inquiry has been sent. We'll get back to you soon!");
       setShowInquiry(false);
+      setInquirySent(true);
       setInquiryName("");
       setInquiryPhone("");
       setInquiryMessage("");
@@ -155,7 +156,20 @@ export default function StoreDetailScreen() {
         </View>
       </ScrollView>
 
-      {!showInquiry ? (
+      {inquirySent ? (
+        <View style={[styles.bottomBar, { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 16 }]}>
+          <View style={styles.successBanner}>
+            <Ionicons name="checkmark-circle" size={32} color="#16a34a" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.successTitle}>Inquiry Sent!</Text>
+              <Text style={styles.successDesc}>We'll get back to you shortly — usually within a few hours.</Text>
+            </View>
+          </View>
+          <Pressable style={styles.successDismiss} onPress={() => setInquirySent(false)}>
+            <Text style={styles.successDismissText}>Send Another Inquiry</Text>
+          </Pressable>
+        </View>
+      ) : !showInquiry ? (
         <View style={[styles.bottomBar, { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 16 }]}>
           <Pressable
             style={styles.reserveBtn}
@@ -393,5 +407,37 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     fontSize: 15,
     color: "#fff",
+  },
+  successBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    backgroundColor: "#f0fdf4",
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#bbf7d0",
+  },
+  successTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 17,
+    color: "#15803d",
+  },
+  successDesc: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: "#166534",
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  successDismiss: {
+    alignItems: "center",
+    paddingVertical: 10,
+    marginTop: 4,
+  },
+  successDismissText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    color: "#64748b",
   },
 });
