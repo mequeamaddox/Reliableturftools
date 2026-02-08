@@ -44,7 +44,7 @@ export default function InventoryOptionsScreen() {
     powerTypes: "",
     categories: "",
   });
-  const [editingSection, setEditingSection] = useState<OptionType | null>(null);
+  const [expandedSection, setExpandedSection] = useState<OptionType | null>(null);
 
   useEffect(() => {
     if (options) {
@@ -143,37 +143,68 @@ export default function InventoryOptionsScreen() {
       <ScrollView
         contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 20, paddingHorizontal: 16 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {(Object.keys(SECTION_CONFIG) as OptionType[]).map((type) => {
           const config = SECTION_CONFIG[type];
           const list = getList(type);
-          const isExpanded = editingSection === type;
+          const isExpanded = expandedSection === type;
 
           return (
             <View key={type} style={styles.section}>
-              <Pressable
-                style={styles.sectionHeader}
-                onPress={() => {
-                  setEditingSection(isExpanded ? null : type);
-                  Haptics.selectionAsync();
-                }}
-              >
+              <View style={styles.sectionHeaderRow}>
                 <View style={[styles.sectionIcon, { backgroundColor: `${config.color}20` }]}>
                   <Ionicons name={config.icon as any} size={20} color={config.color} />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.sectionTitle}>{config.label}</Text>
-                  <Text style={styles.sectionCount}>{list.length} options</Text>
-                </View>
-                <Ionicons
-                  name={isExpanded ? "chevron-up" : "chevron-down"}
-                  size={20}
-                  color={Colors.textMuted}
+                <Text style={styles.sectionTitle}>{config.label}</Text>
+              </View>
+
+              <View style={styles.addRow}>
+                <TextInput
+                  style={styles.addInput}
+                  value={newItem[type]}
+                  onChangeText={(v) => setNewItem({ ...newItem, [type]: v })}
+                  placeholder={`Type to add new ${config.label.toLowerCase()}...`}
+                  placeholderTextColor={Colors.textMuted}
+                  autoCapitalize="characters"
+                  onSubmitEditing={() => handleAdd(type)}
+                  returnKeyType="done"
                 />
+                <Pressable
+                  style={[styles.addBtn, !newItem[type].trim() && { opacity: 0.4 }]}
+                  onPress={() => handleAdd(type)}
+                  disabled={!newItem[type].trim()}
+                >
+                  <Ionicons name="add" size={22} color="#fff" />
+                </Pressable>
+              </View>
+
+              <View style={styles.chipsWrap}>
+                {list.map((item) => (
+                  <View key={item} style={[styles.chip, { borderColor: `${config.color}40` }]}>
+                    <Text style={styles.chipText}>{item.replace(/_/g, " ")}</Text>
+                    <Pressable onPress={() => handleRemove(type, item)} hitSlop={6}>
+                      <Ionicons name="close-circle" size={18} color={Colors.danger} />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+
+              <Pressable
+                style={styles.editOrderBtn}
+                onPress={() => {
+                  setExpandedSection(isExpanded ? null : type);
+                  Haptics.selectionAsync();
+                }}
+              >
+                <Ionicons name="swap-vertical" size={16} color={Colors.textMuted} />
+                <Text style={styles.editOrderText}>
+                  {isExpanded ? "Hide reorder" : "Reorder items"}
+                </Text>
               </Pressable>
 
               {isExpanded && (
-                <View style={styles.sectionBody}>
+                <View style={styles.reorderBody}>
                   {list.map((item, index) => (
                     <View key={item} style={styles.optionRow}>
                       <View style={styles.optionReorder}>
@@ -195,34 +226,8 @@ export default function InventoryOptionsScreen() {
                         </Pressable>
                       </View>
                       <Text style={styles.optionLabel}>{item.replace(/_/g, " ")}</Text>
-                      <Pressable
-                        onPress={() => handleRemove(type, item)}
-                        hitSlop={10}
-                      >
-                        <Ionicons name="close-circle" size={22} color={Colors.danger} />
-                      </Pressable>
                     </View>
                   ))}
-
-                  <View style={styles.addRow}>
-                    <TextInput
-                      style={styles.addInput}
-                      value={newItem[type]}
-                      onChangeText={(v) => setNewItem({ ...newItem, [type]: v })}
-                      placeholder={`Add new ${config.label.toLowerCase()}...`}
-                      placeholderTextColor={Colors.textMuted}
-                      autoCapitalize="characters"
-                      onSubmitEditing={() => handleAdd(type)}
-                      returnKeyType="done"
-                    />
-                    <Pressable
-                      style={[styles.addBtn, !newItem[type].trim() && { opacity: 0.4 }]}
-                      onPress={() => handleAdd(type)}
-                      disabled={!newItem[type].trim()}
-                    >
-                      <Ionicons name="add" size={22} color="#fff" />
-                    </Pressable>
-                  </View>
                 </View>
               )}
             </View>
@@ -253,44 +258,93 @@ const styles = StyleSheet.create({
   section: {
     backgroundColor: Colors.cardBg,
     borderRadius: 14,
-    marginBottom: 12,
-    overflow: "hidden",
+    marginBottom: 14,
+    padding: 16,
   },
-  sectionHeader: {
+  sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
     gap: 12,
+    marginBottom: 12,
   },
   sectionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 9,
     justifyContent: "center",
     alignItems: "center",
   },
   sectionTitle: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 15,
+    fontSize: 16,
     color: Colors.text,
   },
-  sectionCount: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 12,
-    color: Colors.textMuted,
-    marginTop: 2,
+  addRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
   },
-  sectionBody: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+  addInput: {
+    flex: 1,
+    backgroundColor: Colors.inputBg,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    color: Colors.text,
+  },
+  addBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  chipsWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 8,
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: Colors.inputBg,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  chipText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: Colors.text,
+  },
+  editOrderBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingTop: 6,
+  },
+  editOrderText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: Colors.textMuted,
+  },
+  reorderBody: {
+    marginTop: 10,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
-    paddingTop: 12,
+    paddingTop: 10,
   },
   optionRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
     gap: 10,
@@ -304,29 +358,5 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     fontSize: 14,
     color: Colors.text,
-  },
-  addRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 12,
-  },
-  addInput: {
-    flex: 1,
-    backgroundColor: Colors.inputBg,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontFamily: "Inter_400Regular",
-    fontSize: 14,
-    color: Colors.text,
-  },
-  addBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: Colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
   },
 });
