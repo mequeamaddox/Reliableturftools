@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "node:http";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
@@ -71,8 +72,19 @@ async function generateSku(category: string): Promise<string> {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const PgSession = connectPgSimple(session);
+
+  const pgSessionStore = new PgSession({
+    conString: process.env.DATABASE_URL,
+    createTableIfMissing: true,
+    errorLog: (err: Error) => {
+      console.error("PgSession error:", err);
+    },
+  });
+
   app.use(
     session({
+      store: pgSessionStore,
       secret: process.env.SESSION_SECRET || "reliable-turf-tools-secret",
       resave: false,
       saveUninitialized: false,
@@ -105,6 +117,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Invalid credentials" });
       }
       req.session.userId = user.id;
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
       return res.json({
         id: user.id,
         email: user.email,
