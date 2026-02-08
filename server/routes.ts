@@ -739,6 +739,204 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  function getBaseUrl(req: Request): string {
+    const proto = req.header("x-forwarded-proto") || req.protocol || "https";
+    const host = req.header("x-forwarded-host") || req.get("host");
+    return `${proto}://${host}`;
+  }
+
+  function formatCondition(c: string): string {
+    const map: Record<string, string> = {
+      NEW_BOXED: "New In Box",
+      USED_UNBOXED: "Used - Unboxed",
+      USED: "Used",
+      DAMAGED: "Damaged",
+    };
+    return map[c] || c.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase());
+  }
+
+  function formatCategory(c: string): string {
+    return c.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase());
+  }
+
+  function formatPowerType(p: string): string {
+    const map: Record<string, string> = {
+      GAS: "Gas",
+      ELECTRIC_18V: "Electric 18V",
+      ELECTRIC_40V: "Electric 40V",
+      OTHER: "Other",
+    };
+    return map[p] || p.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase());
+  }
+
+  function formatPrice(price: string | number): string {
+    return `$${Number(price).toFixed(2)}`;
+  }
+
+  function escapeHtml(s: string): string {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+
+  const storeListingTemplatePath = path.resolve(process.cwd(), "server", "templates", "store-listing.html");
+  const storeDetailTemplatePath = path.resolve(process.cwd(), "server", "templates", "store-detail.html");
+
+  app.get("/store", async (req: Request, res: Response) => {
+    try {
+      const baseUrl = getBaseUrl(req);
+      const listings_list = await storage.getPublishedListings();
+      const template = fs.readFileSync(storeListingTemplatePath, "utf-8");
+
+      let cardsHtml = "";
+      if (listings_list.length === 0) {
+        cardsHtml = '<div class="empty-state">No equipment available right now. Check back soon!</div>';
+      } else {
+        for (const listing of listings_list) {
+          const photoUrl = listing.photos && listing.photos.length > 0
+            ? `${baseUrl}${listing.photos[0]}`
+            : "";
+          const imgHtml = photoUrl
+            ? `<img class="card-img" src="${escapeHtml(photoUrl)}" alt="${escapeHtml(listing.title)}" loading="lazy" />`
+            : `<div class="card-img-placeholder">No Photo</div>`;
+
+          cardsHtml += `<a href="/store/${listing.id}" class="card">
+            ${imgHtml}
+            <div class="card-body">
+              <div class="card-category">${escapeHtml(formatCategory(listing.category))}</div>
+              <div class="card-title">${escapeHtml(listing.title)}</div>
+              <div class="card-meta">
+                <span class="card-condition">${escapeHtml(formatCondition(listing.condition))}</span>
+              </div>
+              <div class="card-price">${formatPrice(listing.price)}</div>
+            </div>
+          </a>`;
+        }
+      }
+
+      const html = template
+        .replace(/BASE_URL_PLACEHOLDER/g, baseUrl)
+        .replace("LISTINGS_HTML_PLACEHOLDER", cardsHtml);
+
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.status(200).send(html);
+    } catch (err) {
+      console.error("Store listing page error:", err);
+      res.status(500).send("Server error");
+    }
+  });
+
+  app.get("/store/:id", async (req: Request, res: Response) => {
+    try {
+      const baseUrl = getBaseUrl(req);
+      const listing = await storage.getListingById(req.params.id);
+      if (!listing || !listing.isPublished || listing.status !== "AVAILABLE") {
+        return res.status(404).send("<!doctype html><html><head><title>Not Found</title></head><body><h1>Item not found</h1><p><a href='/store'>Back to store</a></p></body></html>");
+      }
+
+      const template = fs.readFileSync(storeDetailTemplatePath, "utf-8");
+      const canonicalUrl = `${baseUrl}/store/${listing.id}`;
+      const ogImage = listing.photos && listing.photos.length > 0
+        ? `${baseUrl}${listing.photos[0]}`
+        : "";
+      const metaDesc = `${escapeHtml(listing.title)} — ${formatCondition(listing.condition)} ${formatCategory(listing.category)} for ${formatPrice(listing.price)}. Buy quality used outdoor power equipment from Reliable Turf Tools. Ships nationwide.`;
+
+      let galleryHtml = "";
+      if (listing.photos && listing.photos.length > 0) {
+        const mainPhoto = `${baseUrl}${listing.photos[0]}`;
+        galleryHtml = `<div class="gallery"><div class="gallery-main"><img src="${escapeHtml(mainPhoto)}" alt="${escapeHtml(listing.title)}" /></div>`;
+        if (listing.photos.length > 1) {
+          galleryHtml += '<div class="gallery-thumbs">';
+          for (const photo of listing.photos) {
+            const thumbUrl = `${baseUrl}${photo}`;
+            galleryHtml += `<img class="gallery-thumb${photo === listing.photos[0] ? " active" : ""}" src="${escapeHtml(thumbUrl)}" alt="${escapeHtml(listing.title)}" />`;
+          }
+          galleryHtml += "</div>";
+        }
+        galleryHtml += "</div>";
+      } else {
+        galleryHtml = '<div class="no-photo">No photo available</div>';
+      }
+
+      const brandRow = listing.brand ? `<tr><th>Brand</th><td>${escapeHtml(listing.brand)}</td></tr>` : "";
+      const skuRow = listing.sku ? `<tr><th>SKU</th><td>${escapeHtml(listing.sku)}</td></tr>` : "";
+      const notesHtml = listing.notes
+        ? `<div class="listing-notes"><h3>Notes</h3><p>${escapeHtml(listing.notes)}</p></div>`
+        : "";
+
+      const ogCondition = listing.condition.includes("NEW") ? "NewCondition" : "UsedCondition";
+
+      const jsonLd = JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Product",
+        name: listing.title,
+        description: `${listing.title} — ${formatCondition(listing.condition)} ${formatCategory(listing.category)}. Quality used outdoor power equipment from Reliable Turf Tools.`,
+        image: listing.photos ? listing.photos.map((p: string) => `${baseUrl}${p}`) : [],
+        sku: listing.sku || undefined,
+        brand: listing.brand ? { "@type": "Brand", name: listing.brand } : undefined,
+        category: formatCategory(listing.category),
+        offers: {
+          "@type": "Offer",
+          url: canonicalUrl,
+          priceCurrency: "USD",
+          price: Number(listing.price).toFixed(2),
+          availability: "https://schema.org/InStock",
+          itemCondition: `https://schema.org/${ogCondition}`,
+          seller: {
+            "@type": "Organization",
+            name: "Reliable Turf Tools",
+          },
+        },
+      });
+
+      const html = template
+        .replace(/LISTING_TITLE_PLACEHOLDER/g, escapeHtml(listing.title))
+        .replace(/LISTING_META_DESCRIPTION_PLACEHOLDER/g, metaDesc)
+        .replace(/LISTING_CANONICAL_URL_PLACEHOLDER/g, canonicalUrl)
+        .replace(/LISTING_OG_IMAGE_PLACEHOLDER/g, escapeHtml(ogImage))
+        .replace(/LISTING_OG_CONDITION_PLACEHOLDER/g, ogCondition)
+        .replace(/LISTING_PRICE_RAW_PLACEHOLDER/g, Number(listing.price).toFixed(2))
+        .replace("LISTING_JSONLD_PLACEHOLDER", jsonLd)
+        .replace("LISTING_GALLERY_PLACEHOLDER", galleryHtml)
+        .replace(/LISTING_CATEGORY_PLACEHOLDER/g, escapeHtml(formatCategory(listing.category)))
+        .replace("LISTING_PRICE_PLACEHOLDER", formatPrice(listing.price))
+        .replace("LISTING_CONDITION_PLACEHOLDER", escapeHtml(formatCondition(listing.condition)))
+        .replace("LISTING_POWER_TYPE_PLACEHOLDER", escapeHtml(formatPowerType(listing.powerType)))
+        .replace("LISTING_BRAND_ROW_PLACEHOLDER", brandRow)
+        .replace("LISTING_SKU_ROW_PLACEHOLDER", skuRow)
+        .replace("LISTING_NOTES_PLACEHOLDER", notesHtml)
+        .replace("LISTING_ID_PLACEHOLDER", listing.id);
+
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.status(200).send(html);
+    } catch (err) {
+      console.error("Store detail page error:", err);
+      res.status(500).send("Server error");
+    }
+  });
+
+  app.get("/sitemap.xml", async (req: Request, res: Response) => {
+    try {
+      const baseUrl = getBaseUrl(req);
+      const listings_list = await storage.getPublishedListings();
+      let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+      xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+      xml += `  <url><loc>${baseUrl}/store</loc><changefreq>daily</changefreq><priority>1.0</priority></url>\n`;
+      for (const listing of listings_list) {
+        xml += `  <url><loc>${baseUrl}/store/${listing.id}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>\n`;
+      }
+      xml += "</urlset>";
+      res.setHeader("Content-Type", "application/xml; charset=utf-8");
+      res.status(200).send(xml);
+    } catch (err) {
+      console.error("Sitemap error:", err);
+      res.status(500).send("Server error");
+    }
+  });
+
+  app.get("/robots.txt", (req: Request, res: Response) => {
+    const baseUrl = getBaseUrl(req);
+    res.type("text/plain").send(`User-agent: *\nAllow: /\nSitemap: ${baseUrl}/sitemap.xml`);
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
