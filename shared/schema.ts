@@ -15,6 +15,8 @@ import { z } from "zod";
 export const DEFAULT_CONDITIONS = ["NEW_BOXED", "USED_UNBOXED", "USED", "DAMAGED"];
 export const DEFAULT_POWER_TYPES = ["GAS", "ELECTRIC_18V", "ELECTRIC_40V", "OTHER"];
 export const DEFAULT_CATEGORIES = ["TRIMMER", "BLOWER", "MOWER", "CHAINSAW", "BATTERY", "CHARGER", "OTHER"];
+export const DEFAULT_PAYMENT_TYPES = ["CASH", "CASHAPP", "ZELLE", "VENMO", "OFFERUP", "FACEBOOK", "OTHER"];
+export const DEFAULT_LEAD_SOURCES = ["OFFERUP", "FACEBOOK", "WORD_OF_MOUTH", "RANDOM_MEETUP", "CRAIGSLIST", "OTHER"];
 
 export const listingStatusEnum = pgEnum("listing_status", [
   "AVAILABLE",
@@ -23,13 +25,6 @@ export const listingStatusEnum = pgEnum("listing_status", [
   "ARCHIVED",
 ]);
 
-export const paymentTypeEnum = pgEnum("payment_type", [
-  "CASH",
-  "CASHAPP",
-  "ZELLE",
-  "VENMO",
-  "OTHER",
-]);
 
 export const followUpTypeEnum = pgEnum("follow_up_type", [
   "NEW_INVENTORY",
@@ -92,6 +87,7 @@ export const buyers = pgTable("buyers", {
     .notNull()
     .default(sql`ARRAY[]::text[]`),
   preferredMeetupSpot: text("preferred_meetup_spot"),
+  leadSource: text("lead_source"),
   lastContactedAt: timestamp("last_contacted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -103,8 +99,9 @@ export const sales = pgTable("sales", {
   buyerId: varchar("buyer_id").references(() => buyers.id),
   listingId: varchar("listing_id").references(() => listings.id),
   salePrice: decimal("sale_price", { precision: 10, scale: 2 }).notNull(),
-  paymentType: paymentTypeEnum("payment_type").notNull().default("CASH"),
+  paymentType: text("payment_type").notNull().default("CASH"),
   meetupSpot: text("meetup_spot"),
+  leadSource: text("lead_source"),
   notes: text("notes"),
   soldAt: timestamp("sold_at").defaultNow().notNull(),
 });
