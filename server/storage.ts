@@ -45,6 +45,15 @@ export const storage = {
     return user;
   },
 
+  async updatePushToken(userId: string, pushToken: string): Promise<void> {
+    await db.update(users).set({ pushToken }).where(eq(users.id, userId));
+  },
+
+  async getAllPushTokens(): Promise<string[]> {
+    const result = await db.select({ pushToken: users.pushToken }).from(users);
+    return result.filter((r) => r.pushToken).map((r) => r.pushToken as string);
+  },
+
   async getListings(filters?: {
     status?: string;
     powerType?: string;

@@ -71,6 +71,7 @@ export const users = pgTable("users", {
     .default(sql`gen_random_uuid()`),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  pushToken: text("push_token"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

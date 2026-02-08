@@ -36,6 +36,25 @@ function requireAuth(req: Request, res: Response, next: Function) {
   next();
 }
 
+async function sendPushNotifications(tokens: string[], title: string, body: string, data?: Record<string, string>) {
+  const messages = tokens.map((token) => ({
+    to: token,
+    sound: "default" as const,
+    title,
+    body,
+    data: data || {},
+  }));
+  try {
+    await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(messages),
+    });
+  } catch (err) {
+    console.error("Push notification error:", err);
+  }
+}
+
 function generateSku(category: string): string {
   const prefix = category.substring(0, 3).toUpperCase();
   const num = Date.now().toString().slice(-6);
@@ -83,6 +102,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (err) {
       console.error("Login error:", err);
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  app.post("/api/auth/push-token", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { pushToken } = req.body;
+      if (!pushToken) return res.status(400).json({ error: "Push token required" });
+      await storage.updatePushToken(req.session.userId!, pushToken);
+      return res.json({ success: true });
+    } catch (err) {
       return res.status(500).json({ error: "Server error" });
     }
   });
@@ -363,6 +393,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/inquiries", async (req: Request, res: Response) => {
     try {
       const inquiry = await storage.createInquiry(req.body);
+
+      const tokens = await storage.getAllPushTokens();
+      if (tokens.length > 0) {
+        sendPushNotifications(
+          tokens,
+          "New Inquiry",
+          `${req.body.name || "Someone"} is interested! "${(req.body.message || "").substring(0, 80)}"`,
+          { type: "inquiry", inquiryId: inquiry.id },
+        );
+      }
+
       return res.status(201).json(inquiry);
     } catch (err) {
       return res.status(500).json({ error: "Server error" });
