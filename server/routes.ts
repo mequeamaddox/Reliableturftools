@@ -163,12 +163,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/listings", requireAuth, async (req: Request, res: Response) => {
     try {
-      const { status, powerType, category, search } = req.query;
+      const { status, powerType, category, search, listingType } = req.query;
       const list = await storage.getListings({
         status: status as string,
         powerType: powerType as string,
         category: category as string,
         search: search as string,
+        listingType: listingType as string,
       });
       return res.json(list);
     } catch (err) {
@@ -777,63 +778,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
 
-  // Parts CRUD (admin)
-  app.get("/api/listings/:id/parts", requireAuth, async (req: Request, res: Response) => {
-    try {
-      const partsList = await storage.getPartsByListingId(req.params.id);
-      res.json(partsList);
-    } catch (err) {
-      res.status(500).json({ error: "Failed to fetch parts" });
-    }
-  });
-
-  app.post("/api/listings/:id/parts", requireAuth, async (req: Request, res: Response) => {
-    try {
-      const part = await storage.createPart({ ...req.body, listingId: req.params.id });
-      res.status(201).json(part);
-    } catch (err) {
-      res.status(500).json({ error: "Failed to create part" });
-    }
-  });
-
-  app.put("/api/parts/:id", requireAuth, async (req: Request, res: Response) => {
-    try {
-      const part = await storage.updatePart(req.params.id, req.body);
-      res.json(part);
-    } catch (err) {
-      res.status(500).json({ error: "Failed to update part" });
-    }
-  });
-
-  app.delete("/api/parts/:id", requireAuth, async (req: Request, res: Response) => {
-    try {
-      await storage.deletePart(req.params.id);
-      res.json({ success: true });
-    } catch (err) {
-      res.status(500).json({ error: "Failed to delete part" });
-    }
-  });
-
-  app.post("/api/parts/:id/upload", requireAuth, upload.single("photo"), async (req: Request, res: Response) => {
-    try {
-      if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-      const photoPath = `/uploads/${req.file.filename}`;
-      const part = await storage.updatePart(req.params.id, { photo: photoPath });
-      res.json(part);
-    } catch (err) {
-      res.status(500).json({ error: "Failed to upload photo" });
-    }
-  });
-
-  // Public parts API (storefront)
-  app.get("/api/store/listings/:id/parts", async (req: Request, res: Response) => {
-    try {
-      const partsList = await storage.getAvailablePartsByListingId(req.params.id);
-      res.json(partsList);
-    } catch (err) {
-      res.status(500).json({ error: "Failed to fetch parts" });
-    }
-  });
 
   const storeListingTemplatePath = path.resolve(process.cwd(), "server", "templates", "store-listing.html");
   const storeDetailTemplatePath = path.resolve(process.cwd(), "server", "templates", "store-detail.html");
@@ -841,36 +785,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/store", async (req: Request, res: Response) => {
     try {
       const baseUrl = getBaseUrl(req);
-      const listings_list = await storage.getPublishedListings();
-      const listingsWithParts = await storage.getListingsWithParts();
+      const items = await storage.getPublishedListings("ITEM");
+      const partsList = await storage.getPublishedListings("PART");
       const template = fs.readFileSync(storeListingTemplatePath, "utf-8");
 
-      let cardsHtml = "";
-      if (listings_list.length === 0) {
-        cardsHtml = '<div class="empty-state">No equipment available right now. Check back soon!</div>';
-      } else {
-        for (const listing of listings_list) {
+      function buildCardsHtml(listingsList: typeof items): string {
+        let html = "";
+        for (const listing of listingsList) {
           const photoUrl = listing.photos && listing.photos.length > 0
             ? `${baseUrl}${listing.photos[0]}`
             : "";
           const imgHtml = photoUrl
             ? `<img class="card-img" src="${escapeHtml(photoUrl)}" alt="${escapeHtml(listing.title)}" loading="lazy" />`
             : `<div class="card-img-placeholder">No Photo</div>`;
-          const hasParts = listingsWithParts.includes(listing.id);
-          const partsBadge = hasParts ? '<span class="card-parts-badge">Parts Available</span>' : "";
+          const typeBadge = listing.listingType === "PART"
+            ? '<span class="card-parts-badge">Part</span>'
+            : "";
 
-          cardsHtml += `<a href="/store/${listing.id}" class="card">
+          html += `<a href="/store/${listing.id}" class="card">
             ${imgHtml}
             <div class="card-body">
               <div class="card-category">${escapeHtml(formatCategory(listing.category))}</div>
               <div class="card-title">${escapeHtml(listing.title)}</div>
               <div class="card-meta">
                 <span class="card-condition">${escapeHtml(formatCondition(listing.condition))}</span>
-                ${partsBadge}
+                ${typeBadge}
               </div>
               <div class="card-price">${formatPrice(listing.price)}</div>
             </div>
           </a>`;
+        }
+        return html;
+      }
+
+      let cardsHtml = "";
+      if (items.length === 0 && partsList.length === 0) {
+        cardsHtml = '<div class="empty-state">No equipment available right now. Check back soon!</div>';
+      } else {
+        if (items.length > 0) {
+          cardsHtml += buildCardsHtml(items);
+        }
+        if (partsList.length > 0) {
+          cardsHtml += `</div><h2 class="section-title" style="margin-top:32px">Parts For Sale</h2><div class="grid">`;
+          cardsHtml += buildCardsHtml(partsList);
         }
       }
 
@@ -924,32 +881,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? `<div class="listing-notes"><h3>Notes</h3><p>${escapeHtml(listing.notes)}</p></div>`
         : "";
 
-      const availableParts = await storage.getAvailablePartsByListingId(listing.id);
-      let partsHtml = "";
-      if (availableParts.length > 0) {
-        let partsCards = "";
-        for (const part of availableParts) {
-          const partImg = part.photo
-            ? `<img class="part-img" src="${escapeHtml(baseUrl + part.photo)}" alt="${escapeHtml(part.name)}" loading="lazy" />`
-            : `<div class="part-img-placeholder">No Photo</div>`;
-          const partDesc = part.description ? `<p class="part-desc">${escapeHtml(part.description)}</p>` : "";
-          partsCards += `<div class="part-card">
-            ${partImg}
-            <div class="part-info">
-              <div class="part-name">${escapeHtml(part.name)}</div>
-              ${partDesc}
-              <div class="part-condition">${escapeHtml(formatCondition(part.condition))}</div>
-              <div class="part-price">${formatPrice(part.price)}</div>
-              <button class="btn-part-inquiry" onclick="openPartInquiry('${escapeHtml(part.id)}', '${escapeHtml(part.name)}')">Inquire About This Part</button>
-            </div>
-          </div>`;
-        }
-        partsHtml = `<div class="parts-section">
-          <h3 class="parts-title">Individual Parts For Sale</h3>
-          <p class="parts-subtitle">This item has individual parts available for purchase.</p>
-          <div class="parts-grid">${partsCards}</div>
-        </div>`;
-      }
+      const partsHtml = "";
 
       const ogCondition = listing.condition.includes("NEW") ? "NewCondition" : "UsedCondition";
 
