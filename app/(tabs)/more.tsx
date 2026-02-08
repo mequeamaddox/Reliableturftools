@@ -21,24 +21,209 @@ import { apiRequest } from "@/lib/query-client";
 import { queryClient } from "@/lib/query-client";
 
 type TabType = "followups" | "inquiries" | "settings";
+type FilterType = "pending" | "completed" | "overdue" | "all";
+
+function FollowUpCard({
+  fu,
+  buyer,
+  onComplete,
+  onUncomplete,
+  onEdit,
+  onDelete,
+  onCopy,
+}: {
+  fu: any;
+  buyer: any;
+  onComplete: () => void;
+  onUncomplete: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onCopy: () => void;
+}) {
+  const isOverdue =
+    !fu.isCompleted &&
+    fu.dueDate &&
+    new Date(fu.dueDate) < new Date();
+  const isDueToday =
+    !fu.isCompleted &&
+    fu.dueDate &&
+    new Date(fu.dueDate).toDateString() === new Date().toDateString();
+
+  return (
+    <View
+      style={[
+        styles.fuCard,
+        fu.isCompleted && styles.fuCompleted,
+        isOverdue && styles.fuOverdue,
+      ]}
+    >
+      <View style={styles.fuHeader}>
+        <View style={styles.fuHeaderLeft}>
+          <View
+            style={[
+              styles.fuTypeChip,
+              isOverdue && { backgroundColor: "rgba(239, 68, 68, 0.15)" },
+            ]}
+          >
+            <Text
+              style={[
+                styles.fuTypeText,
+                isOverdue && { color: Colors.danger },
+              ]}
+            >
+              {fu.type.replace("_", " ")}
+            </Text>
+          </View>
+          {fu.dueDate && (
+            <View
+              style={[
+                styles.dueDateChip,
+                isOverdue && styles.dueDateOverdue,
+                isDueToday && styles.dueDateToday,
+              ]}
+            >
+              <Ionicons
+                name="calendar"
+                size={12}
+                color={
+                  isOverdue
+                    ? Colors.danger
+                    : isDueToday
+                      ? Colors.warning
+                      : Colors.textMuted
+                }
+              />
+              <Text
+                style={[
+                  styles.dueDateText,
+                  isOverdue && { color: Colors.danger },
+                  isDueToday && { color: Colors.warning },
+                ]}
+              >
+                {isOverdue
+                  ? "OVERDUE"
+                  : isDueToday
+                    ? "TODAY"
+                    : new Date(fu.dueDate).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+              </Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.fuActions}>
+          <Pressable onPress={onEdit} hitSlop={8}>
+            <Ionicons name="pencil" size={18} color={Colors.info} />
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              fu.isCompleted ? onUncomplete() : onComplete();
+            }}
+            hitSlop={8}
+          >
+            <Ionicons
+              name={fu.isCompleted ? "arrow-undo" : "checkmark-circle"}
+              size={22}
+              color={fu.isCompleted ? Colors.info : Colors.success}
+            />
+          </Pressable>
+          <Pressable onPress={onDelete} hitSlop={8}>
+            <Ionicons name="trash" size={18} color={Colors.danger} />
+          </Pressable>
+        </View>
+      </View>
+      <Pressable
+        onPress={() => {
+          if (buyer?.id) router.push(`/buyers/${buyer.id}` as any);
+        }}
+      >
+        <Text style={styles.fuBuyer}>
+          {buyer?.name || buyer?.phone || "Unknown Buyer"}
+        </Text>
+      </Pressable>
+      {fu.message && <Text style={styles.fuMessage}>{fu.message}</Text>}
+      {fu.message && !fu.isCompleted && (
+        <Pressable style={styles.copyBtn} onPress={onCopy}>
+          <Ionicons name="copy-outline" size={14} color={Colors.primary} />
+          <Text style={styles.copyBtnText}>Copy</Text>
+        </Pressable>
+      )}
+      {fu.isCompleted && fu.completedAt && (
+        <Text style={styles.completedAt}>
+          Done{" "}
+          {new Date(fu.completedAt).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          })}
+        </Text>
+      )}
+    </View>
+  );
+}
 
 export default function MoreScreen() {
   const insets = useSafeAreaInsets();
   const webTopInset = Platform.OS === "web" ? 67 : 0;
   const [activeTab, setActiveTab] = useState<TabType>("followups");
+  const [fuFilter, setFuFilter] = useState<FilterType>("pending");
 
-  const { data: followUps = [], isLoading: fuLoading, refetch: refetchFu, isRefetching: fuRefreshing } = useQuery<any[]>({
+  const {
+    data: allFollowUps = [],
+    isLoading: fuLoading,
+    refetch: refetchFu,
+    isRefetching: fuRefreshing,
+  } = useQuery<any[]>({
     queryKey: ["/api/followups"],
+    select: (data: any) => {
+      const url = new URL("/api/followups?all=true", "http://placeholder");
+      return data;
+    },
   });
-  const { data: inquiries = [], isLoading: inqLoading, refetch: refetchInq } = useQuery<any[]>({
+  const {
+    data: allFollowUpsIncComplete = [],
+    refetch: refetchFuAll,
+  } = useQuery<any[]>({
+    queryKey: ["/api/followups", "all=true"],
+  });
+  const {
+    data: inquiries = [],
+    isLoading: inqLoading,
+    refetch: refetchInq,
+  } = useQuery<any[]>({
     queryKey: ["/api/inquiries"],
   });
-  const { data: buyers = [] } = useQuery<any[]>({ queryKey: ["/api/buyers"] });
-  const { data: meetupSpots = [] } = useQuery<any[]>({ queryKey: ["/api/meetup-spots"] });
-  const { data: templates = [] } = useQuery<any[]>({ queryKey: ["/api/message-templates"] });
+  const { data: buyers = [] } = useQuery<any[]>({
+    queryKey: ["/api/buyers"],
+  });
+  const { data: meetupSpots = [] } = useQuery<any[]>({
+    queryKey: ["/api/meetup-spots"],
+  });
+  const { data: templates = [] } = useQuery<any[]>({
+    queryKey: ["/api/message-templates"],
+  });
 
   const completeMutation = useMutation({
-    mutationFn: (id: string) => apiRequest("PUT", `/api/followups/${id}/complete`),
+    mutationFn: (id: string) =>
+      apiRequest("PUT", `/api/followups/${id}/complete`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/followups"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+    },
+  });
+
+  const uncompleteMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiRequest("PUT", `/api/followups/${id}/uncomplete`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/followups"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+    },
+  });
+
+  const deleteFuMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/followups/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/followups"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
@@ -46,7 +231,8 @@ export default function MoreScreen() {
   });
 
   const readInquiryMutation = useMutation({
-    mutationFn: (id: string) => apiRequest("PUT", `/api/inquiries/${id}/read`),
+    mutationFn: (id: string) =>
+      apiRequest("PUT", `/api/inquiries/${id}/read`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/inquiries"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
@@ -59,25 +245,103 @@ export default function MoreScreen() {
     Alert.alert("Copied!", "Message copied to clipboard");
   }
 
+  function confirmDeleteFu(id: string) {
+    Alert.alert("Delete Follow-Up", "Remove this follow-up?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => deleteFuMutation.mutate(id),
+      },
+    ]);
+  }
+
+  const combinedFollowUps = [...allFollowUps];
+  if (allFollowUpsIncComplete.length > 0) {
+    allFollowUpsIncComplete.forEach((fu: any) => {
+      if (!combinedFollowUps.find((f: any) => f.id === fu.id)) {
+        combinedFollowUps.push(fu);
+      }
+    });
+  }
+
+  const filteredFollowUps = combinedFollowUps.filter((fu: any) => {
+    if (fuFilter === "pending") return !fu.isCompleted;
+    if (fuFilter === "completed") return fu.isCompleted;
+    if (fuFilter === "overdue")
+      return (
+        !fu.isCompleted && fu.dueDate && new Date(fu.dueDate) < new Date()
+      );
+    return true;
+  });
+
+  const pendingCount = combinedFollowUps.filter(
+    (f: any) => !f.isCompleted
+  ).length;
+  const overdueCount = combinedFollowUps.filter(
+    (f: any) =>
+      !f.isCompleted && f.dueDate && new Date(f.dueDate) < new Date()
+  ).length;
+
   const isLoading = fuLoading || inqLoading;
   const tabs: { key: TabType; label: string; count?: number }[] = [
-    { key: "followups", label: "Follow-ups", count: followUps.filter((f: any) => !f.isCompleted).length },
-    { key: "inquiries", label: "Inquiries", count: inquiries.filter((i: any) => !i.isRead).length },
+    { key: "followups", label: "Follow-ups", count: pendingCount },
+    {
+      key: "inquiries",
+      label: "Inquiries",
+      count: inquiries.filter((i: any) => !i.isRead).length,
+    },
     { key: "settings", label: "Settings" },
   ];
 
+  const fuFilters: { key: FilterType; label: string; count?: number }[] = [
+    { key: "pending", label: "Pending", count: pendingCount },
+    { key: "overdue", label: "Overdue", count: overdueCount },
+    { key: "completed", label: "Done" },
+    { key: "all", label: "All" },
+  ];
+
+  function handleRefresh() {
+    refetchFu();
+    refetchFuAll();
+    refetchInq();
+  }
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
-      <Text style={styles.headerTitle}>More</Text>
+    <View
+      style={[styles.container, { paddingTop: insets.top + webTopInset }]}
+    >
+      <View style={styles.headerRow}>
+        <Text style={styles.headerTitle}>More</Text>
+        {activeTab === "followups" && (
+          <Pressable
+            style={styles.addFuBtn}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              router.push("/followups/new" as any);
+            }}
+          >
+            <Ionicons name="add" size={22} color="#fff" />
+          </Pressable>
+        )}
+      </View>
 
       <View style={styles.tabBar}>
         {tabs.map((tab) => (
           <Pressable
             key={tab.key}
             style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-            onPress={() => { setActiveTab(tab.key); Haptics.selectionAsync(); }}
+            onPress={() => {
+              setActiveTab(tab.key);
+              Haptics.selectionAsync();
+            }}
           >
-            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === tab.key && styles.tabTextActive,
+              ]}
+            >
               {tab.label}
             </Text>
             {!!tab.count && tab.count > 0 && (
@@ -90,48 +354,143 @@ export default function MoreScreen() {
       </View>
 
       {isLoading ? (
-        <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} />
+        <ActivityIndicator
+          size="large"
+          color={Colors.primary}
+          style={{ marginTop: 40 }}
+        />
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 120, paddingHorizontal: 16 }}
-          refreshControl={<RefreshControl refreshing={fuRefreshing} onRefresh={() => { refetchFu(); refetchInq(); }} tintColor={Colors.primary} />}
+          contentContainerStyle={{
+            paddingBottom: 120,
+            paddingHorizontal: 16,
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={fuRefreshing}
+              onRefresh={handleRefresh}
+              tintColor={Colors.primary}
+            />
+          }
         >
           {activeTab === "followups" && (
             <>
-              {followUps.length === 0 ? (
+              <View style={styles.filterBar}>
+                {fuFilters.map((f) => (
+                  <Pressable
+                    key={f.key}
+                    style={[
+                      styles.filterChip,
+                      fuFilter === f.key && styles.filterChipActive,
+                      f.key === "overdue" &&
+                        overdueCount > 0 &&
+                        fuFilter !== f.key && {
+                          borderColor: Colors.danger,
+                        },
+                    ]}
+                    onPress={() => {
+                      setFuFilter(f.key);
+                      Haptics.selectionAsync();
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.filterText,
+                        fuFilter === f.key && styles.filterTextActive,
+                        f.key === "overdue" &&
+                          overdueCount > 0 &&
+                          fuFilter !== f.key && {
+                            color: Colors.danger,
+                          },
+                      ]}
+                    >
+                      {f.label}
+                    </Text>
+                    {f.count !== undefined && f.count > 0 && (
+                      <View
+                        style={[
+                          styles.filterBadge,
+                          fuFilter === f.key && {
+                            backgroundColor: "#fff",
+                          },
+                          f.key === "overdue" &&
+                            fuFilter !== f.key && {
+                              backgroundColor: Colors.danger,
+                            },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.filterBadgeText,
+                            fuFilter === f.key && {
+                              color: Colors.primary,
+                            },
+                          ]}
+                        >
+                          {f.count}
+                        </Text>
+                      </View>
+                    )}
+                  </Pressable>
+                ))}
+              </View>
+
+              {filteredFollowUps.length === 0 ? (
                 <View style={styles.empty}>
-                  <Ionicons name="checkmark-circle-outline" size={48} color={Colors.textMuted} />
-                  <Text style={styles.emptyText}>No follow-ups</Text>
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={48}
+                    color={Colors.textMuted}
+                  />
+                  <Text style={styles.emptyText}>
+                    {fuFilter === "pending"
+                      ? "No pending follow-ups"
+                      : fuFilter === "overdue"
+                        ? "No overdue follow-ups"
+                        : fuFilter === "completed"
+                          ? "No completed follow-ups"
+                          : "No follow-ups yet"}
+                  </Text>
+                  {fuFilter === "pending" && (
+                    <Pressable
+                      style={styles.emptyAction}
+                      onPress={() =>
+                        router.push("/followups/new" as any)
+                      }
+                    >
+                      <Ionicons
+                        name="add-circle"
+                        size={20}
+                        color={Colors.primary}
+                      />
+                      <Text style={styles.emptyActionText}>
+                        Create one
+                      </Text>
+                    </Pressable>
+                  )}
                 </View>
               ) : (
-                followUps.map((fu: any) => {
-                  const buyer = buyers.find((b: any) => b.id === fu.buyerId);
+                filteredFollowUps.map((fu: any) => {
+                  const buyer = buyers.find(
+                    (b: any) => b.id === fu.buyerId
+                  );
                   return (
-                    <View key={fu.id} style={[styles.fuCard, fu.isCompleted && styles.fuCompleted]}>
-                      <View style={styles.fuHeader}>
-                        <View style={styles.fuTypeChip}>
-                          <Text style={styles.fuTypeText}>{fu.type.replace("_", " ")}</Text>
-                        </View>
-                        {!fu.isCompleted && (
-                          <Pressable
-                            onPress={() => {
-                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                              completeMutation.mutate(fu.id);
-                            }}
-                          >
-                            <Ionicons name="checkmark-circle" size={28} color={Colors.success} />
-                          </Pressable>
-                        )}
-                      </View>
-                      <Text style={styles.fuBuyer}>{buyer?.name || buyer?.phone || "Unknown"}</Text>
-                      {fu.message && <Text style={styles.fuMessage}>{fu.message}</Text>}
-                      {fu.message && !fu.isCompleted && (
-                        <Pressable style={styles.copyBtn} onPress={() => copyMessage(fu.message)}>
-                          <Ionicons name="copy-outline" size={16} color={Colors.primary} />
-                          <Text style={styles.copyBtnText}>Copy Message</Text>
-                        </Pressable>
-                      )}
-                    </View>
+                    <FollowUpCard
+                      key={fu.id}
+                      fu={fu}
+                      buyer={buyer}
+                      onComplete={() => completeMutation.mutate(fu.id)}
+                      onUncomplete={() =>
+                        uncompleteMutation.mutate(fu.id)
+                      }
+                      onEdit={() =>
+                        router.push(
+                          `/followups/new?editId=${fu.id}` as any
+                        )
+                      }
+                      onDelete={() => confirmDeleteFu(fu.id)}
+                      onCopy={() => copyMessage(fu.message)}
+                    />
                   );
                 })
               )}
@@ -142,12 +501,22 @@ export default function MoreScreen() {
             <>
               {inquiries.length === 0 ? (
                 <View style={styles.empty}>
-                  <Ionicons name="mail-outline" size={48} color={Colors.textMuted} />
+                  <Ionicons
+                    name="mail-outline"
+                    size={48}
+                    color={Colors.textMuted}
+                  />
                   <Text style={styles.emptyText}>No inquiries yet</Text>
                 </View>
               ) : (
                 inquiries.map((inq: any) => (
-                  <View key={inq.id} style={[styles.inqCard, inq.isRead && styles.inqRead]}>
+                  <View
+                    key={inq.id}
+                    style={[
+                      styles.inqCard,
+                      inq.isRead && styles.inqRead,
+                    ]}
+                  >
                     <View style={styles.inqHeader}>
                       <View>
                         <Text style={styles.inqName}>{inq.name}</Text>
@@ -156,16 +525,22 @@ export default function MoreScreen() {
                       {!inq.isRead && (
                         <Pressable
                           onPress={() => {
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            Haptics.impactAsync(
+                              Haptics.ImpactFeedbackStyle.Light
+                            );
                             readInquiryMutation.mutate(inq.id);
                           }}
                           style={styles.markReadBtn}
                         >
-                          <Text style={styles.markReadText}>Mark Read</Text>
+                          <Text style={styles.markReadText}>
+                            Mark Read
+                          </Text>
                         </Pressable>
                       )}
                     </View>
-                    {inq.message && <Text style={styles.inqMessage}>{inq.message}</Text>}
+                    {inq.message && (
+                      <Text style={styles.inqMessage}>{inq.message}</Text>
+                    )}
                     <Text style={styles.inqDate}>
                       {new Date(inq.createdAt).toLocaleDateString()}
                     </Text>
@@ -177,40 +552,87 @@ export default function MoreScreen() {
 
           {activeTab === "settings" && (
             <View style={styles.settingsContainer}>
-              <Text style={styles.settingsSectionTitle}>Meetup Spots</Text>
-              {meetupSpots.map((spot: any) => (
-                <View key={spot.id} style={styles.settingsItem}>
-                  <Ionicons name="location" size={18} color={Colors.primary} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.settingsItemText}>{spot.label}</Text>
-                    {spot.address && <Text style={styles.settingsItemSub}>{spot.address}</Text>}
-                  </View>
+              <Pressable
+                style={styles.settingsMenuBtn}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push("/settings/meetup-spots" as any);
+                }}
+              >
+                <View style={[styles.settingsMenuIcon, { backgroundColor: "rgba(22, 163, 74, 0.15)" }]}>
+                  <Ionicons name="location" size={22} color={Colors.primary} />
                 </View>
-              ))}
-
-              <Text style={[styles.settingsSectionTitle, { marginTop: 24 }]}>Message Templates</Text>
-              {templates.map((t: any) => (
-                <View key={t.id} style={styles.settingsItem}>
-                  <Ionicons name="chatbubble-outline" size={18} color={Colors.info} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.settingsItemText}>{t.name}</Text>
-                    <Text style={styles.settingsItemSub} numberOfLines={2}>{t.template}</Text>
-                  </View>
-                  <Pressable onPress={() => copyMessage(t.template)}>
-                    <Ionicons name="copy-outline" size={18} color={Colors.textMuted} />
-                  </Pressable>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.settingsMenuTitle}>
+                    Meetup Spots
+                  </Text>
+                  <Text style={styles.settingsMenuSub}>
+                    {meetupSpots.length} spot{meetupSpots.length !== 1 ? "s" : ""} configured
+                  </Text>
                 </View>
-              ))}
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={Colors.textMuted}
+                />
+              </Pressable>
 
               <Pressable
-                style={styles.storeBtn}
+                style={styles.settingsMenuBtn}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push("/settings/templates" as any);
+                }}
+              >
+                <View style={[styles.settingsMenuIcon, { backgroundColor: "rgba(59, 130, 246, 0.15)" }]}>
+                  <Ionicons
+                    name="chatbubbles"
+                    size={22}
+                    color={Colors.info}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.settingsMenuTitle}>
+                    Message Templates
+                  </Text>
+                  <Text style={styles.settingsMenuSub}>
+                    {templates.length} template{templates.length !== 1 ? "s" : ""} saved
+                  </Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={Colors.textMuted}
+                />
+              </Pressable>
+
+              <Pressable
+                style={styles.settingsMenuBtn}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                   router.push("/store" as any);
                 }}
               >
-                <Ionicons name="storefront" size={22} color="#fff" />
-                <Text style={styles.storeBtnText}>View Storefront</Text>
+                <View style={[styles.settingsMenuIcon, { backgroundColor: "rgba(245, 158, 11, 0.15)" }]}>
+                  <Ionicons
+                    name="storefront"
+                    size={22}
+                    color={Colors.accent}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.settingsMenuTitle}>
+                    View Storefront
+                  </Text>
+                  <Text style={styles.settingsMenuSub}>
+                    Public-facing store page
+                  </Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={Colors.textMuted}
+                />
               </Pressable>
             </View>
           )}
@@ -225,19 +647,32 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
   headerTitle: {
     fontFamily: "Inter_700Bold",
     fontSize: 26,
     color: Colors.text,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 8,
+  },
+  addFuBtn: {
+    backgroundColor: Colors.primary,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
   tabBar: {
     flexDirection: "row",
     paddingHorizontal: 16,
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   tab: {
     flexDirection: "row",
@@ -272,6 +707,48 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#fff",
   },
+  filterBar: {
+    flexDirection: "row",
+    gap: 6,
+    marginBottom: 14,
+  },
+  filterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: Colors.cardBg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  filterChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  filterText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  filterTextActive: {
+    color: "#fff",
+  },
+  filterBadge: {
+    backgroundColor: Colors.surface,
+    borderRadius: 8,
+    minWidth: 18,
+    height: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  filterBadgeText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 10,
+    color: "#fff",
+  },
   empty: {
     alignItems: "center",
     paddingTop: 60,
@@ -282,6 +759,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.textMuted,
   },
+  emptyAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 12,
+    backgroundColor: "rgba(22, 163, 74, 0.1)",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  emptyActionText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    color: Colors.primary,
+  },
   fuCard: {
     backgroundColor: Colors.cardBg,
     borderRadius: 14,
@@ -291,11 +783,26 @@ const styles = StyleSheet.create({
   fuCompleted: {
     opacity: 0.5,
   },
+  fuOverdue: {
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.danger,
+  },
   fuHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
+  },
+  fuHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flex: 1,
+  },
+  fuActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   fuTypeChip: {
     backgroundColor: Colors.surface,
@@ -307,6 +814,27 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 11,
     color: Colors.textSecondary,
+    textTransform: "uppercase" as const,
+  },
+  dueDateChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: Colors.surface,
+  },
+  dueDateOverdue: {
+    backgroundColor: "rgba(239, 68, 68, 0.15)",
+  },
+  dueDateToday: {
+    backgroundColor: "rgba(245, 158, 11, 0.15)",
+  },
+  dueDateText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 10,
+    color: Colors.textMuted,
     textTransform: "uppercase" as const,
   },
   fuBuyer: {
@@ -336,6 +864,12 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 13,
     color: Colors.primary,
+  },
+  completedAt: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginTop: 4,
   },
   inqCard: {
     backgroundColor: Colors.cardBg,
@@ -389,47 +923,33 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   settingsContainer: {
-    gap: 8,
+    gap: 10,
+    paddingTop: 4,
   },
-  settingsSectionTitle: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 18,
-    color: Colors.text,
-    marginBottom: 8,
-  },
-  settingsItem: {
+  settingsMenuBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 14,
     backgroundColor: Colors.cardBg,
+    borderRadius: 14,
+    padding: 16,
+  },
+  settingsMenuIcon: {
+    width: 44,
+    height: 44,
     borderRadius: 12,
-    padding: 14,
-    marginBottom: 6,
-  },
-  settingsItemText: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 14,
-    color: Colors.text,
-  },
-  settingsItemSub: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 12,
-    color: Colors.textMuted,
-    marginTop: 1,
-  },
-  storeBtn: {
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
-    backgroundColor: Colors.info,
-    borderRadius: 14,
-    padding: 18,
-    marginTop: 24,
   },
-  storeBtnText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 16,
-    color: "#fff",
+  settingsMenuTitle: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 15,
+    color: Colors.text,
+  },
+  settingsMenuSub: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: Colors.textMuted,
+    marginTop: 2,
   },
 });
