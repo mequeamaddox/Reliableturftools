@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "node:http";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+import pg from "pg";
 import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
@@ -74,8 +75,12 @@ async function generateSku(category: string): Promise<string> {
 export async function registerRoutes(app: Express): Promise<Server> {
   const PgSession = connectPgSimple(session);
 
+  const sessionPool = new pg.Pool({
+    connectionString: process.env.DATABASE_URL,
+  });
+
   const pgSessionStore = new PgSession({
-    conString: process.env.DATABASE_URL,
+    pool: sessionPool,
     createTableIfMissing: true,
     errorLog: (err: Error) => {
       console.error("PgSession error:", err);
