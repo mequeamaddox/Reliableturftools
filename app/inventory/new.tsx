@@ -242,30 +242,6 @@ export default function NewListingScreen() {
               />
             </View>
 
-            <View style={styles.row}>
-              <View style={[styles.fieldGroup, { flex: 2 }]}>
-                <Text style={styles.label}>Pallet / Source</Text>
-                <TextInput
-                  style={styles.input}
-                  value={palletName}
-                  onChangeText={setPalletName}
-                  placeholder="e.g. Pallet #3, HD Jan"
-                  placeholderTextColor={Colors.textMuted}
-                />
-              </View>
-              <View style={[styles.fieldGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Pallet Cost</Text>
-                <TextInput
-                  style={styles.input}
-                  value={palletCost}
-                  onChangeText={setPalletCost}
-                  placeholder="0.00"
-                  placeholderTextColor={Colors.textMuted}
-                  keyboardType="decimal-pad"
-                />
-              </View>
-            </View>
-
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Barcode</Text>
               <View style={styles.barcodeRow}>
@@ -296,6 +272,34 @@ export default function NewListingScreen() {
                 multiline
                 numberOfLines={3}
               />
+            </View>
+
+            <View style={styles.sectionHeader}>
+              <Ionicons name="cube-outline" size={18} color={Colors.info} />
+              <Text style={styles.sectionHeaderText}>Sourcing</Text>
+            </View>
+            <View style={styles.row}>
+              <View style={[styles.fieldGroup, { flex: 2 }]}>
+                <Text style={styles.label}>Pallet / Source</Text>
+                <TextInput
+                  style={styles.input}
+                  value={palletName}
+                  onChangeText={setPalletName}
+                  placeholder="e.g. Pallet #3"
+                  placeholderTextColor={Colors.textMuted}
+                />
+              </View>
+              <View style={[styles.fieldGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Pallet $</Text>
+                <TextInput
+                  style={styles.input}
+                  value={palletCost}
+                  onChangeText={setPalletCost}
+                  placeholder="0.00"
+                  placeholderTextColor={Colors.textMuted}
+                  keyboardType="decimal-pad"
+                />
+              </View>
             </View>
 
             {listingType === "ITEM" && (
@@ -502,6 +506,21 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 12,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  sectionHeaderText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 15,
+    color: Colors.text,
   },
   shippingHeader: {
     flexDirection: "row",
