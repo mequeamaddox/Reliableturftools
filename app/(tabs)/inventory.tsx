@@ -60,6 +60,7 @@ function ListingCard({ item, onArchive, onDelete }: { item: any; onArchive: () =
               <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
               <Text style={styles.cardSub}>
                 {item.brand || "No brand"} | {item.condition?.replace("_", " ")} | Qty: {item.quantity}
+                {item.palletName ? ` | ${item.palletName}` : ""}
               </Text>
             </View>
           </View>
