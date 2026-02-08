@@ -378,7 +378,7 @@ export default function StoreDetailScreen() {
             onPress={() => setShowInquiry(true)}
           >
             <Ionicons name="chatbubble" size={20} color="#fff" />
-            <Text style={styles.reserveBtnText}>Ask a Question</Text>
+            <Text style={styles.reserveBtnText}>Reserve / Ask About This</Text>
           </Pressable>
         </View>
       ) : (

@@ -78,6 +78,10 @@ export default function ListingDetailScreen() {
   const [powerType, setPowerType] = useState("GAS");
   const [category, setCategory] = useState("OTHER");
   const [notes, setNotes] = useState("");
+  const [weightLbs, setWeightLbs] = useState("");
+  const [boxLengthIn, setBoxLengthIn] = useState("");
+  const [boxWidthIn, setBoxWidthIn] = useState("");
+  const [boxHeightIn, setBoxHeightIn] = useState("");
   const [showSellModal, setShowSellModal] = useState(false);
   const [buyerPhone, setBuyerPhone] = useState("");
   const [buyerName, setBuyerName] = useState("");
@@ -98,6 +102,10 @@ export default function ListingDetailScreen() {
       setPowerType(listing.powerType || "GAS");
       setCategory(listing.category || "OTHER");
       setNotes(listing.notes || "");
+      setWeightLbs(listing.weightLbs || "");
+      setBoxLengthIn(listing.boxLengthIn || "");
+      setBoxWidthIn(listing.boxWidthIn || "");
+      setBoxHeightIn(listing.boxHeightIn || "");
       setSalePrice(listing.price || "");
     }
   }, [listing]);
@@ -148,6 +156,10 @@ export default function ListingDetailScreen() {
       powerType,
       category,
       notes: notes || null,
+      weightLbs: weightLbs || null,
+      boxLengthIn: boxLengthIn || null,
+      boxWidthIn: boxWidthIn || null,
+      boxHeightIn: boxHeightIn || null,
     });
   }
 
@@ -356,6 +368,71 @@ export default function ListingDetailScreen() {
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Notes</Text>
               <TextInput style={[styles.input, styles.textarea]} value={notes} onChangeText={setNotes} multiline numberOfLines={3} placeholderTextColor={Colors.textMuted} placeholder="Notes..." />
+            </View>
+
+            <View style={styles.shippingHeader}>
+              <Ionicons name="airplane-outline" size={18} color={Colors.primary} />
+              <Text style={styles.shippingHeaderText}>Shipping</Text>
+              {weightLbs ? (
+                <View style={styles.shippingBadge}>
+                  <Text style={styles.shippingBadgeText}>ENABLED</Text>
+                </View>
+              ) : (
+                <View style={[styles.shippingBadge, { backgroundColor: "rgba(100,116,139,0.15)" }]}>
+                  <Text style={[styles.shippingBadgeText, { color: Colors.textMuted }]}>MEETUP ONLY</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.shippingHint}>
+              Add weight to enable shipping. Leave blank for meetup-only items.
+            </Text>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Weight (lbs)</Text>
+              <TextInput
+                style={styles.input}
+                value={weightLbs}
+                onChangeText={setWeightLbs}
+                placeholder="e.g. 5.5"
+                placeholderTextColor={Colors.textMuted}
+                keyboardType="decimal-pad"
+              />
+            </View>
+
+            <View style={styles.row}>
+              <View style={[styles.fieldGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Length (in)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={boxLengthIn}
+                  onChangeText={setBoxLengthIn}
+                  placeholder="14"
+                  placeholderTextColor={Colors.textMuted}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              <View style={[styles.fieldGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Width (in)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={boxWidthIn}
+                  onChangeText={setBoxWidthIn}
+                  placeholder="10"
+                  placeholderTextColor={Colors.textMuted}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              <View style={[styles.fieldGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Height (in)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={boxHeightIn}
+                  onChangeText={setBoxHeightIn}
+                  placeholder="8"
+                  placeholderTextColor={Colors.textMuted}
+                  keyboardType="decimal-pad"
+                />
+              </View>
             </View>
 
             <View style={styles.bottomActions}>
@@ -578,6 +655,41 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 13,
     color: "#fff",
+  },
+  shippingHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 4,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  shippingHeaderText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 15,
+    color: Colors.text,
+    flex: 1,
+  },
+  shippingBadge: {
+    backgroundColor: "rgba(22,163,74,0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  shippingBadgeText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 10,
+    color: Colors.primary,
+    letterSpacing: 0.5,
+  },
+  shippingHint: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginBottom: 12,
+    marginLeft: 4,
   },
   bottomActions: {
     flexDirection: "row",
