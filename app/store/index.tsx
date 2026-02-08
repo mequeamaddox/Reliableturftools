@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Platform,
+  Image,
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -92,14 +93,21 @@ export default function StorefrontScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#1e293b" />
+        <Pressable onPress={() => router.back()} hitSlop={8}>
+          <Ionicons name="arrow-back" size={22} color="#fff" />
         </Pressable>
-        <View>
-          <Text style={styles.headerTitle}>Reliable Turf Tools</Text>
-          <Text style={styles.headerSub}>Quality outdoor power equipment</Text>
+        <View style={styles.headerBrand}>
+          <Image
+            source={{ uri: `${getApiUrl()}/public/logo.png` }}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
+          <View>
+            <Text style={styles.headerTitle}>Reliable Turf Tools</Text>
+            <Text style={styles.headerSub}>Outdoor Power Equipment</Text>
+          </View>
         </View>
-        <View style={{ width: 24 }} />
+        <View style={{ width: 22 }} />
       </View>
 
       <View style={styles.searchWrap}>
@@ -153,20 +161,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
+    paddingVertical: 12,
+    backgroundColor: "#0d1f0d",
+    borderBottomWidth: 3,
+    borderBottomColor: "#2d6a2e",
+  },
+  headerBrand: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+    justifyContent: "center",
+  },
+  headerLogo: {
+    width: 38,
+    height: 38,
+    borderRadius: 6,
   },
   headerTitle: {
     fontFamily: "Inter_700Bold",
-    fontSize: 20,
-    color: "#0f172a",
+    fontSize: 18,
+    color: "#fff",
+    letterSpacing: -0.3,
   },
   headerSub: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
-    color: "#64748b",
+    fontFamily: "Inter_500Medium",
+    fontSize: 10,
+    color: "rgba(255,255,255,0.5)",
+    letterSpacing: 1.2,
+    textTransform: "uppercase" as const,
   },
   searchWrap: {
     flexDirection: "row",
