@@ -227,8 +227,17 @@ export default function MoreScreen() {
     },
   });
 
-  function copyMessage(msg: string) {
-    Clipboard.setStringAsync(msg);
+  function fillPlaceholders(text: string, buyerName?: string) {
+    let filled = text;
+    filled = filled.replace(/\{buyer_name\}/gi, buyerName || "there");
+    filled = filled.replace(/\{listing_title\}/gi, "");
+    filled = filled.replace(/\s{2,}/g, " ");
+    return filled.trim();
+  }
+
+  function copyMessage(msg: string, buyerName?: string) {
+    const finalMsg = fillPlaceholders(msg, buyerName);
+    Clipboard.setStringAsync(finalMsg);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Alert.alert("Copied!", "Message copied to clipboard");
   }
@@ -486,7 +495,7 @@ export default function MoreScreen() {
                           )
                         }
                         onDelete={() => confirmDeleteFu(fu.id)}
-                        onCopy={() => copyMessage(fu.message)}
+                        onCopy={() => copyMessage(fu.message, buyer?.name)}
                       />
                     </SwipeableRow>
                   );

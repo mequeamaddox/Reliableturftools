@@ -110,8 +110,17 @@ export default function NewFollowUpScreen() {
     }
   }
 
+  function fillPlaceholders(text: string, buyerName?: string) {
+    let filled = text;
+    filled = filled.replace(/\{buyer_name\}/gi, buyerName || "there");
+    filled = filled.replace(/\{listing_title\}/gi, "");
+    filled = filled.replace(/\s{2,}/g, " ");
+    return filled.trim();
+  }
+
   function applyTemplate(t: any) {
-    setMessage(t.template);
+    const buyerName = buyers.find((b: any) => b.id === selectedBuyerId)?.name;
+    setMessage(fillPlaceholders(t.template, buyerName));
     setType(t.type);
     Haptics.selectionAsync();
   }
