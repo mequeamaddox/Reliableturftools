@@ -65,6 +65,7 @@ export const listings = pgTable("listings", {
   cost: decimal("cost", { precision: 10, scale: 2 }),
   quantity: integer("quantity").notNull().default(1),
   status: listingStatusEnum("status").notNull().default("AVAILABLE"),
+  listingType: text("listing_type").notNull().default("ITEM"),
   notes: text("notes"),
   weightLbs: decimal("weight_lbs", { precision: 6, scale: 2 }),
   boxLengthIn: decimal("box_length_in", { precision: 6, scale: 2 }),
@@ -154,19 +155,6 @@ export const messageTemplates = pgTable("message_templates", {
   type: followUpTypeEnum("type").notNull(),
 });
 
-export const parts = pgTable("parts", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  listingId: varchar("listing_id").references(() => listings.id, { onDelete: "cascade" }).notNull(),
-  name: text("name").notNull(),
-  description: text("description"),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  condition: text("condition").notNull().default("USED"),
-  photo: text("photo"),
-  isSold: boolean("is_sold").notNull().default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
 
 export const settings = pgTable("settings", {
   id: varchar("id")
@@ -209,10 +197,6 @@ export const insertMeetupSpotSchema = createInsertSchema(meetupSpots).omit({
 export const insertMessageTemplateSchema = createInsertSchema(
   messageTemplates,
 ).omit({ id: true });
-export const insertPartSchema = createInsertSchema(parts).omit({
-  id: true,
-  createdAt: true,
-});
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -232,6 +216,4 @@ export type MessageTemplate = typeof messageTemplates.$inferSelect;
 export type InsertMessageTemplate = z.infer<
   typeof insertMessageTemplateSchema
 >;
-export type Part = typeof parts.$inferSelect;
-export type InsertPart = z.infer<typeof insertPartSchema>;
 export type Setting = typeof settings.$inferSelect;
