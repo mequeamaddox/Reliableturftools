@@ -23,7 +23,7 @@ export default function ScanScreen() {
   const webTopInset = Platform.OS === "web" ? 67 : 0;
   const [barcode, setBarcode] = useState("");
   const [searching, setSearching] = useState(false);
-  const [manualMode, setManualMode] = useState(Platform.OS === "web");
+  const [manualMode, setManualMode] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
 
