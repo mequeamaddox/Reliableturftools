@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
 import { apiRequest, getApiUrl } from "@/lib/query-client";
 import { fetch } from "expo/fetch";
+import { registerForPushNotifications, savePushTokenToServer } from "@/lib/notifications";
 
 interface AuthUser {
   id: string;
@@ -24,6 +25,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
+  async function setupPushNotifications() {
+    try {
+      const token = await registerForPushNotifications();
+      if (token) {
+        await savePushTokenToServer(token);
+      }
+    } catch {}
+  }
+
   async function checkAuth() {
     try {
       const baseUrl = getApiUrl();
@@ -32,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         setUser(data);
+        setupPushNotifications();
       }
     } catch {
     } finally {
@@ -43,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await apiRequest("POST", "/api/auth/login", { email, password });
     const data = await res.json();
     setUser(data);
+    setupPushNotifications();
   }
 
   async function logout() {
