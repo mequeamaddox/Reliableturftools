@@ -60,7 +60,7 @@ Preferred communication style: Simple, everyday language.
   - `meetupSpots` — Configurable meetup locations
   - `messageTemplates` — Reusable message templates for follow-ups
   - `settings` — Key-value settings store
-- **Enums**: PostgreSQL enums for condition, power_type, category, listing_status, payment_type
+- **Enums**: PostgreSQL enums for listing_status, payment_type. Condition, power_type, and category are text columns (customizable via settings)
 - **Migrations**: Drizzle Kit with `drizzle-kit push` for schema sync (config in `drizzle.config.ts`)
 - **Seeding**: `server/seed.ts` creates a demo admin user and sample data
 
@@ -77,6 +77,9 @@ All API routes are prefixed with `/api/`:
 - `GET/POST /api/meetup-spots`, `PUT/DELETE /api/meetup-spots/:id` — Meetup location management
 - `GET/POST /api/message-templates`, `PUT/DELETE /api/message-templates/:id` — Template management
 - `GET /api/dashboard` — Dashboard statistics
+- `GET/PUT /api/inventory-options` — Custom condition/powerType/category options (GET is public, PUT requires auth)
+- `POST /api/generate-sku` — Auto-generate SKU in RTT-[CAT]-XXXX format
+- `GET /api/listings/:id/label` — Get listing data for label generation
 - `GET /api/store/listings`, `GET /api/store/listings/:id` — Public storefront (no auth)
 - `POST /api/store/inquiries` — Public inquiry submission (no auth)
 
