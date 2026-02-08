@@ -8,7 +8,7 @@ Reliable Turf Tools is a business management system for a small turf/outdoor pow
 2. **Customer-Facing Storefront** — Public-facing pages where customers can browse available listings and submit inquiries.
 3. **Backend API** — An Express.js server providing RESTful endpoints for both the admin app and storefront.
 
-The business model is meetup-based sales (no shipping/delivery). Inventory is barcode-first with support for scanning. Items can be published from the admin side to the public storefront with one click.
+The business model is currently meetup-based sales but expanding to online sales with nationwide shipping. Primary sales channels are Facebook groups and ads. Inventory is barcode-first with support for scanning. Items can be published from the admin side to the public storefront with one click. Payment preferences: Square, Found (banking app), PayPal — no Stripe.
 
 ## User Preferences
 
@@ -60,7 +60,7 @@ Preferred communication style: Simple, everyday language.
   - `meetupSpots` — Configurable meetup locations
   - `messageTemplates` — Reusable message templates for follow-ups
   - `settings` — Key-value settings store
-- **Enums**: PostgreSQL enums for listing_status, payment_type. Condition, power_type, and category are text columns (customizable via settings)
+- **Enums**: PostgreSQL enums for listing_status, follow_up_type, buyer_tag. payment_type is a text column (customizable). Condition, power_type, and category are text columns (customizable via settings)
 - **Migrations**: Drizzle Kit with `drizzle-kit push` for schema sync (config in `drizzle.config.ts`)
 - **Seeding**: `server/seed.ts` creates a demo admin user and sample data
 
@@ -77,11 +77,19 @@ All API routes are prefixed with `/api/`:
 - `GET/POST /api/meetup-spots`, `PUT/DELETE /api/meetup-spots/:id` — Meetup location management
 - `GET/POST /api/message-templates`, `PUT/DELETE /api/message-templates/:id` — Template management
 - `GET /api/dashboard` — Dashboard statistics
-- `GET/PUT /api/inventory-options` — Custom condition/powerType/category options (GET is public, PUT requires auth)
+- `GET/PUT /api/inventory-options` — Custom condition/powerType/category/paymentTypes/leadSources options (GET is public, PUT requires auth)
 - `POST /api/generate-sku` — Auto-generate SKU in RTT-[CAT]-XXXX format
 - `GET /api/listings/:id/label` — Get listing data for label generation
-- `GET /api/store/listings`, `GET /api/store/listings/:id` — Public storefront (no auth)
+- `GET /api/store/listings`, `GET /api/store/listings/:id` — Public storefront API (no auth)
 - `POST /api/store/inquiries` — Public inquiry submission (no auth)
+
+### SEO Storefront (Server-Rendered HTML)
+
+- `GET /store` — Public storefront browse page (server-rendered HTML with SEO meta tags)
+- `GET /store/:id` — Individual listing detail page (server-rendered with JSON-LD Product schema, OG tags)
+- `GET /sitemap.xml` — Dynamic XML sitemap of all published listings
+- `GET /robots.txt` — Search engine crawler instructions
+- Templates: `server/templates/store-listing.html`, `server/templates/store-detail.html`
 
 ### Build & Run
 
