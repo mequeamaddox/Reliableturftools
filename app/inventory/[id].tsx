@@ -314,7 +314,30 @@ export default function ListingDetailScreen() {
 
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>SKU</Text>
-              <Text style={styles.skuText}>{listing?.sku}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <TextInput style={[styles.input, { flex: 1 }]} value={listing?.sku || ""} editable={false} placeholderTextColor={Colors.textMuted} placeholder="No SKU yet" />
+                <Pressable
+                  style={styles.generateSkuBtn}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    apiRequest("POST", "/api/generate-sku", { category: category || "OTHER" })
+                      .then((res: any) => res.json())
+                      .then((data: any) => {
+                        if (data.sku) {
+                          apiRequest("PUT", `/api/listings/${id}`, { sku: data.sku }).then(() => {
+                            queryClient.invalidateQueries({ queryKey: [`/api/listings/${id}`] });
+                            queryClient.invalidateQueries({ queryKey: ["/api/listings"] });
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                          });
+                        }
+                      })
+                      .catch(() => Alert.alert("Error", "Failed to generate SKU"));
+                  }}
+                >
+                  <Ionicons name="barcode-outline" size={18} color="#fff" />
+                  <Text style={styles.generateSkuText}>Generate</Text>
+                </Pressable>
+              </View>
             </View>
 
             <View style={styles.fieldGroup}>
@@ -514,6 +537,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textMuted,
     marginLeft: 4,
+  },
+  generateSkuBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: Colors.info,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  generateSkuText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+    color: "#fff",
   },
   bottomActions: {
     flexDirection: "row",

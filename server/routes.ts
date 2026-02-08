@@ -200,9 +200,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/listings", requireAuth, async (req: Request, res: Response) => {
     try {
       const data = req.body;
-      if (!data.sku) {
-        data.sku = await generateSku(data.category || "OTH");
-      }
       const listing = await storage.createListing(data);
       return res.status(201).json(listing);
     } catch (err) {
