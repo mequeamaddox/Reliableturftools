@@ -50,6 +50,7 @@ function ClassicTabLayout() {
           borderTopWidth: isWeb ? 1 : 0,
           borderTopColor: Colors.border,
           elevation: 0,
+          zIndex: 999,
           ...(isWeb ? { height: 84 } : {}),
         },
         tabBarBackground: () =>
