@@ -387,7 +387,9 @@ export default function ListingDetailScreen() {
               <TextInput style={styles.input} value={salePrice} onChangeText={setSalePrice} keyboardType="decimal-pad" placeholderTextColor={Colors.textMuted} />
             </View>
 
-            <ChipSelect options={PAYMENT_TYPES} value={paymentType} onChange={setPaymentType} label="Payment Type" />
+            <ChipSelect options={PAY_TYPES} value={paymentType} onChange={setPaymentType} label="Payment Type" />
+
+            <ChipSelect options={LEAD_SOURCES} value={leadSource} onChange={setLeadSource} label="Where'd They Find You?" />
 
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Meetup Spot</Text>
