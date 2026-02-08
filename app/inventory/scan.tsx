@@ -51,7 +51,9 @@ export default function ScanScreen() {
             {
               text: "Create New",
               onPress: () => {
-                router.replace("/inventory/new" as any);
+                setTimeout(() => {
+                  router.replace("/inventory/new" as any);
+                }, 300);
               },
             },
           ],
