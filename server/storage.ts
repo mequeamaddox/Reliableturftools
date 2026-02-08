@@ -458,6 +458,55 @@ export const storage = {
       )
       .slice(0, 5);
 
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const salesToday = allSales.filter((s) => new Date(s.soldAt) >= todayStart);
+    const revenueToday = salesToday.reduce((sum, s) => sum + parseFloat(s.salePrice), 0);
+    const itemsListedToday = allListings.filter((l) => new Date(l.createdAt) >= todayStart).length;
+
+    const inquiriesToday = await db.select().from(inquiries);
+    const inquiriesTodayCount = inquiriesToday.filter((i) => new Date(i.createdAt) >= todayStart).length;
+
+    const weekStart = new Date(todayStart);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    const lastWeekStart = new Date(weekStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const salesThisWeek = allSales.filter((s) => new Date(s.soldAt) >= weekStart);
+    const salesLastWeek = allSales.filter((s) => {
+      const d = new Date(s.soldAt);
+      return d >= lastWeekStart && d < weekStart;
+    });
+    const revenueThisWeek = salesThisWeek.reduce((sum, s) => sum + parseFloat(s.salePrice), 0);
+    const revenueLastWeek = salesLastWeek.reduce((sum, s) => sum + parseFloat(s.salePrice), 0);
+
+    const avgSalePrice7d = sales7d.length > 0 ? revenue7d / sales7d.length : 0;
+
+    const categoryCounts: Record<string, number> = {};
+    for (const sale of sales30d) {
+      const listing = allListings.find((l) => l.id === sale.listingId);
+      if (listing) {
+        categoryCounts[listing.category] = (categoryCounts[listing.category] || 0) + 1;
+      }
+    }
+    const topCategories = Object.entries(categoryCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, count]) => ({ name, count }));
+
+    const dailySales: { date: string; revenue: number; count: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const dayStart = new Date(todayStart.getTime() - i * 24 * 60 * 60 * 1000);
+      const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+      const daySales = allSales.filter((s) => {
+        const d = new Date(s.soldAt);
+        return d >= dayStart && d < dayEnd;
+      });
+      dailySales.push({
+        date: dayStart.toISOString().slice(0, 10),
+        revenue: daySales.reduce((sum, s) => sum + parseFloat(s.salePrice), 0),
+        count: daySales.length,
+      });
+    }
+
     return {
       revenue7d,
       revenue30d,
@@ -470,6 +519,17 @@ export const storage = {
       recentSales,
       pendingInquiries: allInquiries.length,
       pendingFollowUps: allFollowUps.length,
+      salesTodayCount: salesToday.length,
+      revenueToday,
+      itemsListedToday,
+      inquiriesToday: inquiriesTodayCount,
+      salesThisWeekCount: salesThisWeek.length,
+      revenueThisWeek,
+      salesLastWeekCount: salesLastWeek.length,
+      revenueLastWeek,
+      avgSalePrice7d,
+      topCategories,
+      dailySales,
     };
   },
 
