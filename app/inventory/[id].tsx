@@ -338,30 +338,6 @@ export default function ListingDetailScreen() {
               <TextInput style={styles.input} value={brand} onChangeText={setBrand} placeholder="Brand name" placeholderTextColor={Colors.textMuted} />
             </View>
 
-            <View style={styles.row}>
-              <View style={[styles.fieldGroup, { flex: 2 }]}>
-                <Text style={styles.label}>Pallet / Source</Text>
-                <TextInput
-                  style={styles.input}
-                  value={palletName}
-                  onChangeText={setPalletName}
-                  placeholder="e.g. Pallet #3, HD Jan"
-                  placeholderTextColor={Colors.textMuted}
-                />
-              </View>
-              <View style={[styles.fieldGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Pallet Cost</Text>
-                <TextInput
-                  style={styles.input}
-                  value={palletCost}
-                  onChangeText={setPalletCost}
-                  placeholder="0.00"
-                  placeholderTextColor={Colors.textMuted}
-                  keyboardType="decimal-pad"
-                />
-              </View>
-            </View>
-
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Barcode</Text>
               <TextInput style={styles.input} value={barcode} onChangeText={setBarcode} placeholder="Barcode" placeholderTextColor={Colors.textMuted} />
@@ -398,6 +374,34 @@ export default function ListingDetailScreen() {
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Notes</Text>
               <TextInput style={[styles.input, styles.textarea]} value={notes} onChangeText={setNotes} multiline numberOfLines={3} placeholderTextColor={Colors.textMuted} placeholder="Notes..." />
+            </View>
+
+            <View style={styles.sectionHeader}>
+              <Ionicons name="cube-outline" size={18} color={Colors.info} />
+              <Text style={styles.sectionHeaderText}>Sourcing</Text>
+            </View>
+            <View style={styles.row}>
+              <View style={[styles.fieldGroup, { flex: 2 }]}>
+                <Text style={styles.label}>Pallet / Source</Text>
+                <TextInput
+                  style={styles.input}
+                  value={palletName}
+                  onChangeText={setPalletName}
+                  placeholder="e.g. Pallet #3"
+                  placeholderTextColor={Colors.textMuted}
+                />
+              </View>
+              <View style={[styles.fieldGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Pallet $</Text>
+                <TextInput
+                  style={styles.input}
+                  value={palletCost}
+                  onChangeText={setPalletCost}
+                  placeholder="0.00"
+                  placeholderTextColor={Colors.textMuted}
+                  keyboardType="decimal-pad"
+                />
+              </View>
             </View>
 
             <View style={styles.shippingHeader}>
@@ -685,6 +689,21 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 13,
     color: "#fff",
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 12,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  sectionHeaderText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 15,
+    color: Colors.text,
   },
   shippingHeader: {
     flexDirection: "row",
