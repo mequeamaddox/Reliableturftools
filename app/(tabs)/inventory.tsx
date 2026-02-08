@@ -89,10 +89,12 @@ export default function InventoryScreen() {
   const webTopInset = Platform.OS === "web" ? 67 : 0;
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("ALL");
+  const [listingType, setListingType] = useState<"ITEM" | "PART">("ITEM");
 
   const queryParams = new URLSearchParams();
   if (activeFilter !== "ALL") queryParams.set("status", activeFilter);
   if (search) queryParams.set("search", search);
+  queryParams.set("listingType", listingType);
   const queryString = queryParams.toString();
 
   const { data: listings = [], isLoading, refetch, isRefetching } = useQuery<any[]>({
@@ -157,6 +159,23 @@ export default function InventoryScreen() {
             <Ionicons name="close-circle" size={18} color={Colors.textMuted} />
           </Pressable>
         )}
+      </View>
+
+      <View style={styles.typeToggleRow}>
+        <Pressable
+          style={[styles.typeToggle, listingType === "ITEM" && styles.typeToggleActive]}
+          onPress={() => { setListingType("ITEM"); Haptics.selectionAsync(); }}
+        >
+          <Ionicons name="build-outline" size={16} color={listingType === "ITEM" ? "#fff" : Colors.textSecondary} />
+          <Text style={[styles.typeToggleText, listingType === "ITEM" && styles.typeToggleTextActive]}>Items</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.typeToggle, listingType === "PART" && styles.typeToggleActive]}
+          onPress={() => { setListingType("PART"); Haptics.selectionAsync(); }}
+        >
+          <Ionicons name="cog-outline" size={16} color={listingType === "PART" ? "#fff" : Colors.textSecondary} />
+          <Text style={[styles.typeToggleText, listingType === "PART" && styles.typeToggleTextActive]}>Parts</Text>
+        </Pressable>
       </View>
 
       <View style={styles.filterRow}>
@@ -236,6 +255,34 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.text,
     paddingVertical: 12,
+  },
+  typeToggleRow: {
+    flexDirection: "row",
+    gap: 0,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    backgroundColor: Colors.cardBg,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  typeToggle: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+  },
+  typeToggleActive: {
+    backgroundColor: Colors.primary,
+  },
+  typeToggleText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  typeToggleTextActive: {
+    color: "#fff",
   },
   filterRow: {
     flexDirection: "row",

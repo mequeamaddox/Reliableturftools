@@ -195,8 +195,12 @@ export default function NewListingScreen() {
           </View>
         </View>
 
-        <ChipSelect options={CONDITIONS} value={condition} onChange={setCondition} label="Condition" />
-        <ChipSelect options={POWER_TYPES} value={powerType} onChange={setPowerType} label="Power Type" />
+        {listingType === "ITEM" && (
+          <>
+            <ChipSelect options={CONDITIONS} value={condition} onChange={setCondition} label="Condition" />
+            <ChipSelect options={POWER_TYPES} value={powerType} onChange={setPowerType} label="Power Type" />
+          </>
+        )}
         <ChipSelect options={CATEGORIES} value={category} onChange={setCategory} label="Category" />
 
         <Pressable
@@ -266,70 +270,74 @@ export default function NewListingScreen() {
               />
             </View>
 
-            <View style={styles.shippingHeader}>
-              <Ionicons name="airplane-outline" size={18} color={Colors.primary} />
-              <Text style={styles.shippingHeaderText}>Shipping</Text>
-              {weightLbs ? (
-                <View style={styles.shippingBadge}>
-                  <Text style={styles.shippingBadgeText}>ENABLED</Text>
+            {listingType === "ITEM" && (
+              <>
+                <View style={styles.shippingHeader}>
+                  <Ionicons name="airplane-outline" size={18} color={Colors.primary} />
+                  <Text style={styles.shippingHeaderText}>Shipping</Text>
+                  {weightLbs ? (
+                    <View style={styles.shippingBadge}>
+                      <Text style={styles.shippingBadgeText}>ENABLED</Text>
+                    </View>
+                  ) : (
+                    <View style={[styles.shippingBadge, { backgroundColor: "rgba(100,116,139,0.15)" }]}>
+                      <Text style={[styles.shippingBadgeText, { color: Colors.textMuted }]}>MEETUP ONLY</Text>
+                    </View>
+                  )}
                 </View>
-              ) : (
-                <View style={[styles.shippingBadge, { backgroundColor: "rgba(100,116,139,0.15)" }]}>
-                  <Text style={[styles.shippingBadgeText, { color: Colors.textMuted }]}>MEETUP ONLY</Text>
+                <Text style={styles.shippingHint}>
+                  Add weight to enable shipping. Leave blank for meetup-only items.
+                </Text>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Weight (lbs)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={weightLbs}
+                    onChangeText={setWeightLbs}
+                    placeholder="e.g. 5.5"
+                    placeholderTextColor={Colors.textMuted}
+                    keyboardType="decimal-pad"
+                  />
                 </View>
-              )}
-            </View>
-            <Text style={styles.shippingHint}>
-              Add weight to enable shipping. Leave blank for meetup-only items.
-            </Text>
 
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Weight (lbs)</Text>
-              <TextInput
-                style={styles.input}
-                value={weightLbs}
-                onChangeText={setWeightLbs}
-                placeholder="e.g. 5.5"
-                placeholderTextColor={Colors.textMuted}
-                keyboardType="decimal-pad"
-              />
-            </View>
-
-            <View style={styles.row}>
-              <View style={[styles.fieldGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Length (in)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={boxLengthIn}
-                  onChangeText={setBoxLengthIn}
-                  placeholder="14"
-                  placeholderTextColor={Colors.textMuted}
-                  keyboardType="decimal-pad"
-                />
-              </View>
-              <View style={[styles.fieldGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Width (in)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={boxWidthIn}
-                  onChangeText={setBoxWidthIn}
-                  placeholder="10"
-                  placeholderTextColor={Colors.textMuted}
-                  keyboardType="decimal-pad"
-                />
-              </View>
-              <View style={[styles.fieldGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Height (in)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={boxHeightIn}
-                  onChangeText={setBoxHeightIn}
-                  placeholder="8"
-                  placeholderTextColor={Colors.textMuted}
-                  keyboardType="decimal-pad"
-                />
-              </View>
-            </View>
+                <View style={styles.row}>
+                  <View style={[styles.fieldGroup, { flex: 1 }]}>
+                    <Text style={styles.label}>Length (in)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={boxLengthIn}
+                      onChangeText={setBoxLengthIn}
+                      placeholder="14"
+                      placeholderTextColor={Colors.textMuted}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                  <View style={[styles.fieldGroup, { flex: 1 }]}>
+                    <Text style={styles.label}>Width (in)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={boxWidthIn}
+                      onChangeText={setBoxWidthIn}
+                      placeholder="10"
+                      placeholderTextColor={Colors.textMuted}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                  <View style={[styles.fieldGroup, { flex: 1 }]}>
+                    <Text style={styles.label}>Height (in)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={boxHeightIn}
+                      onChangeText={setBoxHeightIn}
+                      placeholder="8"
+                      placeholderTextColor={Colors.textMuted}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                </View>
+              </>
+            )}
           </>
         )}
       </ScrollView>
