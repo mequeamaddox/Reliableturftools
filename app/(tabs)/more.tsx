@@ -175,17 +175,7 @@ export default function MoreScreen() {
     refetch: refetchFu,
     isRefetching: fuRefreshing,
   } = useQuery<any[]>({
-    queryKey: ["/api/followups"],
-    select: (data: any) => {
-      const url = new URL("/api/followups?all=true", "http://placeholder");
-      return data;
-    },
-  });
-  const {
-    data: allFollowUpsIncComplete = [],
-    refetch: refetchFuAll,
-  } = useQuery<any[]>({
-    queryKey: ["/api/followups", "all=true"],
+    queryKey: ["/api/followups?all=true"],
   });
   const {
     data: inquiries = [],
@@ -204,30 +194,27 @@ export default function MoreScreen() {
     queryKey: ["/api/message-templates"],
   });
 
+  function invalidateFollowUps() {
+    queryClient.invalidateQueries({ queryKey: ["/api/followups?all=true"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/followups"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+  }
+
   const completeMutation = useMutation({
     mutationFn: (id: string) =>
       apiRequest("PUT", `/api/followups/${id}/complete`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/followups"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-    },
+    onSuccess: invalidateFollowUps,
   });
 
   const uncompleteMutation = useMutation({
     mutationFn: (id: string) =>
       apiRequest("PUT", `/api/followups/${id}/uncomplete`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/followups"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-    },
+    onSuccess: invalidateFollowUps,
   });
 
   const deleteFuMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/followups/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/followups"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-    },
+    onSuccess: invalidateFollowUps,
   });
 
   const readInquiryMutation = useMutation({
@@ -256,16 +243,7 @@ export default function MoreScreen() {
     ]);
   }
 
-  const combinedFollowUps = [...allFollowUps];
-  if (allFollowUpsIncComplete.length > 0) {
-    allFollowUpsIncComplete.forEach((fu: any) => {
-      if (!combinedFollowUps.find((f: any) => f.id === fu.id)) {
-        combinedFollowUps.push(fu);
-      }
-    });
-  }
-
-  const filteredFollowUps = combinedFollowUps.filter((fu: any) => {
+  const filteredFollowUps = allFollowUps.filter((fu: any) => {
     if (fuFilter === "pending") return !fu.isCompleted;
     if (fuFilter === "completed") return fu.isCompleted;
     if (fuFilter === "overdue")
@@ -275,10 +253,10 @@ export default function MoreScreen() {
     return true;
   });
 
-  const pendingCount = combinedFollowUps.filter(
+  const pendingCount = allFollowUps.filter(
     (f: any) => !f.isCompleted
   ).length;
-  const overdueCount = combinedFollowUps.filter(
+  const overdueCount = allFollowUps.filter(
     (f: any) =>
       !f.isCompleted && f.dueDate && new Date(f.dueDate) < new Date()
   ).length;
@@ -303,7 +281,6 @@ export default function MoreScreen() {
 
   function handleRefresh() {
     refetchFu();
-    refetchFuAll();
     refetchInq();
   }
 

@@ -34,7 +34,7 @@ export default function NewFollowUpScreen() {
   const { data: buyers = [] } = useQuery<any[]>({ queryKey: ["/api/buyers"] });
   const { data: templates = [] } = useQuery<any[]>({ queryKey: ["/api/message-templates"] });
   const { data: allFollowUps = [] } = useQuery<any[]>({
-    queryKey: ["/api/followups"],
+    queryKey: ["/api/followups?all=true"],
     enabled: isEditing,
   });
 
@@ -66,11 +66,16 @@ export default function NewFollowUpScreen() {
     }
   }, [existingFollowUp]);
 
+  function invalidateFollowUps() {
+    queryClient.invalidateQueries({ queryKey: ["/api/followups?all=true"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/followups"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+  }
+
   const createMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/followups", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/followups"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      invalidateFollowUps();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     },
@@ -80,8 +85,7 @@ export default function NewFollowUpScreen() {
     mutationFn: (data: any) =>
       apiRequest("PUT", `/api/followups/${params.editId}`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/followups"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      invalidateFollowUps();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     },
