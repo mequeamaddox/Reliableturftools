@@ -71,6 +71,8 @@ export const listings = pgTable("listings", {
   boxLengthIn: decimal("box_length_in", { precision: 6, scale: 2 }),
   boxWidthIn: decimal("box_width_in", { precision: 6, scale: 2 }),
   boxHeightIn: decimal("box_height_in", { precision: 6, scale: 2 }),
+  palletName: text("pallet_name"),
+  palletCost: decimal("pallet_cost", { precision: 10, scale: 2 }),
   isPublished: boolean("is_published").notNull().default(false),
   photos: text("photos")
     .array()
