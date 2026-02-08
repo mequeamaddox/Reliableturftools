@@ -192,6 +192,20 @@ export const storage = {
     return sale;
   },
 
+  async getSaleById(id: string): Promise<Sale | undefined> {
+    const [sale] = await db.select().from(sales).where(eq(sales.id, id));
+    return sale;
+  },
+
+  async updateSale(id: string, data: Partial<InsertSale>): Promise<Sale> {
+    const [sale] = await db.update(sales).set(data).where(eq(sales.id, id)).returning();
+    return sale;
+  },
+
+  async deleteSale(id: string): Promise<void> {
+    await db.delete(sales).where(eq(sales.id, id));
+  },
+
   async getFollowUps(includeCompleted = false): Promise<FollowUp[]> {
     if (includeCompleted) {
       return db.select().from(followUps).orderBy(desc(followUps.createdAt));

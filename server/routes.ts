@@ -336,6 +336,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/sales", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { listingId, buyerId, salePrice, paymentType, meetupSpot, notes, soldAt } = req.body;
+      if (!salePrice) return res.status(400).json({ error: "Sale price is required" });
+
+      const sale = await storage.createSale({
+        listingId: listingId || null,
+        buyerId: buyerId || null,
+        salePrice,
+        paymentType: paymentType || "CASH",
+        meetupSpot: meetupSpot || null,
+        notes: notes || null,
+        ...(soldAt ? { soldAt: new Date(soldAt) } : {}),
+      });
+
+      if (listingId) {
+        const listing = await storage.getListingById(listingId);
+        if (listing) {
+          const newQty = Math.max(0, listing.quantity - 1);
+          await storage.updateListing(listing.id, {
+            quantity: newQty,
+            status: newQty === 0 ? "SOLD" : listing.status,
+          });
+        }
+      }
+
+      return res.status(201).json(sale);
+    } catch (err) {
+      console.error("Create sale error:", err);
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  app.get("/api/sales/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sale = await storage.getSaleById(req.params.id);
+      if (!sale) return res.status(404).json({ error: "Sale not found" });
+      return res.json(sale);
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  app.put("/api/sales/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const existing = await storage.getSaleById(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Sale not found" });
+
+      const { listingId, buyerId, salePrice, paymentType, meetupSpot, notes, soldAt } = req.body;
+      const sale = await storage.updateSale(req.params.id, {
+        ...(listingId !== undefined ? { listingId } : {}),
+        ...(buyerId !== undefined ? { buyerId } : {}),
+        ...(salePrice !== undefined ? { salePrice } : {}),
+        ...(paymentType !== undefined ? { paymentType } : {}),
+        ...(meetupSpot !== undefined ? { meetupSpot } : {}),
+        ...(notes !== undefined ? { notes } : {}),
+        ...(soldAt ? { soldAt: new Date(soldAt) } : {}),
+      });
+      return res.json(sale);
+    } catch (err) {
+      console.error("Update sale error:", err);
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  app.delete("/api/sales/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const existing = await storage.getSaleById(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Sale not found" });
+      await storage.deleteSale(req.params.id);
+      return res.json({ success: true });
+    } catch (err) {
+      console.error("Delete sale error:", err);
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
   app.get("/api/followups", requireAuth, async (req: Request, res: Response) => {
     try {
       const includeCompleted = req.query.all === "true";

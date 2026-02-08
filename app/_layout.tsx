@@ -23,6 +23,7 @@ function RootLayoutNav() {
       <Stack.Screen name="buyers/[id]" options={{ presentation: "modal" }} />
       <Stack.Screen name="buyers/new" options={{ presentation: "modal" }} />
       <Stack.Screen name="followups/new" options={{ presentation: "modal" }} />
+      <Stack.Screen name="sales/form" options={{ presentation: "modal" }} />
       <Stack.Screen name="settings/meetup-spots" options={{ presentation: "modal" }} />
       <Stack.Screen name="settings/templates" options={{ presentation: "modal" }} />
       <Stack.Screen name="store/index" />

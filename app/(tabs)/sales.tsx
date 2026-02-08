@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
+import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
@@ -138,7 +139,13 @@ function SaleCard({ item, listings, buyers }: { item: any; listings: any[]; buye
   const profit = parseFloat(item.salePrice) - cost;
 
   return (
-    <View style={styles.card}>
+    <Pressable
+      style={styles.card}
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        router.push({ pathname: "/sales/form", params: { id: item.id } });
+      }}
+    >
       <View style={styles.cardHeader}>
         <View style={styles.cardLeft}>
           <View style={styles.saleIcon}>
@@ -178,7 +185,7 @@ function SaleCard({ item, listings, buyers }: { item: any; listings: any[]; buye
           </View>
         )}
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -398,6 +405,16 @@ export default function SalesScreen() {
           )}
         </ScrollView>
       )}
+
+      <Pressable
+        style={[styles.fab, { bottom: Platform.OS === "web" ? 34 + 60 : insets.bottom + 70 }]}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          router.push("/sales/form");
+        }}
+      >
+        <Ionicons name="add" size={28} color="#fff" />
+      </Pressable>
     </View>
   );
 }
@@ -677,5 +694,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textMuted,
     textAlign: "center",
+  },
+  fab: {
+    position: "absolute",
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
   },
 });
