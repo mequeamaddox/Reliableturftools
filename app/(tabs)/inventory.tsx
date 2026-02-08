@@ -100,13 +100,7 @@ export default function InventoryScreen() {
 
   const listingsUrl = "/api/listings" + (queryString ? `?${queryString}` : "");
   const { data: listings = [], isLoading, refetch, isRefetching } = useQuery<any[]>({
-    queryKey: ["/api/listings", queryString],
-    queryFn: async () => {
-      const { getApiUrl } = await import("@/lib/query-client");
-      const res = await fetch(new URL(listingsUrl, getApiUrl()).toString(), { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch listings");
-      return res.json();
-    },
+    queryKey: [listingsUrl],
   });
 
   const archiveMutation = useMutation({
