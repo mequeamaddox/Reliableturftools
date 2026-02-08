@@ -79,7 +79,6 @@ export default function ListingDetailScreen() {
   const [category, setCategory] = useState("OTHER");
   const [notes, setNotes] = useState("");
   const [palletName, setPalletName] = useState("");
-  const [palletCost, setPalletCost] = useState("");
   const [weightLbs, setWeightLbs] = useState("");
   const [boxLengthIn, setBoxLengthIn] = useState("");
   const [boxWidthIn, setBoxWidthIn] = useState("");
@@ -105,7 +104,6 @@ export default function ListingDetailScreen() {
       setCategory(listing.category || "OTHER");
       setNotes(listing.notes || "");
       setPalletName(listing.palletName || "");
-      setPalletCost(listing.palletCost || "");
       setWeightLbs(listing.weightLbs || "");
       setBoxLengthIn(listing.boxLengthIn || "");
       setBoxWidthIn(listing.boxWidthIn || "");
@@ -161,7 +159,6 @@ export default function ListingDetailScreen() {
       category,
       notes: notes || null,
       palletName: palletName || null,
-      palletCost: palletCost || null,
       weightLbs: weightLbs || null,
       boxLengthIn: boxLengthIn || null,
       boxWidthIn: boxWidthIn || null,
@@ -380,28 +377,15 @@ export default function ListingDetailScreen() {
               <Ionicons name="cube-outline" size={18} color={Colors.info} />
               <Text style={styles.sectionHeaderText}>Sourcing</Text>
             </View>
-            <View style={styles.row}>
-              <View style={[styles.fieldGroup, { flex: 2 }]}>
-                <Text style={styles.label}>Pallet / Source</Text>
-                <TextInput
-                  style={styles.input}
-                  value={palletName}
-                  onChangeText={setPalletName}
-                  placeholder="e.g. Pallet #3"
-                  placeholderTextColor={Colors.textMuted}
-                />
-              </View>
-              <View style={[styles.fieldGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Pallet $</Text>
-                <TextInput
-                  style={styles.input}
-                  value={palletCost}
-                  onChangeText={setPalletCost}
-                  placeholder="0.00"
-                  placeholderTextColor={Colors.textMuted}
-                  keyboardType="decimal-pad"
-                />
-              </View>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Pallet / Source</Text>
+              <TextInput
+                style={styles.input}
+                value={palletName}
+                onChangeText={setPalletName}
+                placeholder="e.g. Pallet #3, HD Jan"
+                placeholderTextColor={Colors.textMuted}
+              />
             </View>
 
             <View style={styles.shippingHeader}>

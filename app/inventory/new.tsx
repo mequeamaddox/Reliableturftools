@@ -58,7 +58,6 @@ export default function NewListingScreen() {
   const [category, setCategory] = useState("OTHER");
   const [notes, setNotes] = useState("");
   const [palletName, setPalletName] = useState("");
-  const [palletCost, setPalletCost] = useState("");
   const [weightLbs, setWeightLbs] = useState("");
   const [boxLengthIn, setBoxLengthIn] = useState("");
   const [boxWidthIn, setBoxWidthIn] = useState("");
@@ -110,7 +109,6 @@ export default function NewListingScreen() {
       notes: notes || undefined,
       listingType,
       palletName: palletName || undefined,
-      palletCost: palletCost || undefined,
       weightLbs: weightLbs || undefined,
       boxLengthIn: boxLengthIn || undefined,
       boxWidthIn: boxWidthIn || undefined,
@@ -278,28 +276,15 @@ export default function NewListingScreen() {
               <Ionicons name="cube-outline" size={18} color={Colors.info} />
               <Text style={styles.sectionHeaderText}>Sourcing</Text>
             </View>
-            <View style={styles.row}>
-              <View style={[styles.fieldGroup, { flex: 2 }]}>
-                <Text style={styles.label}>Pallet / Source</Text>
-                <TextInput
-                  style={styles.input}
-                  value={palletName}
-                  onChangeText={setPalletName}
-                  placeholder="e.g. Pallet #3"
-                  placeholderTextColor={Colors.textMuted}
-                />
-              </View>
-              <View style={[styles.fieldGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Pallet $</Text>
-                <TextInput
-                  style={styles.input}
-                  value={palletCost}
-                  onChangeText={setPalletCost}
-                  placeholder="0.00"
-                  placeholderTextColor={Colors.textMuted}
-                  keyboardType="decimal-pad"
-                />
-              </View>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Pallet / Source</Text>
+              <TextInput
+                style={styles.input}
+                value={palletName}
+                onChangeText={setPalletName}
+                placeholder="e.g. Pallet #3, HD Jan"
+                placeholderTextColor={Colors.textMuted}
+              />
             </View>
 
             {listingType === "ITEM" && (
