@@ -9,6 +9,7 @@ import {
   inquiries,
   meetupSpots,
   messageTemplates,
+  parts,
   settings,
   type User,
   type InsertUser,
@@ -26,6 +27,8 @@ import {
   type InsertMeetupSpot,
   type MessageTemplate,
   type InsertMessageTemplate,
+  type Part,
+  type InsertPart,
   type Setting,
 } from "@shared/schema";
 
@@ -563,5 +566,37 @@ export const storage = {
       weeklyTrend,
       topBuyers: topBuyers.slice(0, 5),
     };
+  },
+
+  async getPartsByListingId(listingId: string): Promise<Part[]> {
+    return db.select().from(parts).where(eq(parts.listingId, listingId)).orderBy(desc(parts.createdAt));
+  },
+
+  async getAvailablePartsByListingId(listingId: string): Promise<Part[]> {
+    return db.select().from(parts).where(and(eq(parts.listingId, listingId), eq(parts.isSold, false))).orderBy(desc(parts.createdAt));
+  },
+
+  async getPartById(id: string): Promise<Part | undefined> {
+    const [part] = await db.select().from(parts).where(eq(parts.id, id));
+    return part;
+  },
+
+  async createPart(data: InsertPart): Promise<Part> {
+    const [part] = await db.insert(parts).values(data).returning();
+    return part;
+  },
+
+  async updatePart(id: string, data: Partial<InsertPart>): Promise<Part> {
+    const [part] = await db.update(parts).set(data).where(eq(parts.id, id)).returning();
+    return part;
+  },
+
+  async deletePart(id: string): Promise<void> {
+    await db.delete(parts).where(eq(parts.id, id));
+  },
+
+  async getListingsWithParts(): Promise<string[]> {
+    const result = await db.select({ listingId: parts.listingId }).from(parts).where(eq(parts.isSold, false));
+    return [...new Set(result.map(r => r.listingId))];
   },
 };
