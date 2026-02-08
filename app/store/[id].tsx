@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
+  Linking,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -28,6 +29,14 @@ function getConditionLabel(c: string) {
   }
 }
 
+interface ShippingRate {
+  service: string;
+  carrier: string;
+  price: number;
+  delivery: string;
+  mailClassKey: string;
+}
+
 export default function StoreDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
@@ -37,6 +46,12 @@ export default function StoreDetailScreen() {
   const [inquiryName, setInquiryName] = useState("");
   const [inquiryPhone, setInquiryPhone] = useState("");
   const [inquiryMessage, setInquiryMessage] = useState("");
+  const [shipZip, setShipZip] = useState("");
+  const [shippingRates, setShippingRates] = useState<ShippingRate[]>([]);
+  const [selectedRateIdx, setSelectedRateIdx] = useState<number | null>(null);
+  const [loadingRates, setLoadingRates] = useState(false);
+  const [rateError, setRateError] = useState("");
+  const [checkingOut, setCheckingOut] = useState(false);
 
   const { data: listing, isLoading } = useQuery<any>({
     queryKey: ["store-listing", id],
@@ -84,6 +99,73 @@ export default function StoreDetailScreen() {
     });
   }
 
+  const hasShipping = listing && listing.weightLbs && parseFloat(listing.weightLbs) > 0;
+
+  async function fetchShippingRates() {
+    if (!/^\d{5}$/.test(shipZip.trim())) {
+      Alert.alert("Invalid ZIP", "Please enter a valid 5-digit ZIP code");
+      return;
+    }
+    setLoadingRates(true);
+    setRateError("");
+    setShippingRates([]);
+    setSelectedRateIdx(null);
+    try {
+      const baseUrl = getApiUrl();
+      const url = new URL("/api/shipping-rates", baseUrl);
+      const res = await fetch(url.toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          destinationZip: shipZip.trim(),
+          weightLbs: listing.weightLbs,
+          boxLengthIn: listing.boxLengthIn || "12",
+          boxWidthIn: listing.boxWidthIn || "10",
+        }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setRateError(data.error);
+      } else if (Array.isArray(data) && data.length > 0) {
+        setShippingRates(data);
+      } else {
+        setRateError("No shipping options available for that ZIP code.");
+      }
+    } catch {
+      setRateError("Failed to calculate shipping. Please try again.");
+    } finally {
+      setLoadingRates(false);
+    }
+  }
+
+  async function handleCheckout(withShipping: boolean) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setCheckingOut(true);
+    try {
+      const baseUrl = getApiUrl();
+      const url = new URL("/api/checkout", baseUrl);
+      const body: any = { listingId: id };
+      if (withShipping && selectedRateIdx !== null) {
+        body.shippingRate = shippingRates[selectedRateIdx];
+      }
+      const res = await fetch(url.toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.error) {
+        Alert.alert("Checkout Error", data.error);
+      } else if (data.checkoutUrl) {
+        Linking.openURL(data.checkoutUrl);
+      }
+    } catch {
+      Alert.alert("Error", "Something went wrong creating checkout. Please try again.");
+    } finally {
+      setCheckingOut(false);
+    }
+  }
+
   if (isLoading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top + webTopInset, justifyContent: "center", alignItems: "center" }]}>
@@ -99,6 +181,10 @@ export default function StoreDetailScreen() {
       </View>
     );
   }
+
+  const itemPrice = parseFloat(listing.price);
+  const selectedRate = selectedRateIdx !== null ? shippingRates[selectedRateIdx] : null;
+  const totalWithShipping = selectedRate ? itemPrice + selectedRate.price : itemPrice;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
@@ -118,7 +204,7 @@ export default function StoreDetailScreen() {
         <View style={styles.infoSection}>
           <Text style={styles.title}>{listing.title}</Text>
           {listing.brand && <Text style={styles.brand}>{listing.brand}</Text>}
-          <Text style={styles.price}>${parseFloat(listing.price).toFixed(2)}</Text>
+          <Text style={styles.price}>${itemPrice.toFixed(2)}</Text>
 
           <View style={styles.badgeRow}>
             <View style={styles.badge}>
@@ -139,15 +225,131 @@ export default function StoreDetailScreen() {
             </View>
           )}
 
-          <View style={styles.meetupBox}>
-            <Ionicons name="location" size={20} color="#16a34a" />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.meetupTitle}>Meetup Only</Text>
-              <Text style={styles.meetupDesc}>
-                All sales take place at safe, public meetup locations.
-                No shipping or delivery available.
+          {hasShipping ? (
+            <View style={styles.shippingSection}>
+              <View style={styles.shippingSectionHeader}>
+                <Ionicons name="airplane" size={20} color="#16a34a" />
+                <Text style={styles.shippingSectionTitle}>Ships Nationwide</Text>
+              </View>
+              <Text style={styles.shippingSectionDesc}>
+                Enter your ZIP code to see shipping options and costs.
               </Text>
+              <View style={styles.zipRow}>
+                <TextInput
+                  style={styles.zipInput}
+                  value={shipZip}
+                  onChangeText={setShipZip}
+                  placeholder="ZIP code"
+                  placeholderTextColor="#94a3b8"
+                  keyboardType="number-pad"
+                  maxLength={5}
+                  returnKeyType="go"
+                  onSubmitEditing={fetchShippingRates}
+                />
+                <Pressable
+                  style={[styles.calcBtn, loadingRates && { opacity: 0.6 }]}
+                  onPress={fetchShippingRates}
+                  disabled={loadingRates}
+                >
+                  {loadingRates ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.calcBtnText}>Get Rates</Text>
+                  )}
+                </Pressable>
+              </View>
+
+              {rateError ? (
+                <View style={styles.rateErrorBox}>
+                  <Text style={styles.rateErrorText}>{rateError}</Text>
+                </View>
+              ) : null}
+
+              {shippingRates.map((rate, i) => (
+                <Pressable
+                  key={i}
+                  style={[styles.rateOption, selectedRateIdx === i && styles.rateOptionSelected]}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setSelectedRateIdx(i);
+                  }}
+                >
+                  <View style={[styles.rateRadio, selectedRateIdx === i && styles.rateRadioSelected]}>
+                    {selectedRateIdx === i && <View style={styles.rateRadioDot} />}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.rateService}>{rate.carrier} {rate.service}</Text>
+                    <Text style={styles.rateDelivery}>{rate.delivery}</Text>
+                    {i === 0 && shippingRates.length > 1 && (
+                      <View style={styles.rateBadge}>
+                        <Text style={styles.rateBadgeText}>BEST VALUE</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.ratePrice}>${rate.price.toFixed(2)}</Text>
+                </Pressable>
+              ))}
+
+              {selectedRate && (
+                <View style={styles.orderSummary}>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Item</Text>
+                    <Text style={styles.summaryValue}>${itemPrice.toFixed(2)}</Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Shipping ({selectedRate.service})</Text>
+                    <Text style={styles.summaryValue}>${selectedRate.price.toFixed(2)}</Text>
+                  </View>
+                  <View style={[styles.summaryRow, styles.summaryTotal]}>
+                    <Text style={styles.summaryTotalLabel}>Total</Text>
+                    <Text style={styles.summaryTotalValue}>${totalWithShipping.toFixed(2)}</Text>
+                  </View>
+                  <Pressable
+                    style={[styles.buyBtn, checkingOut && { opacity: 0.6 }]}
+                    onPress={() => handleCheckout(true)}
+                    disabled={checkingOut}
+                  >
+                    {checkingOut ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <>
+                        <Ionicons name="card" size={20} color="#fff" />
+                        <Text style={styles.buyBtnText}>Buy Now — ${totalWithShipping.toFixed(2)}</Text>
+                      </>
+                    )}
+                  </Pressable>
+                  <Text style={styles.secureNote}>Secure checkout via Square</Text>
+                </View>
+              )}
             </View>
+          ) : (
+            <View style={styles.meetupBox}>
+              <Ionicons name="location" size={20} color="#16a34a" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.meetupTitle}>Local Pickup Only</Text>
+                <Text style={styles.meetupDesc}>
+                  This item is available for local meetup at safe, public locations in the Columbia, SC area.
+                </Text>
+              </View>
+            </View>
+          )}
+
+          <View style={styles.localBuyBox}>
+            <Pressable
+              style={[styles.localBuyBtn, checkingOut && { opacity: 0.6 }]}
+              onPress={() => handleCheckout(false)}
+              disabled={checkingOut}
+            >
+              {checkingOut ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="storefront" size={20} color="#fff" />
+                  <Text style={styles.localBuyBtnText}>Buy — Local Pickup</Text>
+                </>
+              )}
+            </Pressable>
+            <Text style={styles.secureNote}>Secure checkout via Square</Text>
           </View>
 
           <Text style={styles.qtyText}>
@@ -176,7 +378,7 @@ export default function StoreDetailScreen() {
             onPress={() => setShowInquiry(true)}
           >
             <Ionicons name="chatbubble" size={20} color="#fff" />
-            <Text style={styles.reserveBtnText}>Reserve / Ask About This</Text>
+            <Text style={styles.reserveBtnText}>Ask a Question</Text>
           </Pressable>
         </View>
       ) : (
@@ -310,6 +512,208 @@ const styles = StyleSheet.create({
     color: "#334155",
     lineHeight: 20,
   },
+  shippingSection: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  shippingSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  shippingSectionTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+    color: "#15803d",
+  },
+  shippingSectionDesc: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: "#64748b",
+    marginBottom: 12,
+  },
+  zipRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  zipInput: {
+    flex: 1,
+    backgroundColor: "#f1f5f9",
+    borderRadius: 10,
+    padding: 12,
+    fontFamily: "Inter_400Regular",
+    fontSize: 15,
+    color: "#0f172a",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  calcBtn: {
+    backgroundColor: "#16a34a",
+    borderRadius: 10,
+    paddingHorizontal: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  calcBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    color: "#fff",
+  },
+  rateErrorBox: {
+    backgroundColor: "#fef2f2",
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+  },
+  rateErrorText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: "#dc2626",
+  },
+  rateOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderWidth: 2,
+    borderColor: "#e2e8f0",
+    borderRadius: 10,
+    marginTop: 10,
+  },
+  rateOptionSelected: {
+    borderColor: "#16a34a",
+    backgroundColor: "#f0fdf4",
+  },
+  rateRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#cbd5e1",
+    marginRight: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rateRadioSelected: {
+    borderColor: "#16a34a",
+  },
+  rateRadioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#16a34a",
+  },
+  rateService: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    color: "#0f172a",
+  },
+  rateDelivery: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: "#64748b",
+    marginTop: 2,
+  },
+  rateBadge: {
+    backgroundColor: "#f0fdf4",
+    alignSelf: "flex-start" as const,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+  rateBadgeText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 10,
+    color: "#16a34a",
+    letterSpacing: 0.5,
+  },
+  ratePrice: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+    color: "#16a34a",
+    marginLeft: 10,
+  },
+  orderSummary: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#e2e8f0",
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 6,
+  },
+  summaryLabel: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    color: "#64748b",
+  },
+  summaryValue: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    color: "#334155",
+  },
+  summaryTotal: {
+    borderTopWidth: 2,
+    borderTopColor: "#e2e8f0",
+    paddingTop: 10,
+    marginTop: 4,
+  },
+  summaryTotalLabel: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+    color: "#0f172a",
+  },
+  summaryTotalValue: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+    color: "#0f172a",
+  },
+  buyBtn: {
+    backgroundColor: "#16a34a",
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 14,
+  },
+  buyBtnText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+    color: "#fff",
+  },
+  secureNote: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: "#94a3b8",
+    textAlign: "center" as const,
+    marginTop: 8,
+  },
+  localBuyBox: {
+    marginTop: 12,
+  },
+  localBuyBtn: {
+    backgroundColor: "#334155",
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  localBuyBtnText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+    color: "#fff",
+  },
   meetupBox: {
     flexDirection: "row",
     gap: 12,
@@ -349,7 +753,7 @@ const styles = StyleSheet.create({
     borderTopColor: "#e2e8f0",
   },
   reserveBtn: {
-    backgroundColor: "#16a34a",
+    backgroundColor: "#64748b",
     borderRadius: 14,
     padding: 18,
     flexDirection: "row",
