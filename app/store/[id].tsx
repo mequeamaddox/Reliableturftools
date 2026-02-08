@@ -138,14 +138,14 @@ export default function StoreDetailScreen() {
     }
   }
 
-  async function handleCheckout(withShipping: boolean) {
+  async function handleCheckout() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setCheckingOut(true);
     try {
       const baseUrl = getApiUrl();
       const url = new URL("/api/checkout", baseUrl);
       const body: any = { listingId: id };
-      if (withShipping && selectedRateIdx !== null) {
+      if (selectedRateIdx !== null) {
         body.shippingRate = shippingRates[selectedRateIdx];
       }
       const res = await fetch(url.toString(), {
@@ -196,7 +196,7 @@ export default function StoreDetailScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 100 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 34 + 100 : insets.bottom + 120 }}>
         <View style={styles.imagePlaceholder}>
           <Ionicons name="image-outline" size={64} color="#94a3b8" />
         </View>
@@ -225,10 +225,14 @@ export default function StoreDetailScreen() {
             </View>
           )}
 
+          <Text style={styles.qtyText}>
+            {listing.quantity > 1 ? `${listing.quantity} available` : "Only 1 available"}
+          </Text>
+
           {hasShipping ? (
             <View style={styles.shippingSection}>
               <View style={styles.shippingSectionHeader}>
-                <Ionicons name="airplane" size={20} color="#16a34a" />
+                <Ionicons name="cube-outline" size={20} color="#2563eb" />
                 <Text style={styles.shippingSectionTitle}>Ships Nationwide</Text>
               </View>
               <Text style={styles.shippingSectionDesc}>
@@ -304,86 +308,72 @@ export default function StoreDetailScreen() {
                     <Text style={styles.summaryTotalLabel}>Total</Text>
                     <Text style={styles.summaryTotalValue}>${totalWithShipping.toFixed(2)}</Text>
                   </View>
-                  <Pressable
-                    style={[styles.buyBtn, checkingOut && { opacity: 0.6 }]}
-                    onPress={() => handleCheckout(true)}
-                    disabled={checkingOut}
-                  >
-                    {checkingOut ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <>
-                        <Ionicons name="card" size={20} color="#fff" />
-                        <Text style={styles.buyBtnText}>Buy Now — ${totalWithShipping.toFixed(2)}</Text>
-                      </>
-                    )}
-                  </Pressable>
-                  <Text style={styles.secureNote}>Secure checkout via Square</Text>
                 </View>
               )}
             </View>
           ) : (
             <View style={styles.meetupBox}>
-              <Ionicons name="location" size={20} color="#16a34a" />
+              <Ionicons name="location" size={20} color="#15803d" />
               <View style={{ flex: 1 }}>
                 <Text style={styles.meetupTitle}>Local Pickup Only</Text>
                 <Text style={styles.meetupDesc}>
-                  This item is available for local meetup at safe, public locations in the Columbia, SC area.
+                  Available for meetup at safe, public locations in the Columbia, SC area. Tap below to let us know you're interested.
                 </Text>
               </View>
             </View>
           )}
-
-          <View style={styles.localBuyBox}>
-            <Pressable
-              style={[styles.localBuyBtn, checkingOut && { opacity: 0.6 }]}
-              onPress={() => handleCheckout(false)}
-              disabled={checkingOut}
-            >
-              {checkingOut ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="storefront" size={20} color="#fff" />
-                  <Text style={styles.localBuyBtnText}>Buy — Local Pickup</Text>
-                </>
-              )}
-            </Pressable>
-            <Text style={styles.secureNote}>Secure checkout via Square</Text>
-          </View>
-
-          <Text style={styles.qtyText}>
-            {listing.quantity > 1 ? `${listing.quantity} available` : "Only 1 available"}
-          </Text>
         </View>
       </ScrollView>
 
-      {inquirySent ? (
+      {hasShipping ? (
+        <View style={[styles.bottomBar, { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 16 }]}>
+          <Pressable
+            style={[styles.buyBtn, (!selectedRate || checkingOut) && { opacity: 0.5 }]}
+            onPress={handleCheckout}
+            disabled={!selectedRate || checkingOut}
+          >
+            {checkingOut ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : selectedRate ? (
+              <>
+                <Ionicons name="card" size={20} color="#fff" />
+                <Text style={styles.buyBtnText}>Buy Now — ${totalWithShipping.toFixed(2)}</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="card" size={20} color="#fff" />
+                <Text style={styles.buyBtnText}>Select a shipping option above</Text>
+              </>
+            )}
+          </Pressable>
+          <Text style={styles.secureNote}>Secure checkout via Square</Text>
+        </View>
+      ) : inquirySent ? (
         <View style={[styles.bottomBar, { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 16 }]}>
           <View style={styles.successBanner}>
             <Ionicons name="checkmark-circle" size={32} color="#16a34a" />
             <View style={{ flex: 1 }}>
-              <Text style={styles.successTitle}>Inquiry Sent!</Text>
+              <Text style={styles.successTitle}>Message Sent!</Text>
               <Text style={styles.successDesc}>We'll get back to you shortly — usually within a few hours.</Text>
             </View>
           </View>
           <Pressable style={styles.successDismiss} onPress={() => setInquirySent(false)}>
-            <Text style={styles.successDismissText}>Send Another Inquiry</Text>
+            <Text style={styles.successDismissText}>Send Another Message</Text>
           </Pressable>
         </View>
       ) : !showInquiry ? (
         <View style={[styles.bottomBar, { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 16 }]}>
           <Pressable
-            style={styles.reserveBtn}
+            style={styles.interestedBtn}
             onPress={() => setShowInquiry(true)}
           >
             <Ionicons name="chatbubble" size={20} color="#fff" />
-            <Text style={styles.reserveBtnText}>Reserve / Ask About This</Text>
+            <Text style={styles.interestedBtnText}>I'm Interested</Text>
           </Pressable>
         </View>
       ) : (
         <View style={[styles.bottomBar, styles.inquiryForm, { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 16 }]}>
-          <Text style={styles.inquiryTitle}>Send Inquiry</Text>
+          <Text style={styles.inquiryTitle}>Send a Message</Text>
           <TextInput
             style={styles.inquiryInput}
             value={inquiryName}
@@ -512,6 +502,12 @@ const styles = StyleSheet.create({
     color: "#334155",
     lineHeight: 20,
   },
+  qtyText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    color: "#64748b",
+    marginTop: 4,
+  },
   shippingSection: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -529,7 +525,7 @@ const styles = StyleSheet.create({
   shippingSectionTitle: {
     fontFamily: "Inter_700Bold",
     fontSize: 16,
-    color: "#15803d",
+    color: "#1d4ed8",
   },
   shippingSectionDesc: {
     fontFamily: "Inter_400Regular",
@@ -675,45 +671,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#0f172a",
   },
-  buyBtn: {
-    backgroundColor: "#16a34a",
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 14,
-  },
-  buyBtnText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 16,
-    color: "#fff",
-  },
-  secureNote: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 12,
-    color: "#94a3b8",
-    textAlign: "center" as const,
-    marginTop: 8,
-  },
-  localBuyBox: {
-    marginTop: 12,
-  },
-  localBuyBtn: {
-    backgroundColor: "#334155",
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  localBuyBtnText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 16,
-    color: "#fff",
-  },
   meetupBox: {
     flexDirection: "row",
     gap: 12,
@@ -736,12 +693,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 2,
   },
-  qtyText: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 14,
-    color: "#64748b",
-    marginTop: 4,
-  },
   bottomBar: {
     position: "absolute",
     bottom: 0,
@@ -752,8 +703,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#e2e8f0",
   },
-  reserveBtn: {
-    backgroundColor: "#64748b",
+  buyBtn: {
+    backgroundColor: "#16a34a",
     borderRadius: 14,
     padding: 18,
     flexDirection: "row",
@@ -761,7 +712,28 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
   },
-  reserveBtnText: {
+  buyBtnText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+    color: "#fff",
+  },
+  secureNote: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: "#94a3b8",
+    textAlign: "center" as const,
+    marginTop: 8,
+  },
+  interestedBtn: {
+    backgroundColor: "#16a34a",
+    borderRadius: 14,
+    padding: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  interestedBtnText: {
     fontFamily: "Inter_700Bold",
     fontSize: 16,
     color: "#fff",

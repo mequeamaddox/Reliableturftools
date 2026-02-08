@@ -18,6 +18,53 @@ import Colors from "@/constants/colors";
 import { getApiUrl } from "@/lib/query-client";
 import { fetch } from "expo/fetch";
 
+function getConditionLabel(c: string) {
+  switch (c) {
+    case "NEW_BOXED": return "New in Box";
+    case "USED_UNBOXED": return "Like New";
+    case "USED": return "Used";
+    case "DAMAGED": return "As-Is";
+    default: return c;
+  }
+}
+
+function isShippable(item: any): boolean {
+  return item.weightLbs && parseFloat(item.weightLbs) > 0;
+}
+
+function ProductCard({ item }: { item: any }) {
+  const canShip = isShippable(item);
+  return (
+    <Pressable
+      style={styles.productCard}
+      onPress={() => router.push({ pathname: "/store/[id]", params: { id: item.id } })}
+    >
+      <View style={styles.productImagePlaceholder}>
+        <Ionicons name="image-outline" size={40} color="#94a3b8" />
+        <View style={[styles.fulfillmentBadge, canShip ? styles.shipBadge : styles.pickupBadge]}>
+          <Ionicons
+            name={canShip ? "cube-outline" : "location-outline"}
+            size={11}
+            color={canShip ? "#2563eb" : "#15803d"}
+          />
+          <Text style={[styles.fulfillmentText, canShip ? styles.shipText : styles.pickupText]}>
+            {canShip ? "Ships" : "Pickup"}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.productInfo}>
+        <Text style={styles.productTitle} numberOfLines={2}>{item.title}</Text>
+        {item.brand && <Text style={styles.productBrand}>{item.brand}</Text>}
+        <View style={styles.productMeta}>
+          <Text style={styles.conditionBadge}>{getConditionLabel(item.condition)}</Text>
+          <Text style={styles.powerBadge}>{item.powerType.replace("_", " ")}</Text>
+        </View>
+        <Text style={styles.productPrice}>${parseFloat(item.price).toFixed(0)}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
 export default function StorefrontScreen() {
   const insets = useSafeAreaInsets();
   const webTopInset = Platform.OS === "web" ? 67 : 0;
@@ -41,38 +88,6 @@ export default function StorefrontScreen() {
           (l.brand || "").toLowerCase().includes(search.toLowerCase()),
       )
     : listings;
-
-  function getConditionLabel(c: string) {
-    switch (c) {
-      case "NEW_BOXED": return "New in Box";
-      case "USED_UNBOXED": return "Like New";
-      case "USED": return "Used";
-      case "DAMAGED": return "As-Is";
-      default: return c;
-    }
-  }
-
-  function ProductCard({ item }: { item: any }) {
-    return (
-      <Pressable
-        style={styles.productCard}
-        onPress={() => router.push({ pathname: "/store/[id]", params: { id: item.id } })}
-      >
-        <View style={styles.productImagePlaceholder}>
-          <Ionicons name="image-outline" size={40} color="#94a3b8" />
-        </View>
-        <View style={styles.productInfo}>
-          <Text style={styles.productTitle} numberOfLines={2}>{item.title}</Text>
-          {item.brand && <Text style={styles.productBrand}>{item.brand}</Text>}
-          <View style={styles.productMeta}>
-            <Text style={styles.conditionBadge}>{getConditionLabel(item.condition)}</Text>
-            <Text style={styles.powerBadge}>{item.powerType.replace("_", " ")}</Text>
-          </View>
-          <Text style={styles.productPrice}>${parseFloat(item.price).toFixed(0)}</Text>
-        </View>
-      </Pressable>
-    );
-  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
@@ -98,9 +113,9 @@ export default function StorefrontScreen() {
         />
       </View>
 
-      <View style={styles.meetupNotice}>
-        <Ionicons name="location" size={16} color="#16a34a" />
-        <Text style={styles.meetupText}>All sales are meetup only - safe public locations</Text>
+      <View style={styles.locationNotice}>
+        <Ionicons name="location" size={16} color="#15803d" />
+        <Text style={styles.locationText}>Columbia, SC — Local pickup & nationwide shipping</Text>
       </View>
 
       {isLoading ? (
@@ -121,7 +136,7 @@ export default function StorefrontScreen() {
               <Text style={styles.emptySubtext}>Check back soon for new inventory!</Text>
             </View>
           }
-          scrollEnabled={filtered.length > 0}
+          scrollEnabled={true}
         />
       )}
     </View>
@@ -172,7 +187,7 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     paddingVertical: 12,
   },
-  meetupNotice: {
+  locationNotice: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -185,7 +200,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#bbf7d0",
   },
-  meetupText: {
+  locationText: {
     fontFamily: "Inter_500Medium",
     fontSize: 13,
     color: "#15803d",
@@ -208,6 +223,33 @@ const styles = StyleSheet.create({
     backgroundColor: "#f1f5f9",
     alignItems: "center",
     justifyContent: "center",
+  },
+  fulfillmentBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  shipBadge: {
+    backgroundColor: "rgba(239,246,255,0.95)",
+  },
+  pickupBadge: {
+    backgroundColor: "rgba(240,253,244,0.95)",
+  },
+  fulfillmentText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 10,
+  },
+  shipText: {
+    color: "#2563eb",
+  },
+  pickupText: {
+    color: "#15803d",
   },
   productInfo: {
     padding: 12,
