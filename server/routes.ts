@@ -908,6 +908,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
 
+      const hasShipping = listing.weightLbs && parseFloat(listing.weightLbs) > 0;
+      let shippingSectionHtml = "";
+      if (hasShipping) {
+        shippingSectionHtml = `
+          <div class="shipping-section">
+            <h3>Ship to Your Door</h3>
+            <p class="shipping-subtitle">Enter your ZIP code to see shipping options</p>
+            <div class="zip-row">
+              <input type="text" id="ship-zip" placeholder="ZIP code" maxlength="5" inputmode="numeric" pattern="[0-9]*" />
+              <button class="btn-calc" id="btn-calc" onclick="calcShipping()">Get Rates</button>
+            </div>
+            <div class="rates-container" id="rates-container"></div>
+          </div>`;
+      } else {
+        shippingSectionHtml = `<div class="shipping-not-available">Shipping info not yet available for this item. Send an inquiry to ask about shipping!</div>`;
+      }
+
       const html = template
         .replace(/LISTING_TITLE_PLACEHOLDER/g, escapeHtml(listing.title))
         .replace(/LISTING_META_DESCRIPTION_PLACEHOLDER/g, metaDesc)
@@ -918,13 +935,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .replace("LISTING_JSONLD_PLACEHOLDER", jsonLd)
         .replace("LISTING_GALLERY_PLACEHOLDER", galleryHtml)
         .replace(/LISTING_CATEGORY_PLACEHOLDER/g, escapeHtml(formatCategory(listing.category)))
-        .replace("LISTING_PRICE_PLACEHOLDER", formatPrice(listing.price))
+        .replace(/LISTING_PRICE_PLACEHOLDER/g, formatPrice(listing.price))
         .replace("LISTING_CONDITION_PLACEHOLDER", escapeHtml(formatCondition(listing.condition)))
         .replace("LISTING_POWER_TYPE_PLACEHOLDER", escapeHtml(formatPowerType(listing.powerType)))
         .replace("LISTING_BRAND_ROW_PLACEHOLDER", brandRow)
         .replace("LISTING_SKU_ROW_PLACEHOLDER", skuRow)
         .replace("LISTING_NOTES_PLACEHOLDER", notesHtml)
-        .replace("LISTING_ID_PLACEHOLDER", listing.id);
+        .replace(/LISTING_ID_PLACEHOLDER/g, listing.id)
+        .replace("LISTING_SHIPPING_SECTION_PLACEHOLDER", shippingSectionHtml)
+        .replace("LISTING_WEIGHT_PLACEHOLDER", listing.weightLbs || "0")
+        .replace("LISTING_BOX_LENGTH_PLACEHOLDER", listing.boxLengthIn || "12")
+        .replace("LISTING_BOX_WIDTH_PLACEHOLDER", listing.boxWidthIn || "10")
+        .replace("LISTING_BOX_HEIGHT_PLACEHOLDER", listing.boxHeightIn || "8");
 
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.status(200).send(html);
