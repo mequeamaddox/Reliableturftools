@@ -57,6 +57,8 @@ export default function NewListingScreen() {
   const [powerType, setPowerType] = useState("GAS");
   const [category, setCategory] = useState("OTHER");
   const [notes, setNotes] = useState("");
+  const [palletName, setPalletName] = useState("");
+  const [palletCost, setPalletCost] = useState("");
   const [weightLbs, setWeightLbs] = useState("");
   const [boxLengthIn, setBoxLengthIn] = useState("");
   const [boxWidthIn, setBoxWidthIn] = useState("");
@@ -107,6 +109,8 @@ export default function NewListingScreen() {
       category,
       notes: notes || undefined,
       listingType,
+      palletName: palletName || undefined,
+      palletCost: palletCost || undefined,
       weightLbs: weightLbs || undefined,
       boxLengthIn: boxLengthIn || undefined,
       boxWidthIn: boxWidthIn || undefined,
@@ -236,6 +240,30 @@ export default function NewListingScreen() {
                 placeholderTextColor={Colors.textMuted}
                 keyboardType="decimal-pad"
               />
+            </View>
+
+            <View style={styles.row}>
+              <View style={[styles.fieldGroup, { flex: 2 }]}>
+                <Text style={styles.label}>Pallet / Source</Text>
+                <TextInput
+                  style={styles.input}
+                  value={palletName}
+                  onChangeText={setPalletName}
+                  placeholder="e.g. Pallet #3, HD Jan"
+                  placeholderTextColor={Colors.textMuted}
+                />
+              </View>
+              <View style={[styles.fieldGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Pallet Cost</Text>
+                <TextInput
+                  style={styles.input}
+                  value={palletCost}
+                  onChangeText={setPalletCost}
+                  placeholder="0.00"
+                  placeholderTextColor={Colors.textMuted}
+                  keyboardType="decimal-pad"
+                />
+              </View>
             </View>
 
             <View style={styles.fieldGroup}>

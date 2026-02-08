@@ -78,6 +78,8 @@ export default function ListingDetailScreen() {
   const [powerType, setPowerType] = useState("GAS");
   const [category, setCategory] = useState("OTHER");
   const [notes, setNotes] = useState("");
+  const [palletName, setPalletName] = useState("");
+  const [palletCost, setPalletCost] = useState("");
   const [weightLbs, setWeightLbs] = useState("");
   const [boxLengthIn, setBoxLengthIn] = useState("");
   const [boxWidthIn, setBoxWidthIn] = useState("");
@@ -102,6 +104,8 @@ export default function ListingDetailScreen() {
       setPowerType(listing.powerType || "GAS");
       setCategory(listing.category || "OTHER");
       setNotes(listing.notes || "");
+      setPalletName(listing.palletName || "");
+      setPalletCost(listing.palletCost || "");
       setWeightLbs(listing.weightLbs || "");
       setBoxLengthIn(listing.boxLengthIn || "");
       setBoxWidthIn(listing.boxWidthIn || "");
@@ -156,6 +160,8 @@ export default function ListingDetailScreen() {
       powerType,
       category,
       notes: notes || null,
+      palletName: palletName || null,
+      palletCost: palletCost || null,
       weightLbs: weightLbs || null,
       boxLengthIn: boxLengthIn || null,
       boxWidthIn: boxWidthIn || null,
@@ -330,6 +336,30 @@ export default function ListingDetailScreen() {
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Brand</Text>
               <TextInput style={styles.input} value={brand} onChangeText={setBrand} placeholder="Brand name" placeholderTextColor={Colors.textMuted} />
+            </View>
+
+            <View style={styles.row}>
+              <View style={[styles.fieldGroup, { flex: 2 }]}>
+                <Text style={styles.label}>Pallet / Source</Text>
+                <TextInput
+                  style={styles.input}
+                  value={palletName}
+                  onChangeText={setPalletName}
+                  placeholder="e.g. Pallet #3, HD Jan"
+                  placeholderTextColor={Colors.textMuted}
+                />
+              </View>
+              <View style={[styles.fieldGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Pallet Cost</Text>
+                <TextInput
+                  style={styles.input}
+                  value={palletCost}
+                  onChangeText={setPalletCost}
+                  placeholder="0.00"
+                  placeholderTextColor={Colors.textMuted}
+                  keyboardType="decimal-pad"
+                />
+              </View>
             </View>
 
             <View style={styles.fieldGroup}>
