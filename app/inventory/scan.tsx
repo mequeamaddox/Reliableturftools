@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
+  KeyboardAvoidingView,
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,7 +24,6 @@ export default function ScanScreen() {
   const webTopInset = Platform.OS === "web" ? 67 : 0;
   const [barcode, setBarcode] = useState("");
   const [searching, setSearching] = useState(false);
-  const [manualMode, setManualMode] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
 
@@ -79,83 +79,6 @@ export default function ScanScreen() {
     lookupBarcode(data);
   }
 
-  if (manualMode) {
-    return (
-      <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()}>
-            <Ionicons name="close" size={28} color={Colors.text} />
-          </Pressable>
-          <Text style={styles.headerTitle}>Barcode Lookup</Text>
-          {Platform.OS !== "web" && (
-            <Pressable onPress={() => { setManualMode(false); setScanned(false); }}>
-              <Ionicons name="camera" size={26} color={Colors.primary} />
-            </Pressable>
-          )}
-          {Platform.OS === "web" && <View style={{ width: 28 }} />}
-        </View>
-
-        <View style={styles.content}>
-          <View style={styles.iconWrap}>
-            <Ionicons name="barcode" size={64} color={Colors.primary} />
-          </View>
-
-          <Text style={styles.instruction}>
-            Enter the barcode number to look up an existing listing or create a new one.
-          </Text>
-
-          <View style={styles.inputWrap}>
-            <Ionicons name="search" size={20} color={Colors.textMuted} />
-            <TextInput
-              style={styles.input}
-              value={barcode}
-              onChangeText={setBarcode}
-              placeholder="Type barcode number..."
-              placeholderTextColor={Colors.textMuted}
-              keyboardType="default"
-              autoFocus
-              onSubmitEditing={() => lookupBarcode(barcode)}
-              returnKeyType="search"
-            />
-          </View>
-
-          <Pressable
-            style={[styles.lookupBtn, searching && { opacity: 0.6 }]}
-            onPress={() => lookupBarcode(barcode)}
-            disabled={searching}
-          >
-            {searching ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Ionicons name="search" size={22} color="#fff" />
-                <Text style={styles.lookupBtnText}>Look Up Barcode</Text>
-              </>
-            )}
-          </Pressable>
-
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <Pressable
-            style={styles.createBtn}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              router.back();
-              setTimeout(() => router.push("/inventory/new" as any), 100);
-            }}
-          >
-            <Ionicons name="add-circle-outline" size={22} color={Colors.primary} />
-            <Text style={styles.createBtnText}>Create New Listing</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
-
   if (!permission) {
     return (
       <View style={[styles.container, { paddingTop: insets.top + webTopInset, alignItems: "center", justifyContent: "center" }]}>
@@ -168,7 +91,7 @@ export default function ScanScreen() {
     return (
       <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()}>
+          <Pressable onPress={() => router.back()} hitSlop={12}>
             <Ionicons name="close" size={28} color={Colors.text} />
           </Pressable>
           <Text style={styles.headerTitle}>Barcode Scanner</Text>
@@ -183,82 +106,139 @@ export default function ScanScreen() {
           <Pressable style={styles.permissionBtn} onPress={requestPermission}>
             <Text style={styles.permissionBtnText}>Allow Camera</Text>
           </Pressable>
-          <Pressable style={styles.manualBtn} onPress={() => setManualMode(true)}>
-            <Ionicons name="keypad-outline" size={18} color={Colors.primary} />
-            <Text style={styles.manualBtnText}>Enter Manually</Text>
-          </Pressable>
+
+          <View style={styles.permDivider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR ENTER MANUALLY</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <View style={styles.manualRow}>
+            <View style={styles.manualInputWrap}>
+              <TextInput
+                style={styles.manualInput}
+                value={barcode}
+                onChangeText={setBarcode}
+                placeholder="Barcode number..."
+                placeholderTextColor={Colors.textMuted}
+                onSubmitEditing={() => lookupBarcode(barcode)}
+                returnKeyType="search"
+              />
+            </View>
+            <Pressable
+              style={[styles.manualSearchBtn, searching && { opacity: 0.6 }]}
+              onPress={() => lookupBarcode(barcode)}
+              disabled={searching}
+            >
+              {searching ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Ionicons name="search" size={22} color="#fff" />
+              )}
+            </Pressable>
+          </View>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
-      <View style={[styles.header, styles.cameraHeader]}>
-        <Pressable onPress={() => router.back()}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <CameraView
+        style={StyleSheet.absoluteFill}
+        facing="back"
+        barcodeScannerSettings={{
+          barcodeTypes: [
+            "ean13",
+            "ean8",
+            "upc_a",
+            "upc_e",
+            "code128",
+            "code39",
+            "code93",
+            "itf14",
+            "codabar",
+            "qr",
+            "datamatrix",
+          ],
+        }}
+        onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+      />
+
+      <View style={[styles.cameraHeader, { paddingTop: insets.top + 8 }]}>
+        <Pressable onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="close" size={28} color="#fff" />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: "#fff" }]}>Scan Barcode</Text>
-        <Pressable onPress={() => setManualMode(true)}>
-          <Ionicons name="keypad" size={24} color="#fff" />
-        </Pressable>
+        <Text style={styles.cameraTitle}>Scan Barcode</Text>
+        <View style={{ width: 28 }} />
       </View>
 
-      <View style={styles.cameraContainer}>
-        <CameraView
-          style={styles.camera}
-          facing="back"
-          barcodeScannerSettings={{
-            barcodeTypes: [
-              "ean13",
-              "ean8",
-              "upc_a",
-              "upc_e",
-              "code128",
-              "code39",
-              "code93",
-              "itf14",
-              "codabar",
-              "qr",
-              "datamatrix",
-            ],
-          }}
-          onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
-        />
-        <View style={styles.scanOverlay}>
-          <View style={styles.scanFrame}>
-            <View style={[styles.scanCorner, styles.topLeft]} />
-            <View style={[styles.scanCorner, styles.topRight]} />
-            <View style={[styles.scanCorner, styles.bottomLeft]} />
-            <View style={[styles.scanCorner, styles.bottomRight]} />
+      <View style={styles.scanOverlay}>
+        <View style={styles.scanFrame}>
+          <View style={[styles.scanCorner, styles.topLeft]} />
+          <View style={[styles.scanCorner, styles.topRight]} />
+          <View style={[styles.scanCorner, styles.bottomLeft]} />
+          <View style={[styles.scanCorner, styles.bottomRight]} />
+        </View>
+        {searching ? (
+          <View style={styles.scanHintRow}>
+            <ActivityIndicator color={Colors.primary} size="small" />
+            <Text style={styles.scanHint}>Looking up barcode...</Text>
           </View>
+        ) : (
           <Text style={styles.scanHint}>
-            {searching ? "Looking up barcode..." : "Point camera at a barcode"}
+            Point camera at a barcode
           </Text>
-        </View>
+        )}
       </View>
 
-      {searching && (
-        <View style={styles.searchingOverlay}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.searchingText}>Searching...</Text>
-        </View>
-      )}
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
+        {scanned && !searching ? (
+          <Pressable style={styles.rescanBtn} onPress={() => setScanned(false)}>
+            <Ionicons name="refresh" size={20} color="#fff" />
+            <Text style={styles.rescanBtnText}>Scan Again</Text>
+          </Pressable>
+        ) : null}
 
-      {scanned && !searching && (
-        <Pressable style={styles.rescanBtn} onPress={() => setScanned(false)}>
-          <Ionicons name="refresh" size={20} color="#fff" />
-          <Text style={styles.rescanBtnText}>Scan Again</Text>
-        </Pressable>
-      )}
-    </View>
+        <View style={styles.manualSection}>
+          <Text style={styles.manualLabel}>Or enter barcode manually:</Text>
+          <View style={styles.manualRow}>
+            <View style={styles.manualInputWrapDark}>
+              <TextInput
+                style={styles.manualInputDark}
+                value={barcode}
+                onChangeText={setBarcode}
+                placeholder="Type barcode..."
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                onSubmitEditing={() => lookupBarcode(barcode)}
+                returnKeyType="search"
+              />
+            </View>
+            <Pressable
+              style={[styles.manualSearchBtnGreen, searching && { opacity: 0.6 }]}
+              onPress={() => lookupBarcode(barcode)}
+              disabled={searching}
+            >
+              {searching ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Ionicons name="search" size={22} color="#fff" />
+              )}
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: "#000",
   },
   header: {
     flexDirection: "row",
@@ -268,110 +248,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     zIndex: 10,
   },
-  cameraHeader: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingTop: 50,
-    backgroundColor: "rgba(0,0,0,0.4)",
-  },
   headerTitle: {
     fontFamily: "Inter_700Bold",
     fontSize: 18,
     color: Colors.text,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 40,
-    alignItems: "center",
-  },
-  iconWrap: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "rgba(22, 163, 74, 0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 24,
-  },
-  instruction: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 15,
-    color: Colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 28,
-    maxWidth: 300,
-  },
-  inputWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.inputBg,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    gap: 10,
-    width: "100%",
-    borderWidth: 1,
-    borderColor: Colors.inputBorder,
-  },
-  input: {
-    flex: 1,
-    fontFamily: "Inter_400Regular",
-    fontSize: 18,
-    color: Colors.text,
-    paddingVertical: 16,
-  },
-  lookupBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    backgroundColor: Colors.primary,
-    borderRadius: 14,
-    padding: 18,
-    width: "100%",
-    marginTop: 16,
-  },
-  lookupBtnText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 16,
-    color: "#fff",
-  },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    width: "100%",
-    marginVertical: 28,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.border,
-  },
-  dividerText: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 13,
-    color: Colors.textMuted,
-  },
-  createBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    backgroundColor: "rgba(22, 163, 74, 0.1)",
-    borderRadius: 14,
-    padding: 18,
-    width: "100%",
-    borderWidth: 1,
-    borderColor: Colors.primary,
-  },
-  createBtnText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 16,
-    color: Colors.primary,
   },
   permissionContent: {
     flex: 1,
@@ -405,108 +285,185 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#fff",
   },
-  manualBtn: {
+  permDivider: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginTop: 8,
-    paddingVertical: 12,
+    gap: 12,
+    width: "100%",
+    marginTop: 24,
+    marginBottom: 8,
   },
-  manualBtnText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 15,
-    color: Colors.primary,
-  },
-  cameraContainer: {
+  dividerLine: {
     flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
   },
-  camera: {
+  dividerText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  manualRow: {
+    flexDirection: "row",
+    gap: 10,
+    width: "100%",
+  },
+  manualInputWrap: {
     flex: 1,
+    backgroundColor: Colors.inputBg,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    justifyContent: "center",
   },
-  scanOverlay: {
-    ...StyleSheet.absoluteFillObject,
+  manualInput: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 16,
+    color: Colors.text,
+    paddingVertical: 14,
+  },
+  manualSearchBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
+  cameraHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    zIndex: 10,
+  },
+  cameraTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 18,
+    color: "#fff",
+  },
+  scanOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingBottom: 120,
+  },
   scanFrame: {
-    width: 260,
-    height: 160,
+    width: 280,
+    height: 170,
     position: "relative",
   },
   scanCorner: {
     position: "absolute",
-    width: 30,
-    height: 30,
+    width: 32,
+    height: 32,
     borderColor: Colors.primary,
   },
   topLeft: {
     top: 0,
     left: 0,
-    borderTopWidth: 3,
-    borderLeftWidth: 3,
-    borderTopLeftRadius: 8,
+    borderTopWidth: 4,
+    borderLeftWidth: 4,
+    borderTopLeftRadius: 10,
   },
   topRight: {
     top: 0,
     right: 0,
-    borderTopWidth: 3,
-    borderRightWidth: 3,
-    borderTopRightRadius: 8,
+    borderTopWidth: 4,
+    borderRightWidth: 4,
+    borderTopRightRadius: 10,
   },
   bottomLeft: {
     bottom: 0,
     left: 0,
-    borderBottomWidth: 3,
-    borderLeftWidth: 3,
-    borderBottomLeftRadius: 8,
+    borderBottomWidth: 4,
+    borderLeftWidth: 4,
+    borderBottomLeftRadius: 10,
   },
   bottomRight: {
     bottom: 0,
     right: 0,
-    borderBottomWidth: 3,
-    borderRightWidth: 3,
-    borderBottomRightRadius: 8,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderBottomRightRadius: 10,
   },
   scanHint: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 15,
     color: "#fff",
-    marginTop: 24,
-    textShadowColor: "rgba(0,0,0,0.5)",
+    marginTop: 20,
+    textShadowColor: "rgba(0,0,0,0.7)",
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    textShadowRadius: 6,
   },
-  searchingOverlay: {
-    position: "absolute",
-    bottom: 120,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    gap: 8,
-  },
-  searchingText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 16,
-    color: "#fff",
-    textShadowColor: "rgba(0,0,0,0.5)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  rescanBtn: {
-    position: "absolute",
-    bottom: 60,
-    alignSelf: "center",
+  scanHintRow: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 10,
+    marginTop: 20,
+  },
+  bottomBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    backgroundColor: "rgba(0,0,0,0.7)",
+  },
+  rescanBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
     backgroundColor: Colors.primary,
-    borderRadius: 24,
-    paddingHorizontal: 24,
+    borderRadius: 14,
     paddingVertical: 14,
+    marginBottom: 16,
   },
   rescanBtnText: {
     fontFamily: "Inter_700Bold",
     fontSize: 15,
     color: "#fff",
+  },
+  manualSection: {
+    gap: 8,
+  },
+  manualLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: "rgba(255,255,255,0.6)",
+  },
+  manualInputWrapDark: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    justifyContent: "center",
+  },
+  manualInputDark: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 16,
+    color: "#fff",
+    paddingVertical: 12,
+  },
+  manualSearchBtnGreen: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
