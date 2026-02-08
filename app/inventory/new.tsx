@@ -46,6 +46,7 @@ function ChipSelect({ options, value, onChange, label }: { options: readonly str
 export default function NewListingScreen() {
   const insets = useSafeAreaInsets();
   const webTopInset = Platform.OS === "web" ? 67 : 0;
+  const [listingType, setListingType] = useState<"ITEM" | "PART">("ITEM");
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [cost, setCost] = useState("");
@@ -101,6 +102,7 @@ export default function NewListingScreen() {
       powerType,
       category,
       notes: notes || undefined,
+      listingType,
     });
   }
 
@@ -128,6 +130,26 @@ export default function NewListingScreen() {
         contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 20, paddingHorizontal: 16 }}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Type</Text>
+          <View style={styles.typeRow}>
+            <Pressable
+              style={[styles.typeBtn, listingType === "ITEM" && styles.typeBtnActive]}
+              onPress={() => { setListingType("ITEM"); Haptics.selectionAsync(); }}
+            >
+              <Ionicons name="build-outline" size={18} color={listingType === "ITEM" ? "#fff" : Colors.textSecondary} />
+              <Text style={[styles.typeBtnText, listingType === "ITEM" && styles.typeBtnTextActive]}>Item</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.typeBtn, listingType === "PART" && styles.typeBtnActive]}
+              onPress={() => { setListingType("PART"); Haptics.selectionAsync(); }}
+            >
+              <Ionicons name="cog-outline" size={18} color={listingType === "PART" ? "#fff" : Colors.textSecondary} />
+              <Text style={[styles.typeBtnText, listingType === "PART" && styles.typeBtnTextActive]}>Part</Text>
+            </Pressable>
+          </View>
+        </View>
+
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Title *</Text>
           <TextInput
@@ -332,6 +354,32 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     fontSize: 14,
     color: Colors.textMuted,
+  },
+  typeRow: {
+    flexDirection: "row",
+    gap: 0,
+    backgroundColor: Colors.cardBg,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  typeBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+  },
+  typeBtnActive: {
+    backgroundColor: Colors.primary,
+  },
+  typeBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  typeBtnTextActive: {
+    color: "#fff",
   },
   barcodeRow: {
     flexDirection: "row",

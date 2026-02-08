@@ -881,8 +881,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? `<div class="listing-notes"><h3>Notes</h3><p>${escapeHtml(listing.notes)}</p></div>`
         : "";
 
-      const partsHtml = "";
-
       const ogCondition = listing.condition.includes("NEW") ? "NewCondition" : "UsedCondition";
 
       const jsonLd = JSON.stringify({
@@ -924,7 +922,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .replace("LISTING_BRAND_ROW_PLACEHOLDER", brandRow)
         .replace("LISTING_SKU_ROW_PLACEHOLDER", skuRow)
         .replace("LISTING_NOTES_PLACEHOLDER", notesHtml)
-        .replace("LISTING_PARTS_PLACEHOLDER", partsHtml)
         .replace("LISTING_ID_PLACEHOLDER", listing.id);
 
       res.setHeader("Content-Type", "text/html; charset=utf-8");

@@ -188,101 +188,6 @@
       color: #1a1a1a;
     }
 
-    /* Parts Section */
-    .parts-section {
-      margin-top: 32px;
-      padding-top: 32px;
-      border-top: 2px solid #e0e0e0;
-    }
-    .parts-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: #1a1a1a;
-      margin-bottom: 4px;
-    }
-    .parts-subtitle {
-      font-size: 14px;
-      color: #666;
-      margin-bottom: 20px;
-    }
-    .parts-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 16px;
-    }
-    .part-card {
-      background: #fff;
-      border: 1px solid #e0e0e0;
-      border-radius: 10px;
-      overflow: hidden;
-      display: flex;
-      gap: 0;
-      transition: box-shadow 0.2s;
-    }
-    .part-card:hover {
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .part-img {
-      width: 120px;
-      min-height: 120px;
-      object-fit: cover;
-      flex-shrink: 0;
-      background: #f0f0f0;
-    }
-    .part-img-placeholder {
-      width: 120px;
-      min-height: 120px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #e8efe8;
-      color: #999;
-      font-size: 12px;
-      flex-shrink: 0;
-    }
-    .part-info {
-      padding: 14px 16px;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-    .part-name {
-      font-size: 15px;
-      font-weight: 600;
-      color: #1a1a1a;
-      margin-bottom: 4px;
-    }
-    .part-desc {
-      font-size: 13px;
-      color: #666;
-      margin-bottom: 6px;
-      line-height: 1.4;
-    }
-    .part-condition {
-      font-size: 12px;
-      color: #888;
-      margin-bottom: 6px;
-    }
-    .part-price {
-      font-size: 18px;
-      font-weight: 700;
-      color: #2d6a2e;
-      margin-bottom: 10px;
-    }
-    .btn-part-inquiry {
-      padding: 8px 14px;
-      background: #2d6a2e;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      align-self: flex-start;
-      transition: background 0.15s;
-    }
-    .btn-part-inquiry:hover { background: #245a25; }
-
     /* Inquiry Form */
     .inquiry-section {
       background: #fff;
@@ -366,9 +271,6 @@
     }
     .site-footer a { color: #7bc67e; }
 
-    @media (min-width: 480px) {
-      .parts-grid { grid-template-columns: repeat(2, 1fr); }
-    }
     @media (min-width: 768px) {
       .detail-grid {
         grid-template-columns: 1.2fr 1fr;
@@ -404,7 +306,6 @@
           LISTING_NOTES_PLACEHOLDER
         </div>
 
-        LISTING_PARTS_PLACEHOLDER
       </div>
 
       <div>
@@ -412,7 +313,6 @@
           <h3 id="inquiry-heading">Inquire About This Item</h3>
           <form id="inquiry-form">
             <input type="hidden" name="listingId" value="LISTING_ID_PLACEHOLDER" />
-            <input type="hidden" name="partInfo" id="part-info" value="" />
             <div class="form-group">
               <label for="inq-name">Your Name *</label>
               <input type="text" id="inq-name" name="name" required />
@@ -457,17 +357,6 @@
       }
     })();
 
-    // Part inquiry helper
-    function openPartInquiry(partId, partName) {
-      var heading = document.getElementById('inquiry-heading');
-      var msgField = document.getElementById('inq-message');
-      var partInfoField = document.getElementById('part-info');
-      heading.textContent = 'Inquire About: ' + partName;
-      msgField.value = "I'm interested in the part: " + partName + ". Is it still available?";
-      partInfoField.value = 'Part: ' + partName + ' (ID: ' + partId + ')';
-      heading.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-
     // Inquiry form
     (function() {
       var form = document.getElementById('inquiry-form');
@@ -482,11 +371,7 @@
         msg.style.display = 'none';
 
         var emailVal = document.getElementById('inq-email').value;
-        var partInfo = document.getElementById('part-info').value;
         var messageVal = document.getElementById('inq-message').value || '';
-        if (partInfo) {
-          messageVal = '[' + partInfo + '] ' + messageVal;
-        }
         if (emailVal) {
           messageVal = '[Email: ' + emailVal + '] ' + messageVal;
         }

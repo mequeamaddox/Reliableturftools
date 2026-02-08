@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
-  Image,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,7 +16,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
-import { apiRequest, queryClient, getApiUrl } from "@/lib/query-client";
+import { apiRequest, queryClient } from "@/lib/query-client";
 
 const FALLBACK_CONDITIONS = ["NEW_BOXED", "USED_UNBOXED", "USED", "DAMAGED"];
 const FALLBACK_POWER_TYPES = ["GAS", "ELECTRIC_18V", "ELECTRIC_40V", "OTHER"];
@@ -63,22 +62,11 @@ export default function ListingDetailScreen() {
     leadSources: string[];
   }>({ queryKey: ["/api/inventory-options"] });
 
-  const { data: partsList = [], isLoading: partsLoading } = useQuery<any[]>({
-    queryKey: [`/api/listings/${id}/parts`],
-    enabled: !!id,
-  });
-
   const CONDITIONS = inventoryOptions?.conditions ?? FALLBACK_CONDITIONS;
   const POWER_TYPES = inventoryOptions?.powerTypes ?? FALLBACK_POWER_TYPES;
   const CATEGORIES = inventoryOptions?.categories ?? FALLBACK_CATEGORIES;
   const PAY_TYPES = inventoryOptions?.paymentTypes ?? FALLBACK_PAYMENT_TYPES;
   const LEAD_SOURCES = inventoryOptions?.leadSources ?? FALLBACK_LEAD_SOURCES;
-
-  const [showAddPart, setShowAddPart] = useState(false);
-  const [partName, setPartName] = useState("");
-  const [partPrice, setPartPrice] = useState("");
-  const [partCondition, setPartCondition] = useState("USED");
-  const [partDescription, setPartDescription] = useState("");
 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
@@ -148,56 +136,6 @@ export default function ListingDetailScreen() {
     },
   });
 
-  const createPartMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", `/api/listings/${id}/parts`, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/listings/${id}/parts`] });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setShowAddPart(false);
-      setPartName("");
-      setPartPrice("");
-      setPartCondition("USED");
-      setPartDescription("");
-    },
-  });
-
-  const deletePartMutation = useMutation({
-    mutationFn: (partId: string) => apiRequest("DELETE", `/api/parts/${partId}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/listings/${id}/parts`] });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    },
-  });
-
-  const togglePartSoldMutation = useMutation({
-    mutationFn: ({ partId, isSold }: { partId: string; isSold: boolean }) =>
-      apiRequest("PUT", `/api/parts/${partId}`, { isSold }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/listings/${id}/parts`] });
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    },
-  });
-
-  function handleAddPart() {
-    if (!partName.trim() || !partPrice.trim()) {
-      Alert.alert("Required", "Part name and price are required");
-      return;
-    }
-    createPartMutation.mutate({
-      name: partName.trim(),
-      price: partPrice,
-      condition: partCondition,
-      description: partDescription.trim() || null,
-    });
-  }
-
-  function handleDeletePart(partId: string, partName: string) {
-    Alert.alert("Delete Part", `Delete "${partName}"?`, [
-      { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => deletePartMutation.mutate(partId) },
-    ]);
-  }
-
   function handleSave() {
     updateMutation.mutate({
       title: title.trim(),
@@ -255,6 +193,7 @@ export default function ListingDetailScreen() {
       powerType,
       category,
       notes: notes || undefined,
+      listingType: listing?.listingType || "ITEM",
     }).then(() => {
       queryClient.invalidateQueries({ queryKey: ["/api/listings"] });
       Alert.alert("Duplicated", "Listing has been duplicated");
@@ -292,6 +231,11 @@ export default function ListingDetailScreen() {
         <View style={styles.headerCenter}>
           <View style={[styles.statusDot, { backgroundColor: STATUS_COLORS[listing?.status] || Colors.textMuted }]} />
           <Text style={styles.headerStatus}>{listing?.status}</Text>
+          {listing?.listingType === "PART" && (
+            <View style={styles.typeBadge}>
+              <Text style={styles.typeBadgeText}>PART</Text>
+            </View>
+          )}
         </View>
         <Pressable
           onPress={handleSave}
@@ -414,128 +358,6 @@ export default function ListingDetailScreen() {
               <TextInput style={[styles.input, styles.textarea]} value={notes} onChangeText={setNotes} multiline numberOfLines={3} placeholderTextColor={Colors.textMuted} placeholder="Notes..." />
             </View>
 
-            <View style={styles.partsSection}>
-              <View style={styles.partsSectionHeader}>
-                <View>
-                  <Text style={styles.partsSectionTitle}>Parts</Text>
-                  <Text style={styles.partsSectionSub}>Sell individual parts from this item</Text>
-                </View>
-                <Pressable
-                  style={styles.addPartBtn}
-                  onPress={() => { setShowAddPart(!showAddPart); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
-                >
-                  <Ionicons name={showAddPart ? "close" : "add"} size={20} color="#fff" />
-                </Pressable>
-              </View>
-
-              {showAddPart && (
-                <View style={styles.addPartForm}>
-                  <View style={styles.row}>
-                    <View style={[styles.fieldGroup, { flex: 2, marginBottom: 0 }]}>
-                      <TextInput
-                        style={styles.input}
-                        value={partName}
-                        onChangeText={setPartName}
-                        placeholder="Part name"
-                        placeholderTextColor={Colors.textMuted}
-                      />
-                    </View>
-                    <View style={[styles.fieldGroup, { flex: 1, marginBottom: 0 }]}>
-                      <TextInput
-                        style={styles.input}
-                        value={partPrice}
-                        onChangeText={setPartPrice}
-                        placeholder="Price"
-                        placeholderTextColor={Colors.textMuted}
-                        keyboardType="decimal-pad"
-                      />
-                    </View>
-                  </View>
-                  <TextInput
-                    style={[styles.input, { marginTop: 8 }]}
-                    value={partDescription}
-                    onChangeText={setPartDescription}
-                    placeholder="Description (optional)"
-                    placeholderTextColor={Colors.textMuted}
-                  />
-                  <View style={[styles.chipRow, { marginTop: 8 }]}>
-                    {CONDITIONS.map((c: string) => (
-                      <Pressable
-                        key={c}
-                        style={[styles.chip, partCondition === c && styles.chipActive, { paddingHorizontal: 10, paddingVertical: 6 }]}
-                        onPress={() => { setPartCondition(c); Haptics.selectionAsync(); }}
-                      >
-                        <Text style={[styles.chipText, partCondition === c && styles.chipTextActive, { fontSize: 11 }]}>
-                          {c.replace(/_/g, " ")}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                  <Pressable
-                    style={[styles.confirmPartBtn, createPartMutation.isPending && { opacity: 0.5 }]}
-                    onPress={handleAddPart}
-                    disabled={createPartMutation.isPending}
-                  >
-                    {createPartMutation.isPending ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <>
-                        <Ionicons name="add-circle" size={18} color="#fff" />
-                        <Text style={styles.confirmPartText}>Add Part</Text>
-                      </>
-                    )}
-                  </Pressable>
-                </View>
-              )}
-
-              {partsLoading ? (
-                <ActivityIndicator size="small" color={Colors.primary} style={{ marginTop: 12 }} />
-              ) : partsList.length === 0 ? (
-                <Text style={styles.noPartsText}>No parts added yet</Text>
-              ) : (
-                <View style={styles.partsList}>
-                  {partsList.map((part: any) => (
-                    <View key={part.id} style={[styles.partItem, part.isSold && styles.partItemSold]}>
-                      {part.photo ? (
-                        <Image source={{ uri: getApiUrl() + part.photo }} style={styles.partThumb} />
-                      ) : (
-                        <View style={styles.partThumbPlaceholder}>
-                          <Ionicons name="construct-outline" size={18} color={Colors.textMuted} />
-                        </View>
-                      )}
-                      <View style={styles.partItemInfo}>
-                        <Text style={[styles.partItemName, part.isSold && { textDecorationLine: "line-through" as const }]}>
-                          {part.name}
-                        </Text>
-                        <Text style={styles.partItemMeta}>
-                          ${Number(part.price).toFixed(2)} · {part.condition.replace(/_/g, " ")}
-                          {part.isSold ? " · SOLD" : ""}
-                        </Text>
-                      </View>
-                      <View style={styles.partItemActions}>
-                        <Pressable
-                          onPress={() => togglePartSoldMutation.mutate({ partId: part.id, isSold: !part.isSold })}
-                          style={styles.partActionBtn}
-                        >
-                          <Ionicons
-                            name={part.isSold ? "refresh" : "checkmark-circle"}
-                            size={22}
-                            color={part.isSold ? Colors.info : Colors.success}
-                          />
-                        </Pressable>
-                        <Pressable
-                          onPress={() => handleDeletePart(part.id, part.name)}
-                          style={styles.partActionBtn}
-                        >
-                          <Ionicons name="trash-outline" size={20} color={Colors.danger} />
-                        </Pressable>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-
             <View style={styles.bottomActions}>
               <Pressable style={styles.bottomBtn} onPress={handleDuplicate}>
                 <Ionicons name="copy-outline" size={18} color={Colors.info} />
@@ -644,6 +466,18 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 14,
     color: Colors.textSecondary,
+  },
+  typeBadge: {
+    backgroundColor: Colors.info,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 4,
+  },
+  typeBadgeText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 10,
+    color: "#fff",
   },
   saveBtn: {
     backgroundColor: Colors.primary,
@@ -804,118 +638,5 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     fontSize: 15,
     color: "#fff",
-  },
-  partsSection: {
-    marginTop: 8,
-    marginBottom: 16,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  partsSectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  partsSectionTitle: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 17,
-    color: Colors.text,
-  },
-  partsSectionSub: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 12,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-  addPartBtn: {
-    backgroundColor: Colors.primary,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  addPartForm: {
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  confirmPartBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    backgroundColor: Colors.primary,
-    borderRadius: 10,
-    paddingVertical: 10,
-    marginTop: 10,
-  },
-  confirmPartText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 14,
-    color: "#fff",
-  },
-  noPartsText: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
-    color: Colors.textMuted,
-    textAlign: "center" as const,
-    paddingVertical: 16,
-  },
-  partsList: {
-    gap: 8,
-    marginTop: 4,
-  },
-  partItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.surface,
-    borderRadius: 10,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: 10,
-  },
-  partItemSold: {
-    opacity: 0.5,
-  },
-  partThumb: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-  },
-  partThumbPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    backgroundColor: Colors.cardBg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  partItemInfo: {
-    flex: 1,
-  },
-  partItemName: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 14,
-    color: Colors.text,
-  },
-  partItemMeta: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 12,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-  partItemActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  partActionBtn: {
-    padding: 4,
   },
 });
