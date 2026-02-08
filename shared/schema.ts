@@ -60,7 +60,7 @@ export const listings = pgTable("listings", {
     .primaryKey()
     .default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
-  sku: text("sku").notNull(),
+  sku: text("sku"),
   barcode: text("barcode"),
   condition: text("condition").notNull().default("USED"),
   powerType: text("power_type").notNull().default("GAS"),
