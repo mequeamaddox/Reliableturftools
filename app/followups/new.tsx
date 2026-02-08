@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { apiRequest, queryClient } from "@/lib/query-client";
+import { scheduleFollowUpReminder } from "@/lib/notifications";
 
 const FOLLOW_UP_TYPES = [
   { value: "CHECK_IN", label: "Check In", icon: "chatbubble" as const },
@@ -74,9 +75,13 @@ export default function NewFollowUpScreen() {
 
   const createMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/followups", data),
-    onSuccess: () => {
+    onSuccess: async (_res, variables) => {
       invalidateFollowUps();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (variables.dueDate) {
+        const buyerName = buyers.find((b: any) => b.id === variables.buyerId)?.name || "";
+        scheduleFollowUpReminder("new", buyerName, new Date(variables.dueDate), variables.message || undefined);
+      }
       router.back();
     },
   });
@@ -84,9 +89,13 @@ export default function NewFollowUpScreen() {
   const updateMutation = useMutation({
     mutationFn: (data: any) =>
       apiRequest("PUT", `/api/followups/${params.editId}`, data),
-    onSuccess: () => {
+    onSuccess: async (_res, variables) => {
       invalidateFollowUps();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (variables.dueDate) {
+        const buyerName = buyers.find((b: any) => b.id === variables.buyerId)?.name || "";
+        scheduleFollowUpReminder(params.editId!, buyerName, new Date(variables.dueDate), variables.message || undefined);
+      }
       router.back();
     },
   });
