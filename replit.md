@@ -52,7 +52,7 @@ Preferred communication style: Simple, everyday language.
 - **Schema Location**: `shared/schema.ts` — Shared between frontend and backend
 - **Schema Design**:
   - `users` — Admin accounts (email/password)
-  - `listings` — Inventory items with fields for title, SKU, barcode, condition, power type, category, price, quantity, status (AVAILABLE/PENDING/SOLD/ARCHIVED), published flag, photos
+  - `listings` — Inventory items with fields for title, SKU, barcode, condition, power type, category, price, cost, quantity, status (AVAILABLE/PENDING/SOLD/ARCHIVED), published flag, photos, shipping fields (weightLbs, boxLengthIn, boxWidthIn, boxHeightIn)
   - `buyers` — Customer contacts with phone, name, notes, tags (REPEAT_BUYER, GOOD_BUYER, FLAKE_RISK), preferred meetup spot
   - `sales` — Completed transactions linking listing + buyer with sale price, payment type, meetup spot
   - `followUps` — Scheduled follow-up reminders with type, message, due date, completion status
