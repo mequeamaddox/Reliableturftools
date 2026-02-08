@@ -9,7 +9,6 @@ import {
   inquiries,
   meetupSpots,
   messageTemplates,
-  parts,
   settings,
   type User,
   type InsertUser,
@@ -27,8 +26,6 @@ import {
   type InsertMeetupSpot,
   type MessageTemplate,
   type InsertMessageTemplate,
-  type Part,
-  type InsertPart,
   type Setting,
 } from "@shared/schema";
 
@@ -62,10 +59,14 @@ export const storage = {
     powerType?: string;
     category?: string;
     search?: string;
+    listingType?: string;
   }): Promise<Listing[]> {
     let query = db.select().from(listings);
     const conditions: any[] = [];
 
+    if (filters?.listingType) {
+      conditions.push(eq(listings.listingType, filters.listingType));
+    }
     if (filters?.status) {
       conditions.push(eq(listings.status, filters.status as any));
     }
@@ -133,17 +134,19 @@ export const storage = {
     await db.delete(listings).where(eq(listings.id, id));
   },
 
-  async getPublishedListings(): Promise<Listing[]> {
+  async getPublishedListings(listingType?: string): Promise<Listing[]> {
+    const conditions = [
+      eq(listings.isPublished, true),
+      eq(listings.status, "AVAILABLE"),
+      sql`${listings.quantity} > 0`,
+    ];
+    if (listingType) {
+      conditions.push(eq(listings.listingType, listingType) as any);
+    }
     return db
       .select()
       .from(listings)
-      .where(
-        and(
-          eq(listings.isPublished, true),
-          eq(listings.status, "AVAILABLE"),
-          sql`${listings.quantity} > 0`,
-        ),
-      )
+      .where(and(...conditions))
       .orderBy(desc(listings.createdAt));
   },
 
@@ -568,35 +571,4 @@ export const storage = {
     };
   },
 
-  async getPartsByListingId(listingId: string): Promise<Part[]> {
-    return db.select().from(parts).where(eq(parts.listingId, listingId)).orderBy(desc(parts.createdAt));
-  },
-
-  async getAvailablePartsByListingId(listingId: string): Promise<Part[]> {
-    return db.select().from(parts).where(and(eq(parts.listingId, listingId), eq(parts.isSold, false))).orderBy(desc(parts.createdAt));
-  },
-
-  async getPartById(id: string): Promise<Part | undefined> {
-    const [part] = await db.select().from(parts).where(eq(parts.id, id));
-    return part;
-  },
-
-  async createPart(data: InsertPart): Promise<Part> {
-    const [part] = await db.insert(parts).values(data).returning();
-    return part;
-  },
-
-  async updatePart(id: string, data: Partial<InsertPart>): Promise<Part> {
-    const [part] = await db.update(parts).set(data).where(eq(parts.id, id)).returning();
-    return part;
-  },
-
-  async deletePart(id: string): Promise<void> {
-    await db.delete(parts).where(eq(parts.id, id));
-  },
-
-  async getListingsWithParts(): Promise<string[]> {
-    const result = await db.select({ listingId: parts.listingId }).from(parts).where(eq(parts.isSold, false));
-    return [...new Set(result.map(r => r.listingId))];
-  },
 };
