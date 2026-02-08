@@ -115,8 +115,7 @@ export default function ListingDetailScreen() {
   const updateMutation = useMutation({
     mutationFn: (data: any) => apiRequest("PUT", `/api/listings/${id}`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/listings/${id}`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/listings"] });
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith("/api/listings") });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
@@ -126,7 +125,7 @@ export default function ListingDetailScreen() {
   const sellMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", `/api/listings/${id}/sell`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/listings"] });
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith("/api/listings") });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["/api/sales"] });
       queryClient.invalidateQueries({ queryKey: ["/api/buyers"] });
@@ -139,7 +138,7 @@ export default function ListingDetailScreen() {
   const deleteMutation = useMutation({
     mutationFn: () => apiRequest("DELETE", `/api/listings/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/listings"] });
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith("/api/listings") });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
@@ -210,7 +209,7 @@ export default function ListingDetailScreen() {
       notes: notes || undefined,
       listingType: listing?.listingType || "ITEM",
     }).then(() => {
-      queryClient.invalidateQueries({ queryKey: ["/api/listings"] });
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith("/api/listings") });
       Alert.alert("Duplicated", "Listing has been duplicated");
     });
   }
@@ -353,8 +352,7 @@ export default function ListingDetailScreen() {
                       .then((data: any) => {
                         if (data.sku) {
                           apiRequest("PUT", `/api/listings/${id}`, { sku: data.sku }).then(() => {
-                            queryClient.invalidateQueries({ queryKey: [`/api/listings/${id}`] });
-                            queryClient.invalidateQueries({ queryKey: ["/api/listings"] });
+                            queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith("/api/listings") });
                             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                           });
                         }

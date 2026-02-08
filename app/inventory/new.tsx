@@ -77,7 +77,7 @@ export default function NewListingScreen() {
   const createMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/listings", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/listings"] });
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith("/api/listings") });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();

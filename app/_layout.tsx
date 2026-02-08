@@ -17,19 +17,12 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerShown: false, headerBackTitle: "Back" }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="inventory/new" options={{ presentation: "modal" }} />
-      <Stack.Screen name="inventory/[id]" options={{ presentation: "modal" }} />
-      <Stack.Screen name="inventory/scan" options={{ presentation: "modal" }} />
-      <Stack.Screen name="buyers/[id]" options={{ presentation: "modal" }} />
-      <Stack.Screen name="buyers/new" options={{ presentation: "modal" }} />
-      <Stack.Screen name="followups/new" options={{ presentation: "modal" }} />
+      <Stack.Screen name="inventory" options={{ presentation: "modal" }} />
+      <Stack.Screen name="buyers" options={{ presentation: "modal" }} />
+      <Stack.Screen name="followups" options={{ presentation: "modal" }} />
       <Stack.Screen name="sales/form" options={{ presentation: "modal" }} />
-      <Stack.Screen name="inventory/label" options={{ presentation: "modal" }} />
-      <Stack.Screen name="settings/meetup-spots" options={{ presentation: "modal" }} />
-      <Stack.Screen name="settings/templates" options={{ presentation: "modal" }} />
-      <Stack.Screen name="settings/inventory-options" options={{ presentation: "modal" }} />
-      <Stack.Screen name="store/index" />
-      <Stack.Screen name="store/[id]" />
+      <Stack.Screen name="settings" options={{ presentation: "modal" }} />
+      <Stack.Screen name="store" />
     </Stack>
   );
 }

@@ -98,14 +98,21 @@ export default function InventoryScreen() {
   queryParams.set("listingType", listingType);
   const queryString = queryParams.toString();
 
+  const listingsUrl = "/api/listings" + (queryString ? `?${queryString}` : "");
   const { data: listings = [], isLoading, refetch, isRefetching } = useQuery<any[]>({
-    queryKey: ["/api/listings" + (queryString ? `?${queryString}` : "")],
+    queryKey: ["/api/listings", queryString],
+    queryFn: async () => {
+      const { getApiUrl } = await import("@/lib/query-client");
+      const res = await fetch(new URL(listingsUrl, getApiUrl()).toString(), { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch listings");
+      return res.json();
+    },
   });
 
   const archiveMutation = useMutation({
     mutationFn: (id: string) => apiRequest("PUT", `/api/listings/${id}`, { status: "ARCHIVED", isPublished: false }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/listings"] });
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith("/api/listings") });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
     },
   });
@@ -113,7 +120,7 @@ export default function InventoryScreen() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/listings/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/listings"] });
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith("/api/listings") });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
     },
   });
