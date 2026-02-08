@@ -107,6 +107,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   }, express_static_uploads());
 
+  app.use("/public", express.static(path.resolve(process.cwd(), "public")));
+
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
       const { email, password } = req.body;
@@ -834,11 +836,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const photoUrl = listing.photos && listing.photos.length > 0
             ? `${baseUrl}${listing.photos[0]}`
             : "";
+          const canShip = listing.weightLbs && parseFloat(listing.weightLbs) > 0;
+          const fulfillmentBadge = canShip
+            ? '<span class="card-badge badge-ships">Ships</span>'
+            : '<span class="card-badge badge-pickup">Pickup</span>';
           const imgHtml = photoUrl
-            ? `<img class="card-img" src="${escapeHtml(photoUrl)}" alt="${escapeHtml(listing.title)}" loading="lazy" />`
-            : `<div class="card-img-placeholder">No Photo</div>`;
+            ? `<div class="card-img-wrap"><img class="card-img" src="${escapeHtml(photoUrl)}" alt="${escapeHtml(listing.title)}" loading="lazy" />${fulfillmentBadge}</div>`
+            : `<div class="card-img-wrap"><div class="card-img-placeholder">No Photo</div>${fulfillmentBadge}</div>`;
           const typeBadge = listing.listingType === "PART"
-            ? '<span class="card-parts-badge">Part</span>'
+            ? '<span class="card-type-badge">Part</span>'
             : "";
 
           html += `<a href="/store/${listing.id}" class="card">
@@ -870,8 +876,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      const totalCount = items.length + partsList.length;
+      const countText = totalCount === 1 ? "1 item" : `${totalCount} items`;
       const html = template
         .replace(/BASE_URL_PLACEHOLDER/g, baseUrl)
+        .replace("LISTINGS_COUNT_PLACEHOLDER", countText)
         .replace("LISTINGS_HTML_PLACEHOLDER", cardsHtml);
 
       res.setHeader("Content-Type", "text/html; charset=utf-8");

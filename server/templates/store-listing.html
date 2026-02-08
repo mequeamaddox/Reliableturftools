@@ -16,82 +16,143 @@
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:title" content="Reliable Turf Tools — Used Outdoor Power Equipment For Sale" />
   <meta name="twitter:description" content="Quality used lawn equipment at great prices. Mowers, trimmers, blowers, chainsaws and more. Shipped nationwide." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background: #f8f9fa;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f4f0;
       color: #1a1a1a;
       line-height: 1.6;
     }
     a { color: inherit; text-decoration: none; }
 
-    /* Header */
     .site-header {
-      background: #fff;
-      border-bottom: 1px solid #e0e0e0;
-      padding: 16px 20px;
+      background: #0d1f0d;
+      padding: 14px 24px;
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 14px;
+      border-bottom: 3px solid #2d6a2e;
     }
-    .site-header h2 {
-      font-size: 20px;
-      font-weight: 700;
-      color: #2d6a2e;
-      letter-spacing: -0.3px;
+    .site-header img {
+      height: 44px;
+      width: auto;
+      border-radius: 6px;
+    }
+    .header-text h2 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+    }
+    .header-text span {
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.55);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
     }
 
-    /* Hero */
     .hero {
-      background: linear-gradient(135deg, #2d6a2e 0%, #3a8c3b 50%, #4a7c3f 100%);
+      background: linear-gradient(160deg, #143214 0%, #1e4d1e 40%, #2d6a2e 100%);
       color: #fff;
-      padding: 48px 20px;
+      padding: 56px 24px 48px;
       text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      top: -60%;
+      left: -20%;
+      width: 140%;
+      height: 200%;
+      background: radial-gradient(ellipse at center, rgba(69,160,73,0.12) 0%, transparent 70%);
+      pointer-events: none;
     }
     .hero h1 {
-      font-size: 28px;
-      font-weight: 800;
-      margin-bottom: 12px;
-      line-height: 1.2;
+      font-size: 32px;
+      font-weight: 900;
+      margin-bottom: 14px;
+      line-height: 1.15;
+      letter-spacing: -0.5px;
+      position: relative;
     }
     .hero p {
       font-size: 16px;
-      max-width: 640px;
-      margin: 0 auto 20px;
-      opacity: 0.92;
-      line-height: 1.5;
+      max-width: 600px;
+      margin: 0 auto 24px;
+      opacity: 0.85;
+      line-height: 1.6;
+      position: relative;
     }
     .hero-badges {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       justify-content: center;
-      margin-top: 20px;
+      position: relative;
     }
     .hero-badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      background: rgba(255,255,255,0.18);
-      border: 1px solid rgba(255,255,255,0.25);
-      border-radius: 20px;
-      padding: 6px 14px;
+      gap: 7px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+      backdrop-filter: blur(4px);
+      border-radius: 24px;
+      padding: 8px 16px;
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+    .hero-badge svg {
+      flex-shrink: 0;
     }
 
-    /* Grid */
+    .location-bar {
+      background: #fff;
+      border-bottom: 1px solid #e0e6e0;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #2d6a2e;
+    }
+    .location-bar svg {
+      flex-shrink: 0;
+    }
+
     .container {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 32px 20px;
+      padding: 36px 20px;
+    }
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 24px;
     }
     .section-title {
-      font-size: 22px;
-      font-weight: 700;
-      margin-bottom: 24px;
-      color: #1a1a1a;
+      font-size: 24px;
+      font-weight: 800;
+      color: #0d1f0d;
+      letter-spacing: -0.3px;
+    }
+    .item-count {
+      font-size: 14px;
+      color: #6b7c6b;
+      font-weight: 500;
     }
     .grid {
       display: grid;
@@ -100,31 +161,92 @@
     }
     .empty-state {
       text-align: center;
-      padding: 60px 20px;
-      color: #666;
+      padding: 80px 20px;
+      color: #6b7c6b;
+    }
+    .empty-state svg {
+      margin-bottom: 16px;
+      opacity: 0.4;
+    }
+    .empty-state p {
       font-size: 16px;
+      font-weight: 500;
+    }
+    .empty-state span {
+      font-size: 14px;
+      color: #94a89c;
+      display: block;
+      margin-top: 6px;
     }
 
-    /* Card */
     .card {
       background: #fff;
-      border-radius: 12px;
+      border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
-      transition: box-shadow 0.2s, transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+      transition: box-shadow 0.25s, transform 0.25s;
       display: flex;
       flex-direction: column;
+      border: 1px solid rgba(0,0,0,0.05);
     }
     .card:hover {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      transform: translateY(-3px);
+    }
+    .card-img-wrap {
+      position: relative;
+      overflow: hidden;
     }
     .card-img {
       width: 100%;
       aspect-ratio: 4/3;
       object-fit: cover;
-      background: #e8e8e8;
       display: block;
+      transition: transform 0.3s;
+    }
+    .card:hover .card-img {
+      transform: scale(1.03);
+    }
+    .card-img-placeholder {
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: linear-gradient(135deg, #e8f0e8 0%, #d4e0d4 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94a89c;
+      font-size: 14px;
+    }
+    .card-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.3px;
+    }
+    .badge-ships {
+      background: rgba(37,99,235,0.9);
+      color: #fff;
+    }
+    .badge-pickup {
+      background: rgba(21,128,61,0.9);
+      color: #fff;
+    }
+    .card-type-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 3px 8px;
+      border-radius: 5px;
+      background: rgba(45,106,46,0.88);
+      color: #fff;
     }
     .card-body {
       padding: 16px;
@@ -134,115 +256,145 @@
     }
     .card-category {
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #2d6a2e;
+      letter-spacing: 0.8px;
+      color: #5a8a5c;
       margin-bottom: 6px;
     }
     .card-title {
       font-size: 16px;
-      font-weight: 600;
+      font-weight: 700;
       margin-bottom: 8px;
       line-height: 1.3;
-      color: #1a1a1a;
+      color: #0d1f0d;
     }
     .card-meta {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       margin-bottom: 12px;
       flex-wrap: wrap;
     }
     .card-condition {
-      font-size: 12px;
+      font-size: 11px;
       padding: 3px 8px;
-      border-radius: 4px;
-      background: #f0f0f0;
-      color: #555;
-      font-weight: 500;
+      border-radius: 5px;
+      background: #f0f4f0;
+      color: #4a6a4c;
+      font-weight: 600;
     }
     .card-price {
-      font-size: 20px;
-      font-weight: 700;
-      color: #2d6a2e;
+      font-size: 22px;
+      font-weight: 800;
+      color: #1e4d1e;
       margin-top: auto;
     }
     .card-parts-badge {
-      font-size: 11px;
+      font-size: 10px;
       padding: 3px 8px;
-      border-radius: 4px;
+      border-radius: 5px;
       background: #e8f5e9;
       color: #2d6a2e;
-      font-weight: 600;
+      font-weight: 700;
       border: 1px solid #c8e6c9;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
 
-    /* No image placeholder */
-    .card-img-placeholder {
-      width: 100%;
-      aspect-ratio: 4/3;
-      background: #e8efe8;
+    .site-footer {
+      background: #0d1f0d;
+      color: rgba(255,255,255,0.5);
+      text-align: center;
+      padding: 40px 24px;
+      font-size: 13px;
+      margin-top: 20px;
+    }
+    .site-footer p { margin-bottom: 6px; }
+    .site-footer a { color: #7bc67e; }
+    .footer-logo {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #999;
-      font-size: 14px;
+      gap: 10px;
+      margin-bottom: 16px;
     }
-
-    /* Footer */
-    .site-footer {
-      background: #1a1a1a;
-      color: #aaa;
-      text-align: center;
-      padding: 32px 20px;
-      font-size: 14px;
+    .footer-logo img {
+      height: 32px;
+      border-radius: 4px;
     }
-    .site-footer p { margin-bottom: 8px; }
-    .site-footer a { color: #7bc67e; }
+    .footer-logo span {
+      font-size: 16px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.7);
+    }
 
     @media (min-width: 480px) {
       .grid { grid-template-columns: repeat(2, 1fr); }
     }
     @media (min-width: 768px) {
-      .hero h1 { font-size: 36px; }
+      .hero h1 { font-size: 40px; }
       .hero p { font-size: 18px; }
       .grid { grid-template-columns: repeat(3, 1fr); }
-      .container { padding: 40px 24px; }
+      .container { padding: 44px 24px; }
     }
     @media (min-width: 1024px) {
       .grid { grid-template-columns: repeat(4, 1fr); }
-      .hero { padding: 64px 24px; }
-      .hero h1 { font-size: 42px; }
+      .hero { padding: 72px 24px 60px; }
+      .hero h1 { font-size: 46px; }
     }
   </style>
 </head>
 <body>
   <header class="site-header">
-    <h2>Reliable Turf Tools</h2>
+    <img src="/public/logo.png" alt="Reliable Turf Tools Logo" />
+    <div class="header-text">
+      <h2>Reliable Turf Tools</h2>
+      <span>Outdoor Power Equipment</span>
+    </div>
   </header>
 
   <section class="hero">
-    <h1>Quality Used Outdoor Power Equipment</h1>
-    <p>Shop affordable used lawn mowers, trimmers, blowers, chainsaws and more from Reliable Turf Tools. Every item is inspected and priced to sell. Available for local meetup or shipped nationwide to your door.</p>
+    <h1>Quality Used Outdoor<br>Power Equipment</h1>
+    <p>Inspected, tested, and priced to sell. Mowers, trimmers, blowers, chainsaws and more — shipped to your door or available for local pickup.</p>
     <div class="hero-badges">
-      <span class="hero-badge">&#10003; Inspected &amp; Tested</span>
-      <span class="hero-badge">&#128230; Ships Nationwide</span>
-      <span class="hero-badge">&#129309; Local Meetup Available</span>
-      <span class="hero-badge">&#128176; Great Prices</span>
+      <span class="hero-badge">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Inspected &amp; Tested
+      </span>
+      <span class="hero-badge">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="22" height="16" rx="2"/><path d="M1 10h22"/><path d="M7 6V2"/><path d="M17 6V2"/></svg>
+        Ships Nationwide
+      </span>
+      <span class="hero-badge">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Local Meetup — Columbia, SC
+      </span>
     </div>
   </section>
 
+  <div class="location-bar">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    Columbia, SC &mdash; Local pickup &amp; nationwide shipping available
+  </div>
+
   <main class="container">
-    <h2 class="section-title">Available Equipment</h2>
+    <div class="section-header">
+      <h2 class="section-title">Available Equipment</h2>
+      <span class="item-count">LISTINGS_COUNT_PLACEHOLDER</span>
+    </div>
     <div class="grid" id="listings-grid">
       LISTINGS_HTML_PLACEHOLDER
     </div>
   </main>
 
   <footer class="site-footer">
+    <div class="footer-logo">
+      <img src="/public/logo.png" alt="Reliable Turf Tools" />
+      <span>Reliable Turf Tools</span>
+    </div>
     <p>&copy; 2026 Reliable Turf Tools. All rights reserved.</p>
-    <p>Used lawn equipment for sale &mdash; mowers, trimmers, blowers, chainsaws &amp; more outdoor power tools.</p>
+    <p>Used outdoor power equipment &mdash; mowers, trimmers, blowers, chainsaws &amp; more.</p>
   </footer>
 </body>
 </html>
