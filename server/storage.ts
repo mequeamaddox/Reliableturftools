@@ -288,6 +288,28 @@ export const storage = {
     return inquiry;
   },
 
+  async archiveInquiry(id: string): Promise<Inquiry> {
+    const [inquiry] = await db
+      .update(inquiries)
+      .set({ isArchived: true, isRead: true })
+      .where(eq(inquiries.id, id))
+      .returning();
+    return inquiry;
+  },
+
+  async unarchiveInquiry(id: string): Promise<Inquiry> {
+    const [inquiry] = await db
+      .update(inquiries)
+      .set({ isArchived: false })
+      .where(eq(inquiries.id, id))
+      .returning();
+    return inquiry;
+  },
+
+  async deleteInquiry(id: string): Promise<void> {
+    await db.delete(inquiries).where(eq(inquiries.id, id));
+  },
+
   async getMeetupSpots(): Promise<MeetupSpot[]> {
     return db.select().from(meetupSpots);
   },

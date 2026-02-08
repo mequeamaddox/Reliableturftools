@@ -151,6 +151,7 @@ export const inquiries = pgTable("inquiries", {
   phone: text("phone").notNull(),
   message: text("message"),
   isRead: boolean("is_read").notNull().default(false),
+  isArchived: boolean("is_archived").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -170,6 +170,7 @@ export default function MoreScreen() {
   const webTopInset = Platform.OS === "web" ? 67 : 0;
   const [activeTab, setActiveTab] = useState<TabType>("followups");
   const [fuFilter, setFuFilter] = useState<FilterType>("pending");
+  const [showArchivedInq, setShowArchivedInq] = useState(false);
 
   const {
     data: allFollowUps = [],
@@ -236,6 +237,46 @@ export default function MoreScreen() {
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
     },
   });
+
+  const archiveInquiryMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiRequest("PUT", `/api/inquiries/${id}/archive`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/inquiries"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+  });
+
+  const unarchiveInquiryMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiRequest("PUT", `/api/inquiries/${id}/unarchive`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/inquiries"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+    },
+  });
+
+  const deleteInquiryMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiRequest("DELETE", `/api/inquiries/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/inquiries"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+  });
+
+  function confirmDeleteInquiry(id: string) {
+    Alert.alert("Delete Inquiry", "Permanently delete this inquiry?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => deleteInquiryMutation.mutate(id),
+      },
+    ]);
+  }
 
   function fillPlaceholders(text: string, buyerName?: string) {
     let filled = text;
@@ -516,52 +557,101 @@ export default function MoreScreen() {
 
           {activeTab === "inquiries" && (
             <>
-              {inquiries.length === 0 ? (
-                <View style={styles.empty}>
-                  <Ionicons
-                    name="mail-outline"
-                    size={48}
-                    color={Colors.textMuted}
-                  />
-                  <Text style={styles.emptyText}>No inquiries yet</Text>
-                </View>
-              ) : (
-                inquiries.map((inq: any) => (
+              <View style={styles.inqFilterRow}>
+                <Pressable
+                  style={[styles.inqFilterChip, !showArchivedInq && styles.inqFilterChipActive]}
+                  onPress={() => { setShowArchivedInq(false); Haptics.selectionAsync(); }}
+                >
+                  <Text style={[styles.inqFilterText, !showArchivedInq && styles.inqFilterTextActive]}>
+                    Active ({inquiries.filter((i: any) => !i.isArchived).length})
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.inqFilterChip, showArchivedInq && styles.inqFilterChipActive]}
+                  onPress={() => { setShowArchivedInq(true); Haptics.selectionAsync(); }}
+                >
+                  <Text style={[styles.inqFilterText, showArchivedInq && styles.inqFilterTextActive]}>
+                    Archived ({inquiries.filter((i: any) => i.isArchived).length})
+                  </Text>
+                </Pressable>
+              </View>
+              {(() => {
+                const filtered = inquiries.filter((i: any) => showArchivedInq ? i.isArchived : !i.isArchived);
+                if (filtered.length === 0) {
+                  return (
+                    <View style={styles.empty}>
+                      <Ionicons
+                        name={showArchivedInq ? "archive-outline" : "mail-outline"}
+                        size={48}
+                        color={Colors.textMuted}
+                      />
+                      <Text style={styles.emptyText}>
+                        {showArchivedInq ? "No archived inquiries" : "No inquiries yet"}
+                      </Text>
+                    </View>
+                  );
+                }
+                return filtered.map((inq: any) => (
                   <View
                     key={inq.id}
                     style={[
                       styles.inqCard,
                       inq.isRead && styles.inqRead,
+                      inq.isArchived && styles.inqArchived,
                     ]}
                   >
                     <View style={styles.inqHeader}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.inqName}>
-                          {!inq.isRead && <View style={styles.unreadDot} />}
+                          {!inq.isRead && !inq.isArchived && <View style={styles.unreadDot} />}
                           {inq.name}
                         </Text>
                         <Text style={styles.inqPhone}>{inq.phone}</Text>
                       </View>
-                      <Pressable
-                        onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          if (inq.isRead) {
-                            unreadInquiryMutation.mutate(inq.id);
-                          } else {
-                            readInquiryMutation.mutate(inq.id);
-                          }
-                        }}
-                        style={[styles.markReadBtn, inq.isRead && styles.markUnreadBtn]}
-                      >
-                        <Ionicons
-                          name={inq.isRead ? "mail-unread-outline" : "checkmark-circle-outline"}
-                          size={14}
-                          color={inq.isRead ? Colors.warning : Colors.primary}
-                        />
-                        <Text style={[styles.markReadText, inq.isRead && styles.markUnreadText]}>
-                          {inq.isRead ? "Unread" : "Read"}
-                        </Text>
-                      </Pressable>
+                      <View style={styles.inqHeaderActions}>
+                        {!inq.isArchived && (
+                          <Pressable
+                            onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              if (inq.isRead) {
+                                unreadInquiryMutation.mutate(inq.id);
+                              } else {
+                                readInquiryMutation.mutate(inq.id);
+                              }
+                            }}
+                            style={[styles.markReadBtn, inq.isRead && styles.markUnreadBtn]}
+                          >
+                            <Ionicons
+                              name={inq.isRead ? "mail-unread-outline" : "checkmark-circle-outline"}
+                              size={14}
+                              color={inq.isRead ? Colors.warning : Colors.primary}
+                            />
+                          </Pressable>
+                        )}
+                        <Pressable
+                          onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            if (inq.isArchived) {
+                              unarchiveInquiryMutation.mutate(inq.id);
+                            } else {
+                              archiveInquiryMutation.mutate(inq.id);
+                            }
+                          }}
+                          hitSlop={8}
+                        >
+                          <Ionicons
+                            name={inq.isArchived ? "arrow-undo" : "archive"}
+                            size={18}
+                            color={inq.isArchived ? Colors.info : Colors.textMuted}
+                          />
+                        </Pressable>
+                        <Pressable
+                          onPress={() => confirmDeleteInquiry(inq.id)}
+                          hitSlop={8}
+                        >
+                          <Ionicons name="trash" size={18} color={Colors.danger} />
+                        </Pressable>
+                      </View>
                     </View>
                     {inq.message && (
                       <Text style={styles.inqMessage}>{inq.message}</Text>
@@ -571,7 +661,7 @@ export default function MoreScreen() {
                         {new Date(inq.createdAt).toLocaleDateString()}
                       </Text>
                       <View style={styles.inqActions}>
-                        {inq.phone && (
+                        {inq.phone && !inq.isArchived && (
                           <>
                             <Pressable
                               style={styles.inqTextBtn}
@@ -605,8 +695,8 @@ export default function MoreScreen() {
                       </View>
                     </View>
                   </View>
-                ))
-              )}
+                ));
+              })()}
             </>
           )}
 
@@ -942,6 +1032,37 @@ const styles = StyleSheet.create({
   inqRead: {
     borderLeftColor: Colors.textMuted,
     opacity: 0.6,
+  },
+  inqArchived: {
+    borderLeftColor: Colors.border,
+    opacity: 0.5,
+  },
+  inqFilterRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 14,
+  },
+  inqFilterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: Colors.cardBg,
+  },
+  inqFilterChipActive: {
+    backgroundColor: Colors.primary,
+  },
+  inqFilterText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: Colors.textMuted,
+  },
+  inqFilterTextActive: {
+    color: "#fff",
+  },
+  inqHeaderActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   inqHeader: {
     flexDirection: "row",

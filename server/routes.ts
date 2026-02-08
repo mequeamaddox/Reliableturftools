@@ -515,6 +515,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/inquiries/:id/archive", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const inquiry = await storage.archiveInquiry(req.params.id);
+      return res.json(inquiry);
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  app.put("/api/inquiries/:id/unarchive", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const inquiry = await storage.unarchiveInquiry(req.params.id);
+      return res.json(inquiry);
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  app.delete("/api/inquiries/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      await storage.deleteInquiry(req.params.id);
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
   app.get("/api/meetup-spots", requireAuth, async (_req: Request, res: Response) => {
     try {
       const list = await storage.getMeetupSpots();
