@@ -6,7 +6,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
-import { DEFAULT_CONDITIONS, DEFAULT_POWER_TYPES, DEFAULT_CATEGORIES } from "@shared/schema";
+import { DEFAULT_CONDITIONS, DEFAULT_POWER_TYPES, DEFAULT_CATEGORIES, DEFAULT_PAYMENT_TYPES, DEFAULT_LEAD_SOURCES } from "@shared/schema";
 
 const uploadDir = path.resolve(process.cwd(), "public", "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -232,11 +232,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const listing = await storage.getListingById(req.params.id);
       if (!listing) return res.status(404).json({ error: "Listing not found" });
 
-      const { buyerPhone, buyerName, salePrice, paymentType, meetupSpot, notes } = req.body;
+      const { buyerPhone, buyerName, salePrice, paymentType, meetupSpot, leadSource, notes } = req.body;
 
       let buyer = await storage.getBuyerByPhone(buyerPhone);
       if (!buyer) {
-        buyer = await storage.createBuyer({ phone: buyerPhone, name: buyerName });
+        buyer = await storage.createBuyer({ phone: buyerPhone, name: buyerName, leadSource });
+      } else if (leadSource && !buyer.leadSource) {
+        await storage.updateBuyer(buyer.id, { leadSource });
       }
 
       const sale = await storage.createSale({
@@ -245,6 +247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         salePrice: salePrice || listing.price,
         paymentType: paymentType || "CASH",
         meetupSpot,
+        leadSource,
         notes,
       });
 
@@ -659,10 +662,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const conditionsRaw = await storage.getSetting("custom_conditions");
       const powerTypesRaw = await storage.getSetting("custom_power_types");
       const categoriesRaw = await storage.getSetting("custom_categories");
+      const paymentTypesRaw = await storage.getSetting("custom_payment_types");
+      const leadSourcesRaw = await storage.getSetting("custom_lead_sources");
       return res.json({
         conditions: conditionsRaw ? JSON.parse(conditionsRaw) : DEFAULT_CONDITIONS,
         powerTypes: powerTypesRaw ? JSON.parse(powerTypesRaw) : DEFAULT_POWER_TYPES,
         categories: categoriesRaw ? JSON.parse(categoriesRaw) : DEFAULT_CATEGORIES,
+        paymentTypes: paymentTypesRaw ? JSON.parse(paymentTypesRaw) : DEFAULT_PAYMENT_TYPES,
+        leadSources: leadSourcesRaw ? JSON.parse(leadSourcesRaw) : DEFAULT_LEAD_SOURCES,
       });
     } catch (err) {
       return res.status(500).json({ error: "Server error" });
@@ -671,10 +678,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/inventory-options", requireAuth, async (req: Request, res: Response) => {
     try {
-      const { conditions, powerTypes, categories } = req.body;
+      const { conditions, powerTypes, categories, paymentTypes, leadSources } = req.body;
       if (conditions) await storage.setSetting("custom_conditions", JSON.stringify(conditions));
       if (powerTypes) await storage.setSetting("custom_power_types", JSON.stringify(powerTypes));
       if (categories) await storage.setSetting("custom_categories", JSON.stringify(categories));
+      if (paymentTypes) await storage.setSetting("custom_payment_types", JSON.stringify(paymentTypes));
+      if (leadSources) await storage.setSetting("custom_lead_sources", JSON.stringify(leadSources));
       return res.json({ success: true });
     } catch (err) {
       return res.status(500).json({ error: "Server error" });

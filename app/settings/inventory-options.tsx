@@ -18,12 +18,14 @@ import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { apiRequest, queryClient } from "@/lib/query-client";
 
-type OptionType = "conditions" | "powerTypes" | "categories";
+type OptionType = "conditions" | "powerTypes" | "categories" | "paymentTypes" | "leadSources";
 
 const SECTION_CONFIG: Record<OptionType, { label: string; icon: string; color: string }> = {
   conditions: { label: "Condition", icon: "construct", color: Colors.info },
   powerTypes: { label: "Power Type", icon: "flash", color: Colors.warning },
   categories: { label: "Category", icon: "grid", color: Colors.primary },
+  paymentTypes: { label: "Payment Type", icon: "card", color: "#10B981" },
+  leadSources: { label: "Lead Source", icon: "megaphone", color: "#8B5CF6" },
 };
 
 export default function InventoryOptionsScreen() {
@@ -34,15 +36,21 @@ export default function InventoryOptionsScreen() {
     conditions: string[];
     powerTypes: string[];
     categories: string[];
+    paymentTypes: string[];
+    leadSources: string[];
   }>({ queryKey: ["/api/inventory-options"] });
 
   const [conditions, setConditions] = useState<string[]>([]);
   const [powerTypes, setPowerTypes] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
+  const [paymentTypes, setPaymentTypes] = useState<string[]>([]);
+  const [leadSources, setLeadSources] = useState<string[]>([]);
   const [newItem, setNewItem] = useState<Record<OptionType, string>>({
     conditions: "",
     powerTypes: "",
     categories: "",
+    paymentTypes: "",
+    leadSources: "",
   });
   const [expandedSection, setExpandedSection] = useState<OptionType | null>(null);
 
@@ -51,6 +59,8 @@ export default function InventoryOptionsScreen() {
       setConditions(options.conditions);
       setPowerTypes(options.powerTypes);
       setCategories(options.categories);
+      setPaymentTypes(options.paymentTypes);
+      setLeadSources(options.leadSources);
     }
   }, [options]);
 
@@ -70,6 +80,8 @@ export default function InventoryOptionsScreen() {
       case "conditions": return conditions;
       case "powerTypes": return powerTypes;
       case "categories": return categories;
+      case "paymentTypes": return paymentTypes;
+      case "leadSources": return leadSources;
     }
   }
 
@@ -78,6 +90,8 @@ export default function InventoryOptionsScreen() {
       case "conditions": setConditions(list); break;
       case "powerTypes": setPowerTypes(list); break;
       case "categories": setCategories(list); break;
+      case "paymentTypes": setPaymentTypes(list); break;
+      case "leadSources": setLeadSources(list); break;
     }
   }
 
@@ -136,7 +150,7 @@ export default function InventoryOptionsScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="close" size={28} color={Colors.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>Inventory Options</Text>
+        <Text style={styles.headerTitle}>Business Options</Text>
         <View style={{ width: 28 }} />
       </View>
 

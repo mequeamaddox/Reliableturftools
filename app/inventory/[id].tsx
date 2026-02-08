@@ -21,7 +21,8 @@ import { apiRequest, queryClient } from "@/lib/query-client";
 const FALLBACK_CONDITIONS = ["NEW_BOXED", "USED_UNBOXED", "USED", "DAMAGED"];
 const FALLBACK_POWER_TYPES = ["GAS", "ELECTRIC_18V", "ELECTRIC_40V", "OTHER"];
 const FALLBACK_CATEGORIES = ["TRIMMER", "BLOWER", "MOWER", "CHAINSAW", "BATTERY", "CHARGER", "OTHER"];
-const PAYMENT_TYPES = ["CASH", "CASHAPP", "ZELLE", "VENMO", "OTHER"] as const;
+const FALLBACK_PAYMENT_TYPES = ["CASH", "CASH_APP", "ZELLE", "VENMO", "APPLE_PAY", "TAP_CARD", "SQUARE", "OTHER"];
+const FALLBACK_LEAD_SOURCES = ["OFFERUP", "FACEBOOK", "WORD_OF_MOUTH", "RANDOM_MEETUP", "CRAIGSLIST", "OTHER"];
 
 function ChipSelect({ options, value, onChange, label }: { options: readonly string[]; value: string; onChange: (v: string) => void; label: string }) {
   return (
@@ -57,11 +58,15 @@ export default function ListingDetailScreen() {
     conditions: string[];
     powerTypes: string[];
     categories: string[];
+    paymentTypes: string[];
+    leadSources: string[];
   }>({ queryKey: ["/api/inventory-options"] });
 
   const CONDITIONS = inventoryOptions?.conditions ?? FALLBACK_CONDITIONS;
   const POWER_TYPES = inventoryOptions?.powerTypes ?? FALLBACK_POWER_TYPES;
   const CATEGORIES = inventoryOptions?.categories ?? FALLBACK_CATEGORIES;
+  const PAY_TYPES = inventoryOptions?.paymentTypes ?? FALLBACK_PAYMENT_TYPES;
+  const LEAD_SOURCES = inventoryOptions?.leadSources ?? FALLBACK_LEAD_SOURCES;
 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
@@ -78,6 +83,7 @@ export default function ListingDetailScreen() {
   const [buyerName, setBuyerName] = useState("");
   const [salePrice, setSalePrice] = useState("");
   const [paymentType, setPaymentType] = useState("CASH");
+  const [leadSource, setLeadSource] = useState("");
   const [meetupSpot, setMeetupSpot] = useState("");
 
   useEffect(() => {
@@ -170,6 +176,7 @@ export default function ListingDetailScreen() {
       buyerName: buyerName.trim() || undefined,
       salePrice: salePrice || listing?.price,
       paymentType,
+      leadSource: leadSource || undefined,
       meetupSpot: meetupSpot || undefined,
     });
   }

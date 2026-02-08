@@ -15,7 +15,7 @@ import { z } from "zod";
 export const DEFAULT_CONDITIONS = ["NEW_BOXED", "USED_UNBOXED", "USED", "DAMAGED"];
 export const DEFAULT_POWER_TYPES = ["GAS", "ELECTRIC_18V", "ELECTRIC_40V", "OTHER"];
 export const DEFAULT_CATEGORIES = ["TRIMMER", "BLOWER", "MOWER", "CHAINSAW", "BATTERY", "CHARGER", "OTHER"];
-export const DEFAULT_PAYMENT_TYPES = ["CASH", "CASHAPP", "ZELLE", "VENMO", "OFFERUP", "FACEBOOK", "OTHER"];
+export const DEFAULT_PAYMENT_TYPES = ["CASH", "CASH_APP", "ZELLE", "VENMO", "APPLE_PAY", "TAP_CARD", "SQUARE", "OFFERUP", "FACEBOOK_PAY", "OTHER"];
 export const DEFAULT_LEAD_SOURCES = ["OFFERUP", "FACEBOOK", "WORD_OF_MOUTH", "RANDOM_MEETUP", "CRAIGSLIST", "OTHER"];
 
 export const listingStatusEnum = pgEnum("listing_status", [
