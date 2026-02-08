@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Platform,
   Alert,
+  Linking,
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -525,7 +526,7 @@ export default function MoreScreen() {
                     ]}
                   >
                     <View style={styles.inqHeader}>
-                      <View>
+                      <View style={{ flex: 1 }}>
                         <Text style={styles.inqName}>{inq.name}</Text>
                         <Text style={styles.inqPhone}>{inq.phone}</Text>
                       </View>
@@ -548,9 +549,40 @@ export default function MoreScreen() {
                     {inq.message && (
                       <Text style={styles.inqMessage}>{inq.message}</Text>
                     )}
-                    <Text style={styles.inqDate}>
-                      {new Date(inq.createdAt).toLocaleDateString()}
-                    </Text>
+                    <View style={styles.inqFooter}>
+                      <Text style={styles.inqDate}>
+                        {new Date(inq.createdAt).toLocaleDateString()}
+                      </Text>
+                      <View style={styles.inqActions}>
+                        {inq.phone && (
+                          <>
+                            <Pressable
+                              style={styles.inqTextBtn}
+                              onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                const phone = inq.phone.replace(/[^0-9+]/g, "");
+                                Linking.openURL(`sms:${phone}`);
+                                if (!inq.isRead) readInquiryMutation.mutate(inq.id);
+                              }}
+                            >
+                              <Ionicons name="chatbubble" size={16} color="#fff" />
+                              <Text style={styles.inqTextBtnLabel}>Text</Text>
+                            </Pressable>
+                            <Pressable
+                              style={styles.inqCallBtn}
+                              onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                const phone = inq.phone.replace(/[^0-9+]/g, "");
+                                Linking.openURL(`tel:${phone}`);
+                                if (!inq.isRead) readInquiryMutation.mutate(inq.id);
+                              }}
+                            >
+                              <Ionicons name="call" size={16} color="#fff" />
+                            </Pressable>
+                          </>
+                        )}
+                      </View>
+                    </View>
                   </View>
                 ))
               )}
@@ -924,10 +956,41 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 6,
   },
+  inqFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   inqDate: {
     fontFamily: "Inter_400Regular",
     fontSize: 12,
     color: Colors.textMuted,
+  },
+  inqActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  inqTextBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  inqTextBtnLabel: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+    color: "#fff",
+  },
+  inqCallBtn: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.info,
+    borderRadius: 10,
+    width: 36,
+    height: 36,
   },
   settingsContainer: {
     gap: 10,
