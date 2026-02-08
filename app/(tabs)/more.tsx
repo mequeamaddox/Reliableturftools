@@ -19,6 +19,7 @@ import * as Clipboard from "expo-clipboard";
 import Colors from "@/constants/colors";
 import { apiRequest } from "@/lib/query-client";
 import { queryClient } from "@/lib/query-client";
+import SwipeableRow from "@/components/SwipeableRow";
 
 type TabType = "followups" | "inquiries" | "settings";
 type FilterType = "pending" | "completed" | "overdue" | "all";
@@ -452,22 +453,42 @@ export default function MoreScreen() {
                     (b: any) => b.id === fu.buyerId
                   );
                   return (
-                    <FollowUpCard
+                    <SwipeableRow
                       key={fu.id}
-                      fu={fu}
-                      buyer={buyer}
-                      onComplete={() => completeMutation.mutate(fu.id)}
-                      onUncomplete={() =>
-                        uncompleteMutation.mutate(fu.id)
-                      }
-                      onEdit={() =>
-                        router.push(
-                          `/followups/new?editId=${fu.id}` as any
-                        )
-                      }
-                      onDelete={() => confirmDeleteFu(fu.id)}
-                      onCopy={() => copyMessage(fu.message)}
-                    />
+                      leftAction={fu.isCompleted ? {
+                        icon: "arrow-undo",
+                        color: Colors.info,
+                        label: "Undo",
+                        onPress: () => uncompleteMutation.mutate(fu.id),
+                      } : {
+                        icon: "checkmark-circle",
+                        color: Colors.success,
+                        label: "Done",
+                        onPress: () => completeMutation.mutate(fu.id),
+                      }}
+                      rightAction={{
+                        icon: "trash",
+                        color: Colors.danger,
+                        label: "Delete",
+                        onPress: () => confirmDeleteFu(fu.id),
+                      }}
+                    >
+                      <FollowUpCard
+                        fu={fu}
+                        buyer={buyer}
+                        onComplete={() => completeMutation.mutate(fu.id)}
+                        onUncomplete={() =>
+                          uncompleteMutation.mutate(fu.id)
+                        }
+                        onEdit={() =>
+                          router.push(
+                            `/followups/new?editId=${fu.id}` as any
+                          )
+                        }
+                        onDelete={() => confirmDeleteFu(fu.id)}
+                        onCopy={() => copyMessage(fu.message)}
+                      />
+                    </SwipeableRow>
                   );
                 })
               )}

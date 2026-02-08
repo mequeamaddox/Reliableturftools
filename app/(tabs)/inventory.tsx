@@ -9,13 +9,16 @@ import {
   ActivityIndicator,
   RefreshControl,
   Platform,
+  Alert,
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
+import SwipeableRow from "@/components/SwipeableRow";
+import { apiRequest, queryClient } from "@/lib/query-client";
 
 const STATUS_COLORS: Record<string, string> = {
   AVAILABLE: Colors.available,
@@ -26,35 +29,51 @@ const STATUS_COLORS: Record<string, string> = {
 
 const FILTERS = ["ALL", "AVAILABLE", "PENDING", "SOLD", "ARCHIVED"] as const;
 
-function ListingCard({ item }: { item: any }) {
+function ListingCard({ item, onArchive, onDelete }: { item: any; onArchive: () => void; onDelete: () => void }) {
+  const leftAction = item.status === "AVAILABLE" ? {
+    icon: "archive" as const,
+    color: Colors.warning,
+    label: "Archive",
+    onPress: onArchive,
+  } : undefined;
+
+  const rightAction = {
+    icon: "trash" as const,
+    color: Colors.danger,
+    label: "Delete",
+    onPress: onDelete,
+  };
+
   return (
-    <Pressable
-      style={styles.card}
-      onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push({ pathname: "/inventory/[id]", params: { id: item.id } });
-      }}
-    >
-      <View style={styles.cardRow}>
-        <View style={styles.cardLeft}>
-          <View style={[styles.statusDot, { backgroundColor: STATUS_COLORS[item.status] }]} />
-          <View style={styles.cardInfo}>
-            <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-            <Text style={styles.cardSub}>
-              {item.brand || "No brand"} | {item.condition?.replace("_", " ")} | Qty: {item.quantity}
-            </Text>
+    <SwipeableRow leftAction={leftAction} rightAction={rightAction}>
+      <Pressable
+        style={styles.card}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push({ pathname: "/inventory/[id]", params: { id: item.id } });
+        }}
+      >
+        <View style={styles.cardRow}>
+          <View style={styles.cardLeft}>
+            <View style={[styles.statusDot, { backgroundColor: STATUS_COLORS[item.status] }]} />
+            <View style={styles.cardInfo}>
+              <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
+              <Text style={styles.cardSub}>
+                {item.brand || "No brand"} | {item.condition?.replace("_", " ")} | Qty: {item.quantity}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.cardRight}>
+            <Text style={styles.cardPrice}>${parseFloat(item.price).toFixed(0)}</Text>
+            {item.isPublished && (
+              <View style={styles.pubBadge}>
+                <Text style={styles.pubText}>LIVE</Text>
+              </View>
+            )}
           </View>
         </View>
-        <View style={styles.cardRight}>
-          <Text style={styles.cardPrice}>${parseFloat(item.price).toFixed(0)}</Text>
-          {item.isPublished && (
-            <View style={styles.pubBadge}>
-              <Text style={styles.pubText}>LIVE</Text>
-            </View>
-          )}
-        </View>
-      </View>
-    </Pressable>
+      </Pressable>
+    </SwipeableRow>
   );
 }
 
@@ -72,6 +91,36 @@ export default function InventoryScreen() {
   const { data: listings = [], isLoading, refetch, isRefetching } = useQuery<any[]>({
     queryKey: ["/api/listings" + (queryString ? `?${queryString}` : "")],
   });
+
+  const archiveMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("PUT", `/api/listings/${id}`, { status: "ARCHIVED", isPublished: false }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/listings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/listings/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/listings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+    },
+  });
+
+  function confirmArchive(item: any) {
+    Alert.alert("Archive Item", `Archive "${item.title}"?`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Archive", onPress: () => archiveMutation.mutate(item.id) },
+    ]);
+  }
+
+  function confirmDelete(item: any) {
+    Alert.alert("Delete Item", `Permanently delete "${item.title}"?`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => deleteMutation.mutate(item.id) },
+    ]);
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
@@ -123,7 +172,7 @@ export default function InventoryScreen() {
         <FlatList
           data={listings}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <ListingCard item={item} />}
+          renderItem={({ item }) => <ListingCard item={item} onArchive={() => confirmArchive(item)} onDelete={() => confirmDelete(item)} />}
           contentContainerStyle={{ paddingBottom: 120, paddingHorizontal: 16 }}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={Colors.primary} />}
           ListEmptyComponent={
