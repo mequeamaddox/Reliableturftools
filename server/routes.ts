@@ -5,8 +5,10 @@ import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import { storage } from "./storage";
 import { DEFAULT_CONDITIONS, DEFAULT_POWER_TYPES, DEFAULT_CATEGORIES, DEFAULT_PAYMENT_TYPES, DEFAULT_LEAD_SOURCES } from "@shared/schema";
+import { SquareClient, SquareEnvironment } from "square";
 
 const uploadDir = path.resolve(process.cwd(), "public", "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -954,6 +956,179 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/robots.txt", (req: Request, res: Response) => {
     const baseUrl = getBaseUrl(req);
     res.type("text/plain").send(`User-agent: *\nAllow: /\nSitemap: ${baseUrl}/sitemap.xml`);
+  });
+
+  app.post("/api/shipping-rates", async (req: Request, res: Response) => {
+    try {
+      const { destinationZip, weightLbs, boxLengthIn, boxWidthIn, boxHeightIn } = req.body;
+      if (!destinationZip) {
+        return res.status(400).json({ error: "Destination ZIP code is required" });
+      }
+      const weightOz = Math.max(1, Math.round((parseFloat(weightLbs) || 1) * 16));
+      const dimX = parseFloat(boxLengthIn) || 12;
+      const dimY = parseFloat(boxWidthIn) || 10;
+
+      const graphqlBody = {
+        operationName: "RatesQuery",
+        variables: {
+          originZip: "29204",
+          originCity: "Columbia",
+          originRegionCode: "SC",
+          isResidential: true,
+          destinationZip: destinationZip.trim(),
+          destinationCountryCode: "US",
+          mailClassKeys: ["GroundAdvantage", "Priority", "PriorityExpress"],
+          packageTypeKeys: ["Parcel"],
+          weight: weightOz,
+          dimensionX: dimX,
+          dimensionY: dimY,
+          showUpsRatesWhen2x7Selected: false,
+        },
+        query: `query RatesQuery($originZip: String!, $originCity: String, $originRegionCode: String, $destinationZip: String, $isResidential: Boolean, $destinationCountryCode: String, $weight: Float, $dimensionX: Float, $dimensionY: Float, $dimensionZ: Float, $mailClassKeys: [String!]!, $packageTypeKeys: [String!]!, $pricingTypes: [String!], $showUpsRatesWhen2x7Selected: Boolean) { rates(originZip: $originZip, originCity: $originCity, originRegionCode: $originRegionCode, destinationZip: $destinationZip, isResidential: $isResidential, destinationCountryCode: $destinationCountryCode, weight: $weight, dimensionX: $dimensionX, dimensionY: $dimensionY, dimensionZ: $dimensionZ, mailClassKeys: $mailClassKeys, packageTypeKeys: $packageTypeKeys, pricingTypes: $pricingTypes, showUpsRatesWhen2x7Selected: $showUpsRatesWhen2x7Selected) { title deliveryDescription trackingDescription serviceDescription pricingDescription mailClassKey carrier { carrierKey title __typename } totalPrice basePrice cheapest fastest __typename } }`,
+      };
+
+      const ratesResp = await fetch("https://ship.pirateship.com/api/graphql?opname=RatesQuery", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(graphqlBody),
+      });
+      const ratesData = await ratesResp.json() as any;
+
+      if (!ratesData.data?.rates) {
+        return res.status(500).json({ error: "No shipping rates available for that ZIP code" });
+      }
+
+      const formattedRates = ratesData.data.rates
+        .filter((r: any) => r.totalPrice > 0)
+        .map((r: any) => ({
+          service: r.title,
+          carrier: r.carrier?.title || "USPS",
+          price: r.totalPrice,
+          delivery: (r.deliveryDescription || "").replace(/\[\/?\w+\]/g, ""),
+          mailClassKey: r.mailClassKey,
+        }))
+        .sort((a: any, b: any) => a.price - b.price);
+
+      return res.json(formattedRates);
+    } catch (err) {
+      console.error("Shipping rates error:", err);
+      return res.status(500).json({ error: "Failed to fetch shipping rates" });
+    }
+  });
+
+  app.post("/api/checkout", async (req: Request, res: Response) => {
+    try {
+      const { listingId, shippingRate, buyerName, buyerPhone, buyerEmail } = req.body;
+      if (!listingId) {
+        return res.status(400).json({ error: "Listing ID is required" });
+      }
+
+      const accessToken = process.env.SQUARE_ACCESS_TOKEN;
+      const locationId = process.env.SQUARE_LOCATION_ID;
+      if (!accessToken || !locationId) {
+        return res.status(500).json({ error: "Square is not configured yet" });
+      }
+
+      const listing = await storage.getListingById(listingId);
+      if (!listing || !listing.isPublished || listing.status !== "AVAILABLE") {
+        return res.status(404).json({ error: "Listing not found or not available" });
+      }
+
+      const squareClient = new SquareClient({
+        token: accessToken,
+        environment: process.env.SQUARE_ENVIRONMENT === "sandbox"
+          ? SquareEnvironment.Sandbox
+          : SquareEnvironment.Production,
+      });
+
+      const itemPriceCents = BigInt(Math.round(parseFloat(listing.price) * 100));
+      const lineItems: any[] = [
+        {
+          name: listing.title,
+          quantity: "1",
+          basePriceMoney: {
+            amount: itemPriceCents,
+            currency: "USD",
+          },
+        },
+      ];
+
+      if (shippingRate && shippingRate.price > 0) {
+        const shippingCents = BigInt(Math.round(shippingRate.price * 100));
+        lineItems.push({
+          name: `Shipping: ${shippingRate.service}`,
+          quantity: "1",
+          basePriceMoney: {
+            amount: shippingCents,
+            currency: "USD",
+          },
+        });
+      }
+
+      const baseUrl = getBaseUrl(req);
+
+      const response = await squareClient.checkout.paymentLinks.create({
+        idempotencyKey: crypto.randomUUID(),
+        order: {
+          locationId,
+          lineItems,
+        },
+        checkoutOptions: {
+          askForShippingAddress: !!shippingRate,
+          redirectUrl: `${baseUrl}/store/thank-you`,
+          acceptedPaymentMethods: {
+            applePay: true,
+            googlePay: true,
+          },
+        },
+        paymentNote: `RTT Listing: ${listing.title} (SKU: ${listing.sku || "N/A"})`,
+      });
+
+      const paymentLink = response.paymentLink;
+      if (!paymentLink?.url) {
+        return res.status(500).json({ error: "Failed to create payment link" });
+      }
+
+      return res.json({
+        checkoutUrl: paymentLink.url,
+        orderId: paymentLink.orderId,
+      });
+    } catch (err: any) {
+      console.error("Checkout error:", err?.message || err);
+      return res.status(500).json({ error: "Failed to create checkout" });
+    }
+  });
+
+  app.get("/store/thank-you", (_req: Request, res: Response) => {
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thank You - Reliable Turf Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8faf8; color: #1a1a1a; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+    .card { background: #fff; border-radius: 16px; padding: 48px 32px; text-align: center; max-width: 480px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .check { width: 64px; height: 64px; background: #2d6a2e; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+    .check svg { width: 32px; height: 32px; }
+    h1 { font-size: 24px; margin-bottom: 12px; color: #1a1a1a; }
+    p { font-size: 16px; color: #666; line-height: 1.5; margin-bottom: 24px; }
+    a { display: inline-block; background: #2d6a2e; color: #fff; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; }
+    a:hover { background: #245a25; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="check"><svg fill="none" stroke="#fff" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
+    <h1>Thank You for Your Order!</h1>
+    <p>Your payment has been received. We'll be in touch soon with shipping details.</p>
+    <a href="/store">Continue Shopping</a>
+  </div>
+</body>
+</html>`;
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.status(200).send(html);
   });
 
   const httpServer = createServer(app);
