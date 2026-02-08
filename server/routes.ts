@@ -657,7 +657,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/inventory-options", requireAuth, async (_req: Request, res: Response) => {
+  app.get("/api/inventory-options", async (_req: Request, res: Response) => {
     try {
       const conditionsRaw = await storage.getSetting("custom_conditions");
       const powerTypesRaw = await storage.getSetting("custom_power_types");
