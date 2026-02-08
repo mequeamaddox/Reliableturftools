@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -17,14 +17,14 @@ import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { getApiUrl } from "@/lib/query-client";
 
-function BarcodeVisual({ value }: { value: string }) {
+function BarcodeVisual({ value, height = 28 }: { value: string; height?: number }) {
   const chars = value.split("");
   const bars: { width: number; filled: boolean }[] = [];
   chars.forEach((char, i) => {
     const code = char.charCodeAt(0);
-    bars.push({ width: 2, filled: true });
-    bars.push({ width: code % 3 === 0 ? 3 : 1, filled: false });
-    bars.push({ width: code % 2 === 0 ? 2 : 3, filled: true });
+    bars.push({ width: 1.5, filled: true });
+    bars.push({ width: code % 3 === 0 ? 2 : 1, filled: false });
+    bars.push({ width: code % 2 === 0 ? 1.5 : 2, filled: true });
     bars.push({ width: 1, filled: false });
     if (i < chars.length - 1) {
       bars.push({ width: 1, filled: code % 5 > 2 });
@@ -32,57 +32,40 @@ function BarcodeVisual({ value }: { value: string }) {
   });
 
   return (
-    <View style={labelStyles.barcodeContainer}>
-      <View style={labelStyles.barcodeLines}>
+    <View style={{ alignItems: "center" }}>
+      <View style={{ flexDirection: "row", height, justifyContent: "center" }}>
         {bars.map((bar, i) => (
           <View
             key={i}
             style={{
               width: bar.width,
-              height: 50,
+              height,
               backgroundColor: bar.filled ? "#000" : "#fff",
             }}
           />
         ))}
       </View>
-      <Text style={labelStyles.barcodeText}>{value}</Text>
     </View>
   );
 }
 
 function LabelCard({ listing }: { listing: any }) {
+  const sku = listing.sku || "N/A";
+  const price = parseFloat(listing.price || 0).toFixed(2);
+  const condition = (listing.condition || "").replace(/_/g, " ");
+
   return (
     <View style={labelStyles.label}>
       <Text style={labelStyles.businessName}>RELIABLE TURF TOOLS</Text>
-      <View style={labelStyles.divider} />
-      <Text style={labelStyles.itemTitle} numberOfLines={2}>{listing.title}</Text>
-      <View style={labelStyles.detailRow}>
-        <View style={labelStyles.detailCol}>
-          <Text style={labelStyles.detailLabel}>SKU</Text>
-          <Text style={labelStyles.detailValue}>{listing.sku}</Text>
+      <View style={labelStyles.midRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={labelStyles.sku}>{sku}</Text>
+          <Text style={labelStyles.condition}>{condition}</Text>
         </View>
-        <View style={labelStyles.detailCol}>
-          <Text style={labelStyles.detailLabel}>CONDITION</Text>
-          <Text style={labelStyles.detailValue}>{(listing.condition || "").replace(/_/g, " ")}</Text>
-        </View>
+        <Text style={labelStyles.price}>${price}</Text>
       </View>
-      <View style={labelStyles.detailRow}>
-        <View style={labelStyles.detailCol}>
-          <Text style={labelStyles.detailLabel}>CATEGORY</Text>
-          <Text style={labelStyles.detailValue}>{(listing.category || "").replace(/_/g, " ")}</Text>
-        </View>
-        {listing.brand && (
-          <View style={labelStyles.detailCol}>
-            <Text style={labelStyles.detailLabel}>BRAND</Text>
-            <Text style={labelStyles.detailValue}>{listing.brand}</Text>
-          </View>
-        )}
-      </View>
-      <View style={labelStyles.priceRow}>
-        <Text style={labelStyles.priceLabel}>PRICE</Text>
-        <Text style={labelStyles.priceValue}>${parseFloat(listing.price || 0).toFixed(2)}</Text>
-      </View>
-      <BarcodeVisual value={listing.sku} />
+      <BarcodeVisual value={sku} height={24} />
+      <Text style={labelStyles.barcodeText}>{sku}</Text>
     </View>
   );
 }
@@ -140,18 +123,22 @@ export default function LabelScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.previewHint}>Preview of your label</Text>
+        <Text style={styles.previewHint}>1" x 2" label preview</Text>
 
         <View style={styles.labelWrapper}>
           <LabelCard listing={listing} />
         </View>
 
-        <View style={styles.infoCard}>
-          <Ionicons name="information-circle" size={20} color={Colors.info} />
-          <Text style={styles.infoText}>
-            SKU: {listing.sku}
-          </Text>
-        </View>
+        <Text style={styles.sizeNote}>Actual print size: 1" x 2"</Text>
+
+        {!listing.sku && (
+          <View style={styles.warningCard}>
+            <Ionicons name="warning" size={18} color={Colors.warning} />
+            <Text style={styles.warningText}>
+              No SKU generated yet. Go back and tap "Generate" next to the SKU field first.
+            </Text>
+          </View>
+        )}
 
         <Pressable style={styles.printBigBtn} onPress={handlePrint}>
           <Ionicons name="print" size={24} color="#fff" />
@@ -163,46 +150,36 @@ export default function LabelScreen() {
 }
 
 function generatePrintHtml(listing: any): string {
-  const sku = listing.sku || "";
-  const title = listing.title || "";
-  const condition = (listing.condition || "").replace(/_/g, " ");
-  const category = (listing.category || "").replace(/_/g, " ");
-  const brand = listing.brand || "";
+  const sku = listing.sku || "N/A";
   const price = parseFloat(listing.price || 0).toFixed(2);
+  const condition = (listing.condition || "").replace(/_/g, " ");
 
   return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Label - ${sku}</title>
 <style>
-  @page { size: 4in 2.5in; margin: 0; }
+  @page { size: 2in 1in; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Courier New', monospace; background: #fff; }
-  .label { width: 4in; height: 2.5in; padding: 0.15in; border: 2px solid #000; display: flex; flex-direction: column; }
-  .biz { font-size: 11pt; font-weight: bold; text-align: center; letter-spacing: 2px; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 4px; }
-  .title { font-size: 10pt; font-weight: bold; text-align: center; margin-bottom: 4px; max-height: 28px; overflow: hidden; }
-  .details { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 8pt; margin-bottom: 4px; }
-  .detail-label { font-weight: bold; color: #666; font-size: 7pt; }
-  .detail-value { font-weight: bold; }
-  .price-row { display: flex; justify-content: center; align-items: baseline; gap: 8px; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 3px 0; margin: 3px 0; }
-  .price-label { font-size: 9pt; font-weight: bold; }
-  .price { font-size: 18pt; font-weight: bold; }
-  .barcode { text-align: center; margin-top: auto; }
-  .barcode-text { font-size: 9pt; letter-spacing: 2px; margin-top: 2px; }
-  .bars { display: flex; justify-content: center; height: 35px; }
+  body { font-family: 'Arial', 'Helvetica', sans-serif; background: #fff; }
+  .label { width: 2in; height: 1in; padding: 3px 5px; display: flex; flex-direction: column; justify-content: space-between; }
+  .biz { font-size: 6.5pt; font-weight: bold; text-align: center; letter-spacing: 1px; border-bottom: 1px solid #000; padding-bottom: 1px; margin-bottom: 1px; }
+  .mid { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+  .sku { font-size: 7pt; font-weight: bold; }
+  .cond { font-size: 5.5pt; color: #555; }
+  .price { font-size: 14pt; font-weight: bold; }
+  .barcode { text-align: center; }
+  .barcode-text { font-size: 5.5pt; letter-spacing: 1px; }
+  .bars { display: flex; justify-content: center; height: 18px; }
   .bar { height: 100%; }
 </style></head>
 <body>
 <div class="label">
   <div class="biz">RELIABLE TURF TOOLS</div>
-  <div class="title">${title}</div>
-  <div class="details">
-    <div><span class="detail-label">SKU:</span> <span class="detail-value">${sku}</span></div>
-    <div><span class="detail-label">COND:</span> <span class="detail-value">${condition}</span></div>
-    <div><span class="detail-label">CAT:</span> <span class="detail-value">${category}</span></div>
-    ${brand ? `<div><span class="detail-label">BRAND:</span> <span class="detail-value">${brand}</span></div>` : ""}
-  </div>
-  <div class="price-row">
-    <span class="price-label">PRICE</span>
-    <span class="price">$${price}</span>
+  <div class="mid">
+    <div>
+      <div class="sku">${sku}</div>
+      <div class="cond">${condition}</div>
+    </div>
+    <div class="price">$${price}</div>
   </div>
   <div class="barcode">
     <div class="bars" id="bars"></div>
@@ -214,7 +191,7 @@ function generatePrintHtml(listing: any): string {
   const barsEl = document.getElementById('bars');
   for (let i = 0; i < sku.length; i++) {
     const c = sku.charCodeAt(i);
-    const widths = [2, c%3===0?3:1, c%2===0?2:3, 1];
+    const widths = [1.5, c%3===0?2:1, c%2===0?1.5:2, 1];
     const fills = [true, false, true, false];
     widths.forEach((w, j) => {
       const bar = document.createElement('div');
@@ -269,31 +246,37 @@ const styles = StyleSheet.create({
   },
   labelWrapper: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 4,
-    width: "100%",
-    maxWidth: 380,
+    borderRadius: 8,
+    padding: 2,
+    width: 240,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 8,
   },
-  infoCard: {
+  sizeNote: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 12,
+    textAlign: "center",
+  },
+  warningCard: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: Colors.cardBg,
+    backgroundColor: `${Colors.warning}15`,
     borderRadius: 10,
     padding: 14,
-    marginTop: 20,
+    marginTop: 16,
     width: "100%",
     maxWidth: 380,
   },
-  infoText: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 14,
-    color: Colors.text,
+  warningText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: Colors.warning,
     flex: 1,
   },
   printBigBtn: {
@@ -317,89 +300,50 @@ const styles = StyleSheet.create({
 
 const labelStyles = StyleSheet.create({
   label: {
-    padding: 12,
-    borderWidth: 2,
-    borderColor: "#000",
-    borderRadius: 4,
+    padding: 6,
     backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 3,
+    aspectRatio: 2 / 1,
+    justifyContent: "space-between",
   },
   businessName: {
     fontFamily: "Inter_700Bold",
-    fontSize: 13,
-    color: "#000",
-    textAlign: "center",
-    letterSpacing: 2,
-    paddingBottom: 6,
-    borderBottomWidth: 2,
-    borderBottomColor: "#000",
-    marginBottom: 6,
-  },
-  divider: {
-    display: "none",
-  },
-  itemTitle: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 13,
-    color: "#000",
-    textAlign: "center",
-    marginBottom: 6,
-  },
-  detailRow: {
-    flexDirection: "row",
-    gap: 16,
-    marginBottom: 4,
-  },
-  detailCol: {
-    flex: 1,
-  },
-  detailLabel: {
-    fontFamily: "Inter_400Regular",
     fontSize: 8,
-    color: "#666",
-    letterSpacing: 1,
-  },
-  detailValue: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 11,
     color: "#000",
-  },
-  priceRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "baseline",
-    gap: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#000",
+    textAlign: "center",
+    letterSpacing: 1,
     borderBottomWidth: 1,
     borderBottomColor: "#000",
-    borderStyle: "dashed",
-    paddingVertical: 6,
-    marginVertical: 6,
+    paddingBottom: 2,
   },
-  priceLabel: {
-    fontFamily: "Inter_600SemiBold",
+  midRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 2,
+  },
+  sku: {
+    fontFamily: "Inter_700Bold",
     fontSize: 10,
     color: "#000",
   },
-  priceValue: {
+  condition: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 7,
+    color: "#555",
+  },
+  price: {
     fontFamily: "Inter_700Bold",
-    fontSize: 22,
+    fontSize: 18,
     color: "#000",
-  },
-  barcodeContainer: {
-    alignItems: "center",
-    marginTop: 4,
-  },
-  barcodeLines: {
-    flexDirection: "row",
-    height: 40,
-    justifyContent: "center",
   },
   barcodeText: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 10,
+    fontFamily: "Inter_400Regular",
+    fontSize: 7,
     color: "#000",
-    letterSpacing: 2,
-    marginTop: 2,
+    textAlign: "center",
+    letterSpacing: 1,
   },
 });
