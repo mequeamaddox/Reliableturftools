@@ -12,29 +12,9 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const conditionEnum = pgEnum("condition", [
-  "NEW_BOXED",
-  "USED_UNBOXED",
-  "USED",
-  "DAMAGED",
-]);
-
-export const powerTypeEnum = pgEnum("power_type", [
-  "GAS",
-  "ELECTRIC_18V",
-  "ELECTRIC_40V",
-  "OTHER",
-]);
-
-export const categoryEnum = pgEnum("category", [
-  "TRIMMER",
-  "BLOWER",
-  "MOWER",
-  "CHAINSAW",
-  "BATTERY",
-  "CHARGER",
-  "OTHER",
-]);
+export const DEFAULT_CONDITIONS = ["NEW_BOXED", "USED_UNBOXED", "USED", "DAMAGED"];
+export const DEFAULT_POWER_TYPES = ["GAS", "ELECTRIC_18V", "ELECTRIC_40V", "OTHER"];
+export const DEFAULT_CATEGORIES = ["TRIMMER", "BLOWER", "MOWER", "CHAINSAW", "BATTERY", "CHARGER", "OTHER"];
 
 export const listingStatusEnum = pgEnum("listing_status", [
   "AVAILABLE",
@@ -82,9 +62,9 @@ export const listings = pgTable("listings", {
   title: text("title").notNull(),
   sku: text("sku").notNull(),
   barcode: text("barcode"),
-  condition: conditionEnum("condition").notNull().default("USED"),
-  powerType: powerTypeEnum("power_type").notNull().default("GAS"),
-  category: categoryEnum("category").notNull().default("OTHER"),
+  condition: text("condition").notNull().default("USED"),
+  powerType: text("power_type").notNull().default("GAS"),
+  category: text("category").notNull().default("OTHER"),
   brand: text("brand"),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   cost: decimal("cost", { precision: 10, scale: 2 }),
