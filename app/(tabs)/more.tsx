@@ -706,6 +706,31 @@ export default function MoreScreen() {
                 style={styles.settingsMenuBtn}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push("/settings/inventory-options" as any);
+                }}
+              >
+                <View style={[styles.settingsMenuIcon, { backgroundColor: "rgba(168, 85, 247, 0.15)" }]}>
+                  <Ionicons name="options" size={22} color="#a855f7" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.settingsMenuTitle}>
+                    Inventory Options
+                  </Text>
+                  <Text style={styles.settingsMenuSub}>
+                    Condition, power type, category
+                  </Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={Colors.textMuted}
+                />
+              </Pressable>
+
+              <Pressable
+                style={styles.settingsMenuBtn}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.push("/settings/meetup-spots" as any);
                 }}
               >

@@ -6,6 +6,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
+import { DEFAULT_CONDITIONS, DEFAULT_POWER_TYPES, DEFAULT_CATEGORIES } from "@shared/schema";
 
 const uploadDir = path.resolve(process.cwd(), "public", "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -55,10 +56,16 @@ async function sendPushNotifications(tokens: string[], title: string, body: stri
   }
 }
 
-function generateSku(category: string): string {
-  const prefix = category.substring(0, 3).toUpperCase();
-  const num = Date.now().toString().slice(-6);
-  return `${prefix}-${num}`;
+async function generateSku(category: string): Promise<string> {
+  const catPrefix = (category || "OTH").substring(0, 3).toUpperCase();
+  const allListings = await storage.getListings({});
+  const existingSkus = allListings
+    .map((l: any) => l.sku)
+    .filter((s: string) => s && s.startsWith(`RTT-${catPrefix}-`))
+    .map((s: string) => parseInt(s.split("-").pop() || "0", 10))
+    .filter((n: number) => !isNaN(n));
+  const nextNum = existingSkus.length > 0 ? Math.max(...existingSkus) + 1 : 1;
+  return `RTT-${catPrefix}-${String(nextNum).padStart(4, "0")}`;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -194,7 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const data = req.body;
       if (!data.sku) {
-        data.sku = generateSku(data.category || "OTH");
+        data.sku = await generateSku(data.category || "OTH");
       }
       const listing = await storage.createListing(data);
       return res.status(201).json(listing);
@@ -645,6 +652,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       await storage.deleteSetting(req.params.key);
       return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  app.get("/api/inventory-options", requireAuth, async (_req: Request, res: Response) => {
+    try {
+      const conditionsRaw = await storage.getSetting("custom_conditions");
+      const powerTypesRaw = await storage.getSetting("custom_power_types");
+      const categoriesRaw = await storage.getSetting("custom_categories");
+      return res.json({
+        conditions: conditionsRaw ? JSON.parse(conditionsRaw) : DEFAULT_CONDITIONS,
+        powerTypes: powerTypesRaw ? JSON.parse(powerTypesRaw) : DEFAULT_POWER_TYPES,
+        categories: categoriesRaw ? JSON.parse(categoriesRaw) : DEFAULT_CATEGORIES,
+      });
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  app.put("/api/inventory-options", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { conditions, powerTypes, categories } = req.body;
+      if (conditions) await storage.setSetting("custom_conditions", JSON.stringify(conditions));
+      if (powerTypes) await storage.setSetting("custom_power_types", JSON.stringify(powerTypes));
+      if (categories) await storage.setSetting("custom_categories", JSON.stringify(categories));
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  app.get("/api/listings/:id/label", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const listing = await storage.getListingById(req.params.id);
+      if (!listing) return res.status(404).json({ error: "Not found" });
+      return res.json(listing);
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  app.post("/api/generate-sku", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { category } = req.body;
+      const catPrefix = (category || "OTH").substring(0, 3).toUpperCase();
+      const allListings = await storage.getListings({});
+      const existingSkus = allListings
+        .map((l: any) => l.sku)
+        .filter((s: string) => s && s.startsWith(`RTT-${catPrefix}-`))
+        .map((s: string) => parseInt(s.split("-").pop() || "0", 10))
+        .filter((n: number) => !isNaN(n));
+      const nextNum = existingSkus.length > 0 ? Math.max(...existingSkus) + 1 : 1;
+      const sku = `RTT-${catPrefix}-${String(nextNum).padStart(4, "0")}`;
+      return res.json({ sku });
     } catch (err) {
       return res.status(500).json({ error: "Server error" });
     }
