@@ -726,6 +726,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/listings/batch-labels", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: "No listing IDs provided" });
+      }
+      const results = await Promise.all(ids.map((id: string) => storage.getListingById(id)));
+      const listings = results.filter((l: any) => l !== null && l !== undefined);
+      return res.json(listings);
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
   app.post("/api/generate-sku", requireAuth, async (req: Request, res: Response) => {
     try {
       const { category } = req.body;
