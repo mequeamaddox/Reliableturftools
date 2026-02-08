@@ -52,11 +52,10 @@ Preferred communication style: Simple, everyday language.
 - **Schema Location**: `shared/schema.ts` — Shared between frontend and backend
 - **Schema Design**:
   - `users` — Admin accounts (email/password)
-  - `listings` — Inventory items with fields for title, SKU, barcode, condition, power type, category, price, cost, quantity, status (AVAILABLE/PENDING/SOLD/ARCHIVED), published flag, photos, shipping fields (weightLbs, boxLengthIn, boxWidthIn, boxHeightIn)
+  - `listings` — Inventory items with fields for title, SKU, barcode, condition, power type, category, price, cost, quantity, status (AVAILABLE/PENDING/SOLD/ARCHIVED), published flag, photos, shipping fields (weightLbs, boxLengthIn, boxWidthIn, boxHeightIn), listingType (ITEM or PART — both are independent top-level listings)
   - `buyers` — Customer contacts with phone, name, notes, tags (REPEAT_BUYER, GOOD_BUYER, FLAKE_RISK), preferred meetup spot
   - `sales` — Completed transactions linking listing + buyer with sale price, payment type, meetup spot
   - `followUps` — Scheduled follow-up reminders with type, message, due date, completion status
-  - `parts` — Individual parts for sale from listings (linked to parent listing via listingId, cascade delete). Fields: name, description, price, condition, photo, isSold
   - `inquiries` — Customer inquiries from the public storefront
   - `meetupSpots` — Configurable meetup locations
   - `messageTemplates` — Reusable message templates for follow-ups
@@ -81,11 +80,7 @@ All API routes are prefixed with `/api/`:
 - `GET/PUT /api/inventory-options` — Custom condition/powerType/category/paymentTypes/leadSources options (GET is public, PUT requires auth)
 - `POST /api/generate-sku` — Auto-generate SKU in RTT-[CAT]-XXXX format
 - `GET /api/listings/:id/label` — Get listing data for label generation
-- `GET/POST /api/listings/:id/parts` — Parts CRUD for a listing (auth required)
-- `PUT/DELETE /api/parts/:id` — Update/delete individual parts (auth required)
-- `POST /api/parts/:id/upload` — Upload part photo (auth required)
 - `GET /api/store/listings`, `GET /api/store/listings/:id` — Public storefront API (no auth)
-- `GET /api/store/listings/:id/parts` — Public parts API (returns unsold parts only, no auth)
 - `POST /api/store/inquiries` — Public inquiry submission (no auth)
 
 ### SEO Storefront (Server-Rendered HTML)
