@@ -1,8 +1,7 @@
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
-import { apiRequest, getApiUrl } from "@/lib/query-client";
-import { fetch } from "expo/fetch";
+import { apiRequest } from "@/lib/query-client";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
