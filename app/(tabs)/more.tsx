@@ -228,6 +228,15 @@ export default function MoreScreen() {
     },
   });
 
+  const unreadInquiryMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiRequest("PUT", `/api/inquiries/${id}/unread`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/inquiries"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+    },
+  });
+
   function fillPlaceholders(text: string, buyerName?: string) {
     let filled = text;
     filled = filled.replace(/\{buyer_name\}/gi, buyerName || "there");
@@ -527,24 +536,32 @@ export default function MoreScreen() {
                   >
                     <View style={styles.inqHeader}>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.inqName}>{inq.name}</Text>
+                        <Text style={styles.inqName}>
+                          {!inq.isRead && <View style={styles.unreadDot} />}
+                          {inq.name}
+                        </Text>
                         <Text style={styles.inqPhone}>{inq.phone}</Text>
                       </View>
-                      {!inq.isRead && (
-                        <Pressable
-                          onPress={() => {
-                            Haptics.impactAsync(
-                              Haptics.ImpactFeedbackStyle.Light
-                            );
+                      <Pressable
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          if (inq.isRead) {
+                            unreadInquiryMutation.mutate(inq.id);
+                          } else {
                             readInquiryMutation.mutate(inq.id);
-                          }}
-                          style={styles.markReadBtn}
-                        >
-                          <Text style={styles.markReadText}>
-                            Mark Read
-                          </Text>
-                        </Pressable>
-                      )}
+                          }
+                        }}
+                        style={[styles.markReadBtn, inq.isRead && styles.markUnreadBtn]}
+                      >
+                        <Ionicons
+                          name={inq.isRead ? "mail-unread-outline" : "checkmark-circle-outline"}
+                          size={14}
+                          color={inq.isRead ? Colors.warning : Colors.primary}
+                        />
+                        <Text style={[styles.markReadText, inq.isRead && styles.markUnreadText]}>
+                          {inq.isRead ? "Unread" : "Read"}
+                        </Text>
+                      </Pressable>
                     </View>
                     {inq.message && (
                       <Text style={styles.inqMessage}>{inq.message}</Text>
@@ -561,7 +578,11 @@ export default function MoreScreen() {
                               onPress={() => {
                                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                                 const phone = inq.phone.replace(/[^0-9+]/g, "");
-                                Linking.openURL(`sms:${phone}`);
+                                const body = encodeURIComponent(
+                                  `Hi ${inq.name || "there"}! Thanks for reaching out about your inquiry. `
+                                );
+                                const sep = Platform.OS === "ios" ? "&" : "?";
+                                Linking.openURL(`sms:${phone}${sep}body=${body}`);
                                 if (!inq.isRead) readInquiryMutation.mutate(inq.id);
                               }}
                             >
@@ -939,15 +960,31 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   markReadBtn: {
-    backgroundColor: Colors.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(22, 163, 74, 0.12)",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
   },
+  markUnreadBtn: {
+    backgroundColor: "rgba(245, 158, 11, 0.12)",
+  },
   markReadText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: Colors.primary,
+  },
+  markUnreadText: {
+    color: Colors.warning,
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.warning,
+    marginRight: 6,
   },
   inqMessage: {
     fontFamily: "Inter_400Regular",

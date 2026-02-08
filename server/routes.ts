@@ -419,6 +419,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put("/api/inquiries/:id/unread", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const inquiry = await storage.markInquiryUnread(req.params.id);
+      return res.json(inquiry);
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
   app.get("/api/meetup-spots", requireAuth, async (_req: Request, res: Response) => {
     try {
       const list = await storage.getMeetupSpots();

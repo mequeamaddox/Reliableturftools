@@ -265,6 +265,15 @@ export const storage = {
     return inquiry;
   },
 
+  async markInquiryUnread(id: string): Promise<Inquiry> {
+    const [inquiry] = await db
+      .update(inquiries)
+      .set({ isRead: false })
+      .where(eq(inquiries.id, id))
+      .returning();
+    return inquiry;
+  },
+
   async getMeetupSpots(): Promise<MeetupSpot[]> {
     return db.select().from(meetupSpots);
   },
