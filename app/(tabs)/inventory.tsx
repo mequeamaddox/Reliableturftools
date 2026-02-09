@@ -324,7 +324,7 @@ export default function InventoryScreen() {
       )}
 
       {selectMode && selectedIds.size > 0 && (
-        <View style={[styles.batchBar, { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 16 }]}>
+        <View style={[styles.batchBar, { bottom: Platform.OS === "web" ? 84 : 80 + insets.bottom }]}>
           <Pressable style={styles.batchBtn} onPress={handleBatchPrint}>
             <Ionicons name="print" size={22} color="#fff" />
             <Text style={styles.batchBtnText}>Print {selectedIds.size} Label{selectedIds.size > 1 ? "s" : ""}</Text>
@@ -554,14 +554,13 @@ const styles = StyleSheet.create({
   },
   batchBar: {
     position: "absolute",
-    bottom: 0,
     left: 0,
     right: 0,
     backgroundColor: Colors.background,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: Colors.cardBg,
-    zIndex: 999,
   },
   batchBtn: {
     flexDirection: "row",
