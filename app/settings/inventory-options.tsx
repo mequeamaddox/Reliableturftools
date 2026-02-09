@@ -97,16 +97,20 @@ export default function InventoryOptionsScreen() {
 
   function handleAdd(type: OptionType) {
     const val = newItem[type].trim().toUpperCase().replace(/\s+/g, "_");
-    if (!val) return;
+    if (!val) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      return;
+    }
     const list = getList(type);
     if (list.includes(val)) {
       Alert.alert("Duplicate", "This option already exists");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
     const updated = [...list, val];
     setList(type, updated);
     setNewItem({ ...newItem, [type]: "" });
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     saveMutation.mutate({ [type]: updated });
   }
 
@@ -183,11 +187,15 @@ export default function InventoryOptionsScreen() {
                   autoCapitalize="characters"
                   onSubmitEditing={() => handleAdd(type)}
                   returnKeyType="done"
+                  blurOnSubmit={false}
                 />
                 <Pressable
-                  style={[styles.addBtn, !newItem[type].trim() && { opacity: 0.4 }]}
+                  style={({ pressed }) => [
+                    styles.addBtn,
+                    !newItem[type].trim() && { opacity: 0.4 },
+                    pressed && newItem[type].trim() ? { opacity: 0.7, transform: [{ scale: 0.95 }] } : {},
+                  ]}
                   onPress={() => handleAdd(type)}
-                  disabled={!newItem[type].trim()}
                 >
                   <Ionicons name="add" size={22} color="#fff" />
                 </Pressable>
@@ -310,9 +318,9 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   addBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     backgroundColor: Colors.primary,
     justifyContent: "center",
     alignItems: "center",
