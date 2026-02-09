@@ -8,6 +8,7 @@ import {
   Platform,
   ActivityIndicator,
   Linking,
+  Alert,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -79,7 +80,7 @@ export default function LabelScreen() {
     queryKey: [`/api/listings/${id}`],
   });
 
-  function handlePrint() {
+  async function handlePrint() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (Platform.OS === "web") {
       const printWindow = window.open("", "_blank");
@@ -90,8 +91,19 @@ export default function LabelScreen() {
         setTimeout(() => printWindow.print(), 500);
       }
     } else {
-      const url = `${getApiUrl()}/api/listings/${id}/label-print`;
-      Linking.openURL(url);
+      try {
+        const url = `${getApiUrl()}/api/listings/${id}/label-print`;
+        const canOpen = await Linking.canOpenURL(url);
+        if (canOpen) {
+          await Linking.openURL(url);
+        } else {
+          Alert.alert("Print", "Open this label in your browser to print it.", [
+            { text: "OK", style: "default" },
+          ]);
+        }
+      } catch {
+        Alert.alert("Print", "Could not open the print page. Try printing from a computer.");
+      }
     }
   }
 

@@ -742,6 +742,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/listings/:id/label-print", async (req: Request, res: Response) => {
+    try {
+      const listing = await storage.getListingById(req.params.id);
+      if (!listing) return res.status(404).send("Not found");
+      const sku = listing.sku || "N/A";
+      const price = parseFloat(listing.price || "0").toFixed(2);
+      const condition = (listing.condition || "").replace(/_/g, " ");
+      const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Label - ${sku}</title>
+<style>
+  @page { size: 2in 1in; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; background: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+  .label { width: 2in; height: 1in; padding: 3px 5px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #ccc; }
+  .biz { font-size: 6.5pt; font-weight: bold; text-align: center; letter-spacing: 1px; border-bottom: 1px solid #000; padding-bottom: 1px; margin-bottom: 1px; }
+  .mid { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+  .sku { font-size: 7pt; font-weight: bold; }
+  .cond { font-size: 5.5pt; color: #555; }
+  .price { font-size: 14pt; font-weight: bold; }
+  .barcode { text-align: center; }
+  .barcode-text { font-size: 5.5pt; letter-spacing: 1px; }
+  .bars { display: flex; justify-content: center; height: 18px; }
+  .bar { height: 100%; }
+  @media print { body { min-height: auto; } .label { border: none; } }
+</style></head>
+<body>
+<div class="label">
+  <div class="biz">RELIABLE TURF TOOLS</div>
+  <div class="mid">
+    <div><div class="sku">${sku}</div><div class="cond">${condition}</div></div>
+    <div class="price">$${price}</div>
+  </div>
+  <div class="barcode">
+    <div class="bars" id="bars"></div>
+    <div class="barcode-text">${sku}</div>
+  </div>
+</div>
+<script>
+const sku="${sku}";const b=document.getElementById('bars');
+for(let i=0;i<sku.length;i++){const c=sku.charCodeAt(i);
+[{w:1.5,f:true},{w:c%3===0?2:1,f:false},{w:c%2===0?1.5:2,f:true},{w:1,f:false}].forEach(x=>{
+const d=document.createElement('div');d.className='bar';d.style.width=x.w+'px';
+d.style.backgroundColor=x.f?'#000':'#fff';b.appendChild(d);});
+if(i<sku.length-1){const s=document.createElement('div');s.className='bar';s.style.width='1px';
+s.style.backgroundColor=c%5>2?'#000':'#fff';b.appendChild(s);}}
+window.onload=function(){setTimeout(function(){window.print();},500);};
+</script></body></html>`;
+      res.setHeader("Content-Type", "text/html");
+      return res.send(html);
+    } catch (err) {
+      return res.status(500).send("Server error");
+    }
+  });
+
   app.post("/api/generate-sku", requireAuth, async (req: Request, res: Response) => {
     try {
       const { category } = req.body;
