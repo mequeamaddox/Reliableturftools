@@ -64,7 +64,7 @@ export default function DashboardScreen() {
           <Text style={styles.greeting}>Reliable Turf Tools</Text>
           <Text style={styles.headerSub}>Dashboard</Text>
         </View>
-        <Pressable onPress={() => { logout(); router.replace("/"); }}>
+        <Pressable onPress={async () => { await logout(); router.replace("/"); }}>
           <Ionicons name="log-out-outline" size={24} color={Colors.textMuted} />
         </Pressable>
       </View>
