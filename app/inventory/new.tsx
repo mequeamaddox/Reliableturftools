@@ -10,7 +10,7 @@ import {
   Platform,
   Alert,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
@@ -45,13 +45,14 @@ function ChipSelect({ options, value, onChange, label }: { options: readonly str
 
 export default function NewListingScreen() {
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ barcode?: string }>();
   const webTopInset = Platform.OS === "web" ? 67 : 0;
   const [listingType, setListingType] = useState<"ITEM" | "PART">("ITEM");
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [cost, setCost] = useState("");
   const [brand, setBrand] = useState("");
-  const [barcode, setBarcode] = useState("");
+  const [barcode, setBarcode] = useState(params.barcode || "");
   const [quantity, setQuantity] = useState("1");
   const [condition, setCondition] = useState("USED");
   const [powerType, setPowerType] = useState("GAS");

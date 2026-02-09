@@ -35,36 +35,38 @@ export default function ScanScreen() {
     setSearching(true);
     try {
       const baseUrl = getApiUrl();
-      const url = new URL(`/api/listings/barcode/${code.trim()}`, baseUrl);
+      const url = new URL(`/api/listings/barcode/${encodeURIComponent(code.trim())}`, baseUrl);
       const res = await fetch(url.toString(), { credentials: "include" });
       if (res.ok) {
         const listing = await res.json();
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.replace({ pathname: "/inventory/[id]", params: { id: listing.id } });
       } else {
+        setSearching(false);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        Alert.alert(
-          "Not Found",
-          `No listing found for barcode "${code.trim()}". Create a new listing with this barcode?`,
-          [
-            { text: "Cancel", style: "cancel", onPress: () => setScanned(false) },
-            {
-              text: "Create New",
-              onPress: () => {
-                setTimeout(() => {
-                  router.replace("/inventory/new" as any);
-                }, 300);
-              },
-            },
-          ],
-        );
+        promptCreateNew(code.trim());
       }
     } catch {
-      Alert.alert("Error", "Failed to search for barcode");
-      setScanned(false);
-    } finally {
       setSearching(false);
+      setScanned(false);
+      Alert.alert("Error", "Failed to search for barcode. Please try again.");
     }
+  }
+
+  function promptCreateNew(code: string) {
+    Alert.alert(
+      "Not Found",
+      `No item found for barcode "${code}". Create a new listing with this barcode?`,
+      [
+        { text: "Cancel", style: "cancel", onPress: () => setScanned(false) },
+        {
+          text: "Create New",
+          onPress: () => {
+            router.replace({ pathname: "/inventory/new" as any, params: { barcode: code } });
+          },
+        },
+      ],
+    );
   }
 
   function handleBarcodeScanned({ data }: { data: string }) {
