@@ -13,7 +13,6 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -135,7 +134,7 @@ function ListingCard({
 
 export default function InventoryScreen() {
   const insets = useSafeAreaInsets();
-  const tabBarHeight = useBottomTabBarHeight();
+  const tabBarHeight = Platform.OS === "web" ? 84 : 50 + insets.bottom;
   const webTopInset = Platform.OS === "web" ? 67 : 0;
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("ALL");
