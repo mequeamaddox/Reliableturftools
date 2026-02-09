@@ -9,14 +9,18 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
+  Image,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import { File } from "expo-file-system";
+import { fetch } from "expo/fetch";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
-import { apiRequest, queryClient } from "@/lib/query-client";
+import { apiRequest, queryClient, getApiUrl } from "@/lib/query-client";
 
 const FALLBACK_CONDITIONS = ["NEW_BOXED", "USED_UNBOXED", "USED", "DAMAGED"];
 const FALLBACK_POWER_TYPES = ["GAS", "ELECTRIC_18V", "ELECTRIC_40V", "OTHER"];
@@ -90,6 +94,8 @@ export default function ListingDetailScreen() {
   const [paymentType, setPaymentType] = useState("CASH");
   const [leadSource, setLeadSource] = useState("");
   const [meetupSpot, setMeetupSpot] = useState("");
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (listing) {
@@ -109,6 +115,7 @@ export default function ListingDetailScreen() {
       setBoxWidthIn(listing.boxWidthIn || "");
       setBoxHeightIn(listing.boxHeightIn || "");
       setSalePrice(listing.price || "");
+      setPhotos(listing.photos || []);
     }
   }, [listing]);
 
@@ -221,6 +228,58 @@ export default function ListingDetailScreen() {
     ]);
   }
 
+  async function handlePickPhoto() {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsMultipleSelection: true,
+        quality: 0.7,
+        mediaTypes: ["images"],
+      });
+      if (result.canceled || !result.assets?.length) return;
+
+      setUploading(true);
+      const formData = new FormData();
+      for (const asset of result.assets) {
+        const file = new File(asset.uri);
+        formData.append("photos", file);
+      }
+
+      const baseUrl = getApiUrl();
+      const uploadUrl = new URL("/api/upload", baseUrl).toString();
+      const res = await fetch(uploadUrl, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      const newUrls: string[] = data.urls || [];
+
+      const updatedPhotos = [...photos, ...newUrls];
+      await apiRequest("PUT", `/api/listings/${id}`, { photos: updatedPhotos });
+      setPhotos(updatedPhotos);
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith("/api/listings") });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err) {
+      Alert.alert("Error", "Failed to upload photos");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleRemovePhoto(photoUrl: string) {
+    const updatedPhotos = photos.filter((p) => p !== photoUrl);
+    setPhotos(updatedPhotos);
+    try {
+      await apiRequest("PUT", `/api/listings/${id}`, { photos: updatedPhotos });
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith("/api/listings") });
+    } catch (err) {
+      Alert.alert("Error", "Failed to remove photo");
+      setPhotos(photos);
+    }
+  }
+
   if (isLoading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top + webTopInset, justifyContent: "center", alignItems: "center" }]}>
@@ -303,6 +362,42 @@ export default function ListingDetailScreen() {
                 <Ionicons name="pricetag" size={18} color="#fff" />
                 <Text style={styles.actionBtnText}>Label</Text>
               </Pressable>
+            </View>
+
+            <View style={styles.photoSection}>
+              <View style={styles.photoHeader}>
+                <Ionicons name="camera-outline" size={18} color={Colors.info} />
+                <Text style={styles.photoHeaderText}>Photos</Text>
+                {photos.length > 0 && (
+                  <Text style={styles.photoCount}>{photos.length}</Text>
+                )}
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoScroll}>
+                {photos.map((photoUrl, index) => {
+                  const fullUrl = photoUrl.startsWith("http") ? photoUrl : `${getApiUrl()}${photoUrl}`;
+                  return (
+                    <View key={`${photoUrl}-${index}`} style={styles.photoThumbContainer}>
+                      <Image source={{ uri: fullUrl }} style={styles.photoThumb} />
+                      <Pressable
+                        style={styles.photoRemoveBtn}
+                        onPress={() => handleRemovePhoto(photoUrl)}
+                      >
+                        <Ionicons name="close-circle" size={22} color={Colors.danger} />
+                      </Pressable>
+                    </View>
+                  );
+                })}
+                <Pressable style={styles.addPhotoBtn} onPress={handlePickPhoto} disabled={uploading}>
+                  {uploading ? (
+                    <ActivityIndicator size="small" color={Colors.primary} />
+                  ) : (
+                    <>
+                      <Ionicons name="add" size={28} color={Colors.primary} />
+                      <Text style={styles.addPhotoText}>Add</Text>
+                    </>
+                  )}
+                </Pressable>
+              </ScrollView>
             </View>
 
             <View style={styles.fieldGroup}>
@@ -781,5 +876,65 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     fontSize: 15,
     color: "#fff",
+  },
+  photoSection: {
+    marginBottom: 20,
+  },
+  photoHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  photoHeaderText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 15,
+    color: Colors.text,
+  },
+  photoCount: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 12,
+    color: Colors.textMuted,
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  photoScroll: {
+    gap: 10,
+    paddingVertical: 4,
+  },
+  photoThumbContainer: {
+    position: "relative",
+  },
+  photoThumb: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    backgroundColor: Colors.surface,
+  },
+  photoRemoveBtn: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    backgroundColor: Colors.background,
+    borderRadius: 11,
+  },
+  addPhotoBtn: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.cardBg,
+  },
+  addPhotoText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+    color: Colors.primary,
+    marginTop: 2,
   },
 });

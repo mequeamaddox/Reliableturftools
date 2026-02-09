@@ -54,15 +54,20 @@ export default function ScanScreen() {
   }
 
   function promptCreateNew(code: string) {
+    setScanned(false);
     Alert.alert(
       "Not Found",
       `No item found for barcode "${code}". Create a new listing with this barcode?`,
       [
-        { text: "Cancel", style: "cancel", onPress: () => setScanned(false) },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Create New",
           onPress: () => {
-            router.replace({ pathname: "/inventory/new" as any, params: { barcode: code } });
+            setScanned(true);
+            router.back();
+            setTimeout(() => {
+              router.push({ pathname: "/inventory/new" as any, params: { barcode: code } });
+            }, 100);
           },
         },
       ],
