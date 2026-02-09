@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -134,6 +135,7 @@ function ListingCard({
 
 export default function InventoryScreen() {
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const webTopInset = Platform.OS === "web" ? 67 : 0;
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("ALL");
@@ -308,7 +310,7 @@ export default function InventoryScreen() {
               onToggle={() => toggleSelect(item.id)}
             />
           )}
-          contentContainerStyle={{ paddingBottom: selectMode ? 140 : 120, paddingHorizontal: 16 }}
+          contentContainerStyle={{ paddingBottom: selectMode ? tabBarHeight + 80 : tabBarHeight + 20, paddingHorizontal: 16 }}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={Colors.primary} />}
           ListEmptyComponent={
             <View style={styles.empty}>
@@ -324,7 +326,7 @@ export default function InventoryScreen() {
       )}
 
       {selectMode && selectedIds.size > 0 && (
-        <View style={[styles.batchBar, { bottom: Platform.OS === "web" ? 84 : 80 + insets.bottom }]}>
+        <View style={[styles.batchBar, { bottom: tabBarHeight }]}>
           <Pressable style={styles.batchBtn} onPress={handleBatchPrint}>
             <Ionicons name="print" size={22} color="#fff" />
             <Text style={styles.batchBtnText}>Print {selectedIds.size} Label{selectedIds.size > 1 ? "s" : ""}</Text>
