@@ -12,6 +12,9 @@ export function getApiUrl(): string {
     throw new Error("EXPO_PUBLIC_DOMAIN is not set");
   }
 
+  // Strip port if present — Replit's proxy routes to the correct port automatically
+  host = host.replace(/:\d+$/, "");
+
   let url = new URL(`https://${host}`);
 
   return url.href;
