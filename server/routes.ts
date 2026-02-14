@@ -1023,7 +1023,7 @@ window.onload=function(){setTimeout(function(){window.print();},500);};
             <div class="rates-container" id="rates-container"></div>
           </div>`;
       } else {
-        shippingSectionHtml = `<div class="shipping-not-available" style="background:#f0f8f0; border-color:#b8d8b8; color:#2d6a2e;">
+        shippingSectionHtml = `<div class="shipping-not-available">
           <strong>Local Pickup Only</strong><br>
           This item is available for local meetup at safe, public locations in the Columbia, SC area.
         </div>`;
