@@ -3,6 +3,9 @@ import type { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import * as fs from "fs";
 import * as path from "path";
+import bcrypt from "bcryptjs";
+import { db } from "./db";
+import { users } from "@shared/schema";
 
 const app = express();
 const log = console.log;
@@ -225,10 +228,27 @@ function setupErrorHandler(app: express.Application) {
   });
 }
 
+async function ensureAdminUser() {
+  try {
+    const adminEmail = "mequeamaddox@gmail.com";
+    const existing = await db.select().from(users).limit(1);
+    if (existing.length === 0) {
+      log("No users found — creating admin account...");
+      const hashedPw = await bcrypt.hash("Sparky15!", 10);
+      await db.insert(users).values({ email: adminEmail, password: hashedPw });
+      log("Admin account created successfully");
+    }
+  } catch (err) {
+    console.error("Error ensuring admin user:", err);
+  }
+}
+
 (async () => {
   setupCors(app);
   setupBodyParsing(app);
   setupRequestLogging(app);
+
+  await ensureAdminUser();
 
   configureExpoAndLanding(app);
 
