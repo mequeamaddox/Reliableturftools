@@ -56,7 +56,14 @@ export default function LoginScreen() {
       router.replace("/(tabs)");
     } catch (err: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      setError("Invalid email or password");
+      const msg = err?.message || "";
+      if (msg.includes("401")) {
+        setError("Invalid email or password");
+      } else if (msg.includes("Network") || msg.includes("fetch") || msg.includes("Failed")) {
+        setError("Unable to connect to server. Check your internet connection.");
+      } else {
+        setError(msg || "Login failed. Please try again.");
+      }
     } finally {
       setLoggingIn(false);
     }
