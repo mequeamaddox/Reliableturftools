@@ -23,45 +23,51 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #f0f4f0;
-      color: #1a1a1a;
+      background: #111;
+      color: #f0f0f0;
       line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
     }
     a { color: inherit; text-decoration: none; }
 
     .site-header {
-      background: #0d1f0d;
-      padding: 14px 24px;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 12px 24px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 14px;
-      border-bottom: 3px solid #2d6a2e;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
     }
     .site-header img {
-      height: 44px;
+      height: 36px;
       width: auto;
-      border-radius: 6px;
+      border-radius: 8px;
     }
     .header-text h2 {
-      font-size: 22px;
+      font-size: 18px;
       font-weight: 800;
       color: #fff;
-      letter-spacing: -0.5px;
+      letter-spacing: -0.3px;
       line-height: 1.1;
     }
     .header-text span {
-      font-size: 11px;
-      font-weight: 500;
-      color: rgba(255,255,255,0.55);
-      letter-spacing: 1.5px;
+      font-size: 10px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 2px;
       text-transform: uppercase;
     }
 
     .hero {
-      background: linear-gradient(160deg, #143214 0%, #1e4d1e 40%, #2d6a2e 100%);
+      background: linear-gradient(170deg, #0a0a0a 0%, #111 30%, #0d2b10 70%, #143a17 100%);
       color: #fff;
-      padding: 56px 24px 48px;
+      padding: 80px 24px 64px;
       text-align: center;
       position: relative;
       overflow: hidden;
@@ -69,27 +75,44 @@
     .hero::before {
       content: "";
       position: absolute;
-      top: -60%;
-      left: -20%;
-      width: 140%;
-      height: 200%;
-      background: radial-gradient(ellipse at center, rgba(69,160,73,0.12) 0%, transparent 70%);
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 100%, rgba(34,197,94,0.08) 0%, transparent 70%),
+        radial-gradient(circle at 20% 50%, rgba(34,197,94,0.04) 0%, transparent 50%);
       pointer-events: none;
     }
+    .hero::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(34,197,94,0.3), transparent);
+    }
     .hero h1 {
-      font-size: 32px;
+      font-size: 36px;
       font-weight: 900;
-      margin-bottom: 14px;
-      line-height: 1.15;
-      letter-spacing: -0.5px;
+      margin-bottom: 16px;
+      line-height: 1.1;
+      letter-spacing: -1px;
       position: relative;
+    }
+    .hero h1 .accent {
+      background: linear-gradient(135deg, #22c55e, #4ade80);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
     .hero p {
       font-size: 16px;
-      max-width: 600px;
-      margin: 0 auto 24px;
-      opacity: 0.85;
-      line-height: 1.6;
+      max-width: 560px;
+      margin: 0 auto 32px;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.7;
       position: relative;
     }
     .hero-badges {
@@ -102,71 +125,73 @@
     .hero-badge {
       display: inline-flex;
       align-items: center;
-      gap: 7px;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.15);
-      backdrop-filter: blur(4px);
-      border-radius: 24px;
-      padding: 8px 16px;
+      gap: 8px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 100px;
+      padding: 8px 18px;
       font-size: 13px;
       font-weight: 600;
+      color: rgba(255,255,255,0.7);
       letter-spacing: 0.2px;
     }
     .hero-badge svg {
       flex-shrink: 0;
+      color: #22c55e;
     }
 
-    .location-bar {
-      background: #fff;
-      border-bottom: 1px solid #e0e6e0;
+    .trust-bar {
+      background: rgba(34,197,94,0.06);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
       padding: 12px 24px;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
-      color: #2d6a2e;
+      color: #4ade80;
     }
-    .location-bar svg {
+    .trust-bar svg {
       flex-shrink: 0;
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 1280px;
       margin: 0 auto;
-      padding: 36px 20px;
+      padding: 40px 20px 60px;
     }
     .section-header {
       display: flex;
       align-items: baseline;
       justify-content: space-between;
-      margin-bottom: 24px;
+      margin-bottom: 28px;
     }
     .section-title {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 800;
-      color: #0d1f0d;
+      color: #fff;
       letter-spacing: -0.3px;
     }
     .item-count {
-      font-size: 14px;
-      color: #6b7c6b;
+      font-size: 13px;
+      color: rgba(255,255,255,0.35);
       font-weight: 500;
+      background: rgba(255,255,255,0.06);
+      padding: 4px 12px;
+      border-radius: 100px;
     }
+
     .grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 20px;
+      gap: 16px;
     }
+
     .empty-state {
       text-align: center;
-      padding: 80px 20px;
-      color: #6b7c6b;
-    }
-    .empty-state svg {
-      margin-bottom: 16px;
-      opacity: 0.4;
+      padding: 100px 20px;
+      color: rgba(255,255,255,0.4);
     }
     .empty-state p {
       font-size: 16px;
@@ -174,24 +199,25 @@
     }
     .empty-state span {
       font-size: 14px;
-      color: #94a89c;
+      color: rgba(255,255,255,0.25);
       display: block;
-      margin-top: 6px;
+      margin-top: 8px;
     }
 
     .card {
-      background: #fff;
+      background: rgba(255,255,255,0.03);
       border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
-      transition: box-shadow 0.25s, transform 0.25s;
+      transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), box-shadow 0.3s, background 0.3s;
       display: flex;
       flex-direction: column;
-      border: 1px solid rgba(0,0,0,0.05);
+      border: 1px solid rgba(255,255,255,0.06);
     }
     .card:hover {
-      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-      transform: translateY(-3px);
+      background: rgba(255,255,255,0.05);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      border-color: rgba(34,197,94,0.15);
     }
     .card-img-wrap {
       position: relative;
@@ -202,116 +228,112 @@
       aspect-ratio: 4/3;
       object-fit: cover;
       display: block;
-      transition: transform 0.3s;
+      transition: transform 0.5s cubic-bezier(0.4,0,0.2,1);
     }
     .card:hover .card-img {
-      transform: scale(1.03);
+      transform: scale(1.05);
     }
     .card-img-placeholder {
       width: 100%;
       aspect-ratio: 4/3;
-      background: linear-gradient(135deg, #e8f0e8 0%, #d4e0d4 100%);
+      background: linear-gradient(135deg, #1a1a1a, #222);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #94a89c;
-      font-size: 14px;
+      color: rgba(255,255,255,0.2);
+      font-size: 13px;
+      font-weight: 500;
     }
     .card-badge {
       position: absolute;
-      top: 10px;
-      right: 10px;
+      top: 12px;
+      right: 12px;
       font-size: 11px;
       font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 6px;
+      padding: 5px 12px;
+      border-radius: 8px;
       letter-spacing: 0.3px;
+      text-transform: uppercase;
     }
     .badge-ships {
-      background: rgba(37,99,235,0.9);
+      background: rgba(59,130,246,0.85);
+      backdrop-filter: blur(8px);
       color: #fff;
     }
     .badge-pickup {
-      background: rgba(21,128,61,0.9);
+      background: rgba(34,197,94,0.85);
+      backdrop-filter: blur(8px);
       color: #fff;
     }
     .card-type-badge {
       position: absolute;
-      top: 10px;
-      left: 10px;
+      top: 12px;
+      left: 12px;
       font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      padding: 3px 8px;
-      border-radius: 5px;
-      background: rgba(45,106,46,0.88);
-      color: #fff;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(8px);
+      color: #4ade80;
+      border: 1px solid rgba(34,197,94,0.2);
     }
     .card-body {
-      padding: 16px;
+      padding: 16px 18px 20px;
       flex: 1;
       display: flex;
       flex-direction: column;
     }
     .card-category {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: #5a8a5c;
-      margin-bottom: 6px;
+      letter-spacing: 1.2px;
+      color: #22c55e;
+      margin-bottom: 8px;
     }
     .card-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       margin-bottom: 8px;
-      line-height: 1.3;
-      color: #0d1f0d;
+      line-height: 1.35;
+      color: #fff;
     }
     .card-meta {
       display: flex;
       align-items: center;
       gap: 6px;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
       flex-wrap: wrap;
     }
     .card-condition {
       font-size: 11px;
-      padding: 3px 8px;
-      border-radius: 5px;
-      background: #f0f4f0;
-      color: #4a6a4c;
+      padding: 3px 10px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.5);
       font-weight: 600;
     }
     .card-price {
       font-size: 22px;
       font-weight: 800;
-      color: #1e4d1e;
+      color: #4ade80;
       margin-top: auto;
-    }
-    .card-parts-badge {
-      font-size: 10px;
-      padding: 3px 8px;
-      border-radius: 5px;
-      background: #e8f5e9;
-      color: #2d6a2e;
-      font-weight: 700;
-      border: 1px solid #c8e6c9;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
+      letter-spacing: -0.5px;
     }
 
     .site-footer {
-      background: #0d1f0d;
-      color: rgba(255,255,255,0.5);
+      background: #0a0a0a;
+      color: rgba(255,255,255,0.3);
       text-align: center;
-      padding: 40px 24px;
+      padding: 48px 24px;
       font-size: 13px;
-      margin-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.04);
     }
     .site-footer p { margin-bottom: 6px; }
-    .site-footer a { color: #7bc67e; }
+    .site-footer a { color: #22c55e; }
     .footer-logo {
       display: flex;
       align-items: center;
@@ -320,28 +342,29 @@
       margin-bottom: 16px;
     }
     .footer-logo img {
-      height: 32px;
-      border-radius: 4px;
+      height: 28px;
+      border-radius: 6px;
+      opacity: 0.7;
     }
     .footer-logo span {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
-      color: rgba(255,255,255,0.7);
+      color: rgba(255,255,255,0.5);
     }
 
     @media (min-width: 480px) {
       .grid { grid-template-columns: repeat(2, 1fr); }
     }
     @media (min-width: 768px) {
-      .hero h1 { font-size: 40px; }
-      .hero p { font-size: 18px; }
+      .hero h1 { font-size: 48px; letter-spacing: -1.5px; }
+      .hero p { font-size: 17px; }
       .grid { grid-template-columns: repeat(3, 1fr); }
-      .container { padding: 44px 24px; }
+      .container { padding: 48px 24px 72px; }
     }
     @media (min-width: 1024px) {
       .grid { grid-template-columns: repeat(4, 1fr); }
-      .hero { padding: 72px 24px 60px; }
-      .hero h1 { font-size: 46px; }
+      .hero { padding: 100px 24px 80px; }
+      .hero h1 { font-size: 56px; }
     }
   </style>
 </head>
@@ -355,7 +378,7 @@
   </header>
 
   <section class="hero">
-    <h1>Quality Used Outdoor<br>Power Equipment</h1>
+    <h1>Quality Used <span class="accent">Outdoor<br>Power Equipment</span></h1>
     <p>Inspected, tested, and priced to sell. Mowers, trimmers, blowers, chainsaws and more — shipped to your door or available for local pickup.</p>
     <div class="hero-badges">
       <span class="hero-badge">
@@ -363,7 +386,7 @@
         Inspected &amp; Tested
       </span>
       <span class="hero-badge">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="22" height="16" rx="2"/><path d="M1 10h22"/><path d="M7 6V2"/><path d="M17 6V2"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
         Ships Nationwide
       </span>
       <span class="hero-badge">
@@ -373,9 +396,9 @@
     </div>
   </section>
 
-  <div class="location-bar">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-    Columbia, SC &mdash; Local pickup &amp; nationwide shipping available
+  <div class="trust-bar">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Columbia, SC — Local pickup &amp; nationwide shipping available
   </div>
 
   <main class="container">
@@ -394,7 +417,7 @@
       <span>Reliable Turf Tools</span>
     </div>
     <p>&copy; 2026 Reliable Turf Tools. All rights reserved.</p>
-    <p>Used outdoor power equipment &mdash; mowers, trimmers, blowers, chainsaws &amp; more.</p>
+    <p>Used outdoor power equipment — mowers, trimmers, blowers, chainsaws &amp; more.</p>
   </footer>
 </body>
 </html>
