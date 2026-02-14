@@ -112,11 +112,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
       const { email, password } = req.body;
+      console.log("Login attempt:", { email, hasPassword: !!password, origin: req.header("origin"), userAgent: req.header("user-agent")?.substring(0, 80) });
       if (!email || !password) {
+        console.log("Login failed: missing email or password");
         return res.status(400).json({ error: "Email and password required" });
       }
       const user = await storage.getUserByEmail(email);
       if (!user) {
+        console.log("Login failed: no user found for email", email);
         return res.status(401).json({ error: "Invalid credentials" });
       }
       const valid = await bcrypt.compare(password, user.password);
