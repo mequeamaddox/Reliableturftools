@@ -15,7 +15,6 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
-import Colors from "@/constants/colors";
 import { getApiUrl } from "@/lib/query-client";
 import { fetch } from "expo/fetch";
 
@@ -35,30 +34,53 @@ function isShippable(item: any): boolean {
 
 function ProductCard({ item }: { item: any }) {
   const canShip = isShippable(item);
+  const photoUrl = item.photos && item.photos.length > 0
+    ? `${getApiUrl()}${item.photos[0]}`
+    : "";
+
   return (
     <Pressable
       style={styles.productCard}
       onPress={() => router.push({ pathname: "/store/[id]", params: { id: item.id } })}
     >
-      <View style={styles.productImagePlaceholder}>
-        <Ionicons name="image-outline" size={40} color="#94a3b8" />
-        <View style={[styles.fulfillmentBadge, canShip ? styles.shipBadge : styles.pickupBadge]}>
-          <Ionicons
-            name={canShip ? "cube-outline" : "location-outline"}
-            size={11}
-            color={canShip ? "#2563eb" : "#15803d"}
-          />
-          <Text style={[styles.fulfillmentText, canShip ? styles.shipText : styles.pickupText]}>
-            {canShip ? "Ships" : "Pickup"}
-          </Text>
+      {photoUrl ? (
+        <View style={styles.productImageWrap}>
+          <Image source={{ uri: photoUrl }} style={styles.productImage} resizeMode="cover" />
+          <View style={[styles.fulfillmentBadge, canShip ? styles.shipBadge : styles.pickupBadge]}>
+            <Ionicons
+              name={canShip ? "cube-outline" : "location-outline"}
+              size={11}
+              color="#fff"
+            />
+            <Text style={styles.fulfillmentText}>
+              {canShip ? "Ships" : "Pickup"}
+            </Text>
+          </View>
         </View>
-      </View>
+      ) : (
+        <View style={styles.productImagePlaceholder}>
+          <Ionicons name="image-outline" size={40} color="rgba(255,255,255,0.2)" />
+          <View style={[styles.fulfillmentBadge, canShip ? styles.shipBadge : styles.pickupBadge]}>
+            <Ionicons
+              name={canShip ? "cube-outline" : "location-outline"}
+              size={11}
+              color="#fff"
+            />
+            <Text style={styles.fulfillmentText}>
+              {canShip ? "Ships" : "Pickup"}
+            </Text>
+          </View>
+        </View>
+      )}
       <View style={styles.productInfo}>
+        <Text style={styles.productCategory}>
+          {(item.category || "").replace(/_/g, " ")}
+        </Text>
         <Text style={styles.productTitle} numberOfLines={2}>{item.title}</Text>
         {item.brand && <Text style={styles.productBrand}>{item.brand}</Text>}
         <View style={styles.productMeta}>
           <Text style={styles.conditionBadge}>{getConditionLabel(item.condition)}</Text>
-          <Text style={styles.powerBadge}>{item.powerType.replace("_", " ")}</Text>
+          <Text style={styles.powerBadge}>{(item.powerType || "").replace("_", " ")}</Text>
         </View>
         <Text style={styles.productPrice}>${parseFloat(item.price).toFixed(0)}</Text>
       </View>
@@ -111,23 +133,23 @@ export default function StorefrontScreen() {
       </View>
 
       <View style={styles.searchWrap}>
-        <Ionicons name="search" size={18} color="#94a3b8" />
+        <Ionicons name="search" size={18} color="rgba(255,255,255,0.35)" />
         <TextInput
           style={styles.searchInput}
           value={search}
           onChangeText={setSearch}
           placeholder="Search tools..."
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor="rgba(255,255,255,0.3)"
         />
       </View>
 
       <View style={styles.locationNotice}>
-        <Ionicons name="location" size={16} color="#15803d" />
+        <Ionicons name="location" size={16} color="#4ade80" />
         <Text style={styles.locationText}>Columbia, SC — Local pickup & nationwide shipping</Text>
       </View>
 
       {isLoading ? (
-        <ActivityIndicator size="large" color="#16a34a" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color="#22c55e" style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={filtered}
@@ -136,10 +158,10 @@ export default function StorefrontScreen() {
           numColumns={2}
           columnWrapperStyle={styles.gridRow}
           contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 20, paddingHorizontal: 12 }}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#16a34a" />}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#22c55e" />}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Ionicons name="storefront-outline" size={48} color="#94a3b8" />
+              <Ionicons name="storefront-outline" size={48} color="rgba(255,255,255,0.2)" />
               <Text style={styles.emptyText}>No items available right now</Text>
               <Text style={styles.emptySubtext}>Check back soon for new inventory!</Text>
             </View>
@@ -154,7 +176,7 @@ export default function StorefrontScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#111",
   },
   header: {
     flexDirection: "row",
@@ -162,9 +184,9 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: "#0d1f0d",
-    borderBottomWidth: 3,
-    borderBottomColor: "#2d6a2e",
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.06)",
   },
   headerBrand: {
     flexDirection: "row",
@@ -174,9 +196,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerLogo: {
-    width: 38,
-    height: 38,
-    borderRadius: 6,
+    width: 36,
+    height: 36,
+    borderRadius: 8,
   },
   headerTitle: {
     fontFamily: "Inter_700Bold",
@@ -187,27 +209,27 @@ const styles = StyleSheet.create({
   headerSub: {
     fontFamily: "Inter_500Medium",
     fontSize: 10,
-    color: "rgba(255,255,255,0.5)",
-    letterSpacing: 1.2,
+    color: "rgba(255,255,255,0.4)",
+    letterSpacing: 1.5,
     textTransform: "uppercase" as const,
   },
   searchWrap: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255,255,255,0.04)",
     borderRadius: 12,
     marginHorizontal: 12,
     marginTop: 12,
     paddingHorizontal: 14,
     gap: 8,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "rgba(255,255,255,0.08)",
   },
   searchInput: {
     flex: 1,
     fontFamily: "Inter_400Regular",
     fontSize: 15,
-    color: "#0f172a",
+    color: "#fff",
     paddingVertical: 12,
   },
   locationNotice: {
@@ -217,16 +239,16 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     marginTop: 12,
     marginBottom: 8,
-    backgroundColor: "#f0fdf4",
+    backgroundColor: "rgba(34,197,94,0.06)",
     padding: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#bbf7d0",
+    borderColor: "rgba(34,197,94,0.12)",
   },
   locationText: {
     fontFamily: "Inter_500Medium",
     fontSize: 13,
-    color: "#15803d",
+    color: "#4ade80",
     flex: 1,
   },
   gridRow: {
@@ -235,15 +257,23 @@ const styles = StyleSheet.create({
   },
   productCard: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255,255,255,0.03)",
     borderRadius: 14,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "rgba(255,255,255,0.06)",
+  },
+  productImageWrap: {
+    height: 130,
+    backgroundColor: "#1a1a1a",
+  },
+  productImage: {
+    width: "100%",
+    height: "100%",
   },
   productImagePlaceholder: {
-    height: 120,
-    backgroundColor: "#f1f5f9",
+    height: 130,
+    backgroundColor: "#1a1a1a",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -259,35 +289,37 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   shipBadge: {
-    backgroundColor: "rgba(239,246,255,0.95)",
+    backgroundColor: "rgba(59,130,246,0.85)",
   },
   pickupBadge: {
-    backgroundColor: "rgba(240,253,244,0.95)",
+    backgroundColor: "rgba(34,197,94,0.85)",
   },
   fulfillmentText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 10,
-  },
-  shipText: {
-    color: "#2563eb",
-  },
-  pickupText: {
-    color: "#15803d",
+    color: "#fff",
   },
   productInfo: {
     padding: 12,
     gap: 4,
   },
+  productCategory: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 9,
+    color: "#22c55e",
+    letterSpacing: 1,
+    textTransform: "uppercase" as const,
+  },
   productTitle: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 14,
-    color: "#0f172a",
+    color: "#fff",
     lineHeight: 18,
   },
   productBrand: {
     fontFamily: "Inter_400Regular",
     fontSize: 12,
-    color: "#64748b",
+    color: "rgba(255,255,255,0.45)",
   },
   productMeta: {
     flexDirection: "row",
@@ -298,8 +330,8 @@ const styles = StyleSheet.create({
   conditionBadge: {
     fontFamily: "Inter_500Medium",
     fontSize: 10,
-    color: "#16a34a",
-    backgroundColor: "#f0fdf4",
+    color: "rgba(255,255,255,0.5)",
+    backgroundColor: "rgba(255,255,255,0.06)",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -308,8 +340,8 @@ const styles = StyleSheet.create({
   powerBadge: {
     fontFamily: "Inter_500Medium",
     fontSize: 10,
-    color: "#3b82f6",
-    backgroundColor: "#eff6ff",
+    color: "rgba(255,255,255,0.5)",
+    backgroundColor: "rgba(255,255,255,0.06)",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -317,9 +349,10 @@ const styles = StyleSheet.create({
   },
   productPrice: {
     fontFamily: "Inter_700Bold",
-    fontSize: 18,
-    color: "#0f172a",
-    marginTop: 4,
+    fontSize: 20,
+    color: "#4ade80",
+    marginTop: 6,
+    letterSpacing: -0.5,
   },
   empty: {
     alignItems: "center",
@@ -329,11 +362,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: "Inter_500Medium",
     fontSize: 16,
-    color: "#64748b",
+    color: "rgba(255,255,255,0.4)",
   },
   emptySubtext: {
     fontFamily: "Inter_400Regular",
     fontSize: 13,
-    color: "#94a3b8",
+    color: "rgba(255,255,255,0.25)",
   },
 });
