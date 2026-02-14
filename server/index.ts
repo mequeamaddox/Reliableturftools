@@ -5,7 +5,7 @@ import * as fs from "fs";
 import * as path from "path";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
-import { users } from "@shared/schema";
+import { users, listings } from "@shared/schema";
 
 const app = express();
 const log = console.log;
@@ -232,18 +232,43 @@ function setupErrorHandler(app: express.Application) {
   });
 }
 
-async function ensureAdminUser() {
+async function ensureAdminAndData() {
   try {
     const adminEmail = "mequeamaddox@gmail.com";
-    const existing = await db.select().from(users).limit(1);
-    if (existing.length === 0) {
+    const existingUsers = await db.select().from(users).limit(1);
+    if (existingUsers.length === 0) {
       log("No users found — creating admin account...");
       const hashedPw = await bcrypt.hash("Sparky15!", 10);
       await db.insert(users).values({ email: adminEmail, password: hashedPw });
       log("Admin account created successfully");
     }
+
+    const existingListings = await db.select().from(listings).limit(1);
+    if (existingListings.length === 0) {
+      log("No listings found — seeding initial inventory...");
+      await db.insert(listings).values({
+        title: "Ryobi Gas Chainsaw",
+        sku: "RTT-CHA-0001",
+        barcode: "046396015198",
+        condition: "USED",
+        powerType: "GAS",
+        category: "CHAINSAW",
+        brand: "Ryobi",
+        price: "100.00",
+        quantity: 1,
+        status: "AVAILABLE",
+        notes: "Like New Condition",
+        isPublished: true,
+        weightLbs: "10.00",
+        boxLengthIn: "12.00",
+        boxWidthIn: "12.00",
+        boxHeightIn: "48.00",
+        listingType: "ITEM",
+      });
+      log("Initial inventory seeded successfully");
+    }
   } catch (err) {
-    console.error("Error ensuring admin user:", err);
+    console.error("Error ensuring admin/data:", err);
   }
 }
 
@@ -252,7 +277,7 @@ async function ensureAdminUser() {
   setupBodyParsing(app);
   setupRequestLogging(app);
 
-  await ensureAdminUser();
+  await ensureAdminAndData();
 
   configureExpoAndLanding(app);
 
