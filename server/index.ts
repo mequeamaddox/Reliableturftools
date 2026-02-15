@@ -30,6 +30,9 @@ function setupCors(app: express.Application) {
       });
     }
 
+    origins.add("https://reliableturftools.replit.app");
+    origins.add("https://www.reliableturftools.com");
+
     const origin = req.header("origin");
 
     // Allow localhost origins for Expo web development (any port)
@@ -37,8 +40,13 @@ function setupCors(app: express.Application) {
       origin?.startsWith("http://localhost:") ||
       origin?.startsWith("http://127.0.0.1:");
 
-    if (origin && (origins.has(origin) || isLocalhost)) {
-      res.header("Access-Control-Allow-Origin", origin);
+    // Native mobile apps (EAS builds) don't send origin headers — allow those requests
+    const isNativeApp = !origin;
+
+    if (isNativeApp || (origin && (origins.has(origin) || isLocalhost))) {
+      if (origin) {
+        res.header("Access-Control-Allow-Origin", origin);
+      }
       res.header(
         "Access-Control-Allow-Methods",
         "GET, POST, PUT, DELETE, OPTIONS",
