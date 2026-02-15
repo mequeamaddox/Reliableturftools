@@ -1,23 +1,36 @@
 import { fetch } from "expo/fetch";
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import Constants from "expo-constants";
+import { Platform } from "react-native";
 
-/**
- * Gets the base URL for the Express API server (e.g., "http://localhost:3000")
- * @returns {string} The API base URL
- */
 export function getApiUrl(): string {
   let host = process.env.EXPO_PUBLIC_DOMAIN;
 
-  if (!host) {
-    throw new Error("EXPO_PUBLIC_DOMAIN is not set");
+  if (host) {
+    host = host.replace(/:\d+$/, "");
+    return new URL(`https://${host}`).href;
   }
 
-  // Strip port if present — Replit's proxy routes to the correct port automatically
-  host = host.replace(/:\d+$/, "");
+  if (Platform.OS === "web" && typeof window !== "undefined" && window.location) {
+    return window.location.origin + "/";
+  }
 
-  let url = new URL(`https://${host}`);
+  const manifest = Constants.expoConfig?.extra;
+  if (manifest?.routerOrigin) {
+    const origin = manifest.routerOrigin.replace(/:\d+$/, "");
+    return origin.startsWith("http") ? origin + "/" : `https://${origin}/`;
+  }
 
-  return url.href;
+  const hostUri =
+    (Constants as any)?.manifest2?.extra?.expoGo?.debuggerHost ||
+    (Constants as any)?.manifest?.debuggerHost ||
+    (Constants as any)?.manifest2?.extra?.expoClient?.hostUri;
+  if (hostUri) {
+    const h = hostUri.split(":")[0];
+    return `https://${h}/`;
+  }
+
+  throw new Error("EXPO_PUBLIC_DOMAIN is not set");
 }
 
 async function throwIfResNotOk(res: Response) {
