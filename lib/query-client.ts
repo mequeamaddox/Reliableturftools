@@ -1,7 +1,60 @@
 import { fetch } from "expo/fetch";
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import Constants from "expo-constants";
+import * as Linking from "expo-linking";
 import { Platform } from "react-native";
+
+function extractDomain(): string | null {
+  try {
+    const linkingUrl = Linking.createURL("/");
+    if (linkingUrl) {
+      const cleaned = linkingUrl
+        .replace("exp://", "https://")
+        .replace("exps://", "https://");
+      const parsed = new URL(cleaned);
+      if (parsed.hostname && parsed.hostname !== "localhost" && parsed.hostname !== "127.0.0.1") {
+        return parsed.hostname;
+      }
+    }
+  } catch {}
+
+  try {
+    const m2 = (Constants as any)?.manifest2;
+    const hostUri =
+      m2?.extra?.expoGo?.debuggerHost ||
+      m2?.extra?.expoClient?.hostUri;
+    if (hostUri) {
+      const h = hostUri.split(":")[0];
+      if (h && h !== "localhost" && h !== "127.0.0.1") {
+        return h;
+      }
+    }
+  } catch {}
+
+  try {
+    const m = (Constants as any)?.manifest;
+    const hostUri = m?.debuggerHost || m?.hostUri;
+    if (hostUri) {
+      const h = hostUri.split(":")[0];
+      if (h && h !== "localhost" && h !== "127.0.0.1") {
+        return h;
+      }
+    }
+  } catch {}
+
+  try {
+    const expUrl = (Constants as any)?.experienceUrl;
+    if (expUrl) {
+      const cleaned = expUrl.replace("exp://", "https://").replace("exps://", "https://");
+      const parsed = new URL(cleaned);
+      if (parsed.hostname && parsed.hostname !== "localhost") {
+        return parsed.hostname;
+      }
+    }
+  } catch {}
+
+  return null;
+}
 
 export function getApiUrl(): string {
   let host = process.env.EXPO_PUBLIC_DOMAIN;
@@ -15,19 +68,9 @@ export function getApiUrl(): string {
     return window.location.origin + "/";
   }
 
-  const manifest = Constants.expoConfig?.extra;
-  if (manifest?.routerOrigin) {
-    const origin = manifest.routerOrigin.replace(/:\d+$/, "");
-    return origin.startsWith("http") ? origin + "/" : `https://${origin}/`;
-  }
-
-  const hostUri =
-    (Constants as any)?.manifest2?.extra?.expoGo?.debuggerHost ||
-    (Constants as any)?.manifest?.debuggerHost ||
-    (Constants as any)?.manifest2?.extra?.expoClient?.hostUri;
-  if (hostUri) {
-    const h = hostUri.split(":")[0];
-    return `https://${h}/`;
+  const domain = extractDomain();
+  if (domain) {
+    return `https://${domain}/`;
   }
 
   throw new Error("EXPO_PUBLIC_DOMAIN is not set");
