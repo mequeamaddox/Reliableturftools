@@ -33,6 +33,7 @@ function FollowUpCard({
   onEdit,
   onDelete,
   onCopy,
+  onSendText,
 }: {
   fu: any;
   buyer: any;
@@ -41,6 +42,7 @@ function FollowUpCard({
   onEdit: () => void;
   onDelete: () => void;
   onCopy: () => void;
+  onSendText: () => void;
 }) {
   const isOverdue =
     !fu.isCompleted &&
@@ -147,10 +149,18 @@ function FollowUpCard({
       </Pressable>
       {fu.message && <Text style={styles.fuMessage}>{fu.message}</Text>}
       {fu.message && !fu.isCompleted && (
-        <Pressable style={styles.copyBtn} onPress={onCopy}>
-          <Ionicons name="copy-outline" size={14} color={Colors.primary} />
-          <Text style={styles.copyBtnText}>Copy</Text>
-        </Pressable>
+        <View style={styles.fuBtnRow}>
+          {buyer?.phone && (
+            <Pressable style={styles.sendBtn} onPress={onSendText}>
+              <Ionicons name="chatbubble" size={14} color="#fff" />
+              <Text style={styles.sendBtnText}>Send</Text>
+            </Pressable>
+          )}
+          <Pressable style={styles.copyBtn} onPress={onCopy}>
+            <Ionicons name="copy-outline" size={14} color={Colors.primary} />
+            <Text style={styles.copyBtnText}>Copy</Text>
+          </Pressable>
+        </View>
       )}
       {fu.isCompleted && fu.completedAt && (
         <Text style={styles.completedAt}>
@@ -291,6 +301,15 @@ export default function MoreScreen() {
     Clipboard.setStringAsync(finalMsg);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Alert.alert("Copied!", "Message copied to clipboard");
+  }
+
+  function sendTextMessage(msg: string, buyerPhone: string, buyerName?: string) {
+    const finalMsg = fillPlaceholders(msg, buyerName);
+    const cleanPhone = buyerPhone.replace(/[^0-9+]/g, "");
+    const body = encodeURIComponent(finalMsg);
+    const sep = Platform.OS === "ios" ? "&" : "?";
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Linking.openURL(`sms:${cleanPhone}${sep}body=${body}`);
   }
 
   function confirmDeleteFu(id: string) {
@@ -547,6 +566,7 @@ export default function MoreScreen() {
                         }
                         onDelete={() => confirmDeleteFu(fu.id)}
                         onCopy={() => copyMessage(fu.message, buyer?.name)}
+                        onSendText={() => sendTextMessage(fu.message, buyer?.phone, buyer?.name)}
                       />
                     </SwipeableRow>
                   );
@@ -1025,6 +1045,25 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 10,
   },
+  fuBtnRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  sendBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  sendBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+    color: "#fff",
+  },
   copyBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1033,7 +1072,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
-    alignSelf: "flex-start",
   },
   copyBtnText: {
     fontFamily: "Inter_600SemiBold",

@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
+  Linking,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -123,6 +124,35 @@ export default function BuyerDetailScreen() {
           </View>
         </View>
 
+        {phone.trim() && (
+          <View style={styles.contactRow}>
+            <Pressable
+              style={styles.contactBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                const cleanPhone = phone.replace(/[^0-9+]/g, "");
+                const greeting = encodeURIComponent(`Hey ${name || "there"}! `);
+                const sep = Platform.OS === "ios" ? "&" : "?";
+                Linking.openURL(`sms:${cleanPhone}${sep}body=${greeting}`);
+              }}
+            >
+              <Ionicons name="chatbubble" size={18} color="#fff" />
+              <Text style={styles.contactBtnText}>Text</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.contactBtn, { backgroundColor: Colors.info }]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                const cleanPhone = phone.replace(/[^0-9+]/g, "");
+                Linking.openURL(`tel:${cleanPhone}`);
+              }}
+            >
+              <Ionicons name="call" size={18} color="#fff" />
+              <Text style={styles.contactBtnText}>Call</Text>
+            </Pressable>
+          </View>
+        )}
+
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Name</Text>
           <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Buyer name" placeholderTextColor={Colors.textMuted} />
@@ -235,6 +265,26 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+  },
+  contactRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 20,
+  },
+  contactBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: Colors.primary,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  contactBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 15,
+    color: "#fff",
   },
   statsRow: {
     flexDirection: "row",
