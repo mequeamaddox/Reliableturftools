@@ -779,7 +779,7 @@
         body.shippingRate = shippingRate;
       }
 
-      fetch('/api/store/checkout', {
+      fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -828,7 +828,7 @@
       btn.textContent = 'Sending...';
       msgEl.className = 'form-msg';
 
-      fetch('/api/store/inquiries', {
+      fetch('/api/inquiries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -956,6 +956,38 @@ window.onload=function(){setTimeout(function(){window.print();},500);};
     }
   });
 
+  app.get("/store/thank-you", (_req: Request, res: Response) => {
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thank You - Reliable Turf Tools</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8faf8; color: #1a1a1a; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+    .card { background: #fff; border-radius: 16px; padding: 48px 32px; text-align: center; max-width: 480px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .check { width: 64px; height: 64px; background: #2d6a2e; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+    .check svg { width: 32px; height: 32px; }
+    h1 { font-size: 24px; margin-bottom: 12px; color: #1a1a1a; }
+    p { font-size: 16px; color: #666; line-height: 1.5; margin-bottom: 24px; }
+    a { display: inline-block; background: #2d6a2e; color: #fff; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; }
+    a:hover { background: #245a25; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="check"><svg fill="none" stroke="#fff" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
+    <h1>Thank You for Your Order!</h1>
+    <p>Your payment has been received. We'll be in touch soon with shipping details.</p>
+    <a href="/store">Continue Shopping</a>
+  </div>
+</body>
+</html>`;
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.status(200).send(html);
+  });
+
   app.get("/store/:id", async (req: Request, res: Response) => {
     try {
       const baseUrl = getBaseUrl(req);
@@ -1152,7 +1184,7 @@ window.onload=function(){setTimeout(function(){window.print();},500);};
     }
   });
 
-  app.post("/api/checkout", async (req: Request, res: Response) => {
+  async function handleCheckout(req: Request, res: Response) {
     try {
       const { listingId, shippingRate, buyerName, buyerPhone, buyerEmail } = req.body;
       if (!listingId) {
@@ -1233,39 +1265,9 @@ window.onload=function(){setTimeout(function(){window.print();},500);};
       console.error("Checkout error:", err?.message || err);
       return res.status(500).json({ error: "Failed to create checkout" });
     }
-  });
+  }
 
-  app.get("/store/thank-you", (_req: Request, res: Response) => {
-    const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Thank You - Reliable Turf Tools</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8faf8; color: #1a1a1a; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
-    .card { background: #fff; border-radius: 16px; padding: 48px 32px; text-align: center; max-width: 480px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-    .check { width: 64px; height: 64px; background: #2d6a2e; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
-    .check svg { width: 32px; height: 32px; }
-    h1 { font-size: 24px; margin-bottom: 12px; color: #1a1a1a; }
-    p { font-size: 16px; color: #666; line-height: 1.5; margin-bottom: 24px; }
-    a { display: inline-block; background: #2d6a2e; color: #fff; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; }
-    a:hover { background: #245a25; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="check"><svg fill="none" stroke="#fff" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
-    <h1>Thank You for Your Order!</h1>
-    <p>Your payment has been received. We'll be in touch soon with shipping details.</p>
-    <a href="/store">Continue Shopping</a>
-  </div>
-</body>
-</html>`;
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.status(200).send(html);
-  });
+  app.post("/api/checkout", handleCheckout);
 
   const httpServer = createServer(app);
   return httpServer;
