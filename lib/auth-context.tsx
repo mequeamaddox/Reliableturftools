@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
-import { apiRequest, getApiUrl } from "@/lib/query-client";
+import { apiRequest, getApiUrl, queryClient } from "@/lib/query-client";
 import { fetch } from "expo/fetch";
 import { router } from "expo-router";
 import { registerForPushNotifications, savePushTokenToServer } from "@/lib/notifications";
@@ -63,6 +63,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/auth/logout");
     } catch {}
     setUser(null);
+    queryClient.clear();
+    while (router.canGoBack()) {
+      router.back();
+    }
     router.replace("/");
   }
 
