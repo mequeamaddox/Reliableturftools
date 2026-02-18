@@ -87,6 +87,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   });
 
+  const isProduction = process.env.NODE_ENV === "production" || !!process.env.REPLIT_DEPLOYMENT;
+
+  app.set("trust proxy", 1);
+
   app.use(
     session({
       store: pgSessionStore,
@@ -94,10 +98,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       resave: false,
       saveUninitialized: false,
       cookie: {
-        secure: false,
+        secure: isProduction,
         httpOnly: true,
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        sameSite: "lax",
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        sameSite: isProduction ? "none" as const : "lax" as const,
       },
     }),
   );
