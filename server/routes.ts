@@ -533,7 +533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/inquiries", async (req: Request, res: Response) => {
+  async function handleInquirySubmission(req: Request, res: Response) {
     try {
       const inquiry = await storage.createInquiry(req.body);
 
@@ -551,7 +551,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (err) {
       return res.status(500).json({ error: "Server error" });
     }
-  });
+  }
+
+  app.post("/api/inquiries", handleInquirySubmission);
+  app.post("/api/store/inquiries", handleInquirySubmission);
 
   app.put("/api/inquiries/:id/read", requireAuth, async (req: Request, res: Response) => {
     try {
