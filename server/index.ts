@@ -251,6 +251,16 @@ async function ensureAdminAndData() {
       log("Admin account created successfully");
     }
 
+    const secondAdminEmail = "ishmel_maddox12@yahoo.com";
+    const { sql } = await import("drizzle-orm");
+    const [existingSecond] = await db.select().from(users).where(sql`LOWER(${users.email}) = LOWER(${secondAdminEmail})`);
+    if (!existingSecond) {
+      log("Creating second admin account...");
+      const hashedPw2 = await bcrypt.hash("Ursula93", 10);
+      await db.insert(users).values({ email: secondAdminEmail, password: hashedPw2 });
+      log("Second admin account created successfully");
+    }
+
     const existingListings = await db.select().from(listings).limit(1);
     if (existingListings.length === 0) {
       log("No listings found — seeding initial inventory...");
