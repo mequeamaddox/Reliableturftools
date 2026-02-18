@@ -5,7 +5,7 @@ import * as fs from "fs";
 import * as path from "path";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
-import { users, listings } from "@shared/schema";
+import { users, listings, messageTemplates } from "@shared/schema";
 
 const app = express();
 const log = console.log;
@@ -259,6 +259,44 @@ async function ensureAdminAndData() {
       const hashedPw2 = await bcrypt.hash("Ursula93", 10);
       await db.insert(users).values({ email: secondAdminEmail, password: hashedPw2 });
       log("Second admin account created successfully");
+    }
+
+    const existingTemplates = await db.select().from(messageTemplates).limit(1);
+    if (existingTemplates.length === 0) {
+      log("No message templates found — seeding defaults...");
+      await db.insert(messageTemplates).values([
+        {
+          name: "New Listing Alert",
+          template: "Hey {buyer_name}! Just got in a {listing_title} that I think you'd be interested in. Let me know if you want more details or photos!",
+          type: "NEW_INVENTORY" as const,
+        },
+        {
+          name: "Back in Stock",
+          template: "Hey {buyer_name}, good news! The {listing_title} is back in stock. Want me to hold it for you?",
+          type: "BACK_IN_STOCK" as const,
+        },
+        {
+          name: "Meetup Confirm",
+          template: "Hey {buyer_name}, just confirming our meetup today. I'll be there with the {listing_title}. See you soon!",
+          type: "MEETUP_REMINDER" as const,
+        },
+        {
+          name: "Check In",
+          template: "Hey {buyer_name}! Just checking in - how's that {listing_title} working out for you?",
+          type: "CHECK_IN" as const,
+        },
+        {
+          name: "Price Drop",
+          template: "Hey {buyer_name}, I just dropped the price on the {listing_title}. Let me know if you're still interested!",
+          type: "CUSTOM" as const,
+        },
+        {
+          name: "Follow Up Interest",
+          template: "Hey {buyer_name}! Just following up on the {listing_title} you were looking at. Still interested? I can hold it for you.",
+          type: "CUSTOM" as const,
+        },
+      ]);
+      log("Message templates seeded successfully");
     }
 
     const existingListings = await db.select().from(listings).limit(1);
