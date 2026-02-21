@@ -131,6 +131,8 @@ export const storage = {
   },
 
   async deleteListing(id: string): Promise<void> {
+    await db.delete(inquiries).where(eq(inquiries.listingId, id));
+    await db.update(sales).set({ listingId: null }).where(eq(sales.listingId, id));
     await db.delete(listings).where(eq(listings.id, id));
   },
 
