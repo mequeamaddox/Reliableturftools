@@ -57,11 +57,17 @@ function extractDomain(): string | null {
 }
 
 export function getApiUrl(): string {
-  let host = process.env.EXPO_PUBLIC_DOMAIN;
+  const envDomain = process.env.EXPO_PUBLIC_DOMAIN;
 
-  if (host) {
-    host = host.replace(/:\d+$/, "");
-    return new URL(`https://${host}`).href;
+  if (envDomain) {
+    const hostname = envDomain.replace(/:\d+$/, "");
+    if (Platform.OS === "web" && typeof window !== "undefined" && window.location) {
+      const origin = window.location.origin;
+      if (origin.includes("replit.dev") || origin.includes("replit.app")) {
+        return `https://${envDomain}/`;
+      }
+    }
+    return `https://${hostname}/`;
   }
 
   if (Platform.OS === "web" && typeof window !== "undefined" && window.location) {
