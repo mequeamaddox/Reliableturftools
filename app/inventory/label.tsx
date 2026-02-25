@@ -161,7 +161,7 @@ export default function LabelScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.previewHint}>1" x 2" label preview</Text>
+        <Text style={styles.previewHint}>2.25" x 1.25" label preview</Text>
 
         <View style={styles.labelWrapper}>
           <LabelCard listing={listing} />
@@ -173,7 +173,7 @@ export default function LabelScreen() {
           </View>
         </View>
 
-        <Text style={styles.sizeNote}>Actual print size: 1" x 2"</Text>
+        <Text style={styles.sizeNote}>Actual print size: 2.25" x 1.25"</Text>
 
         {!listing.sku && (
           <View style={styles.warningCard}>
@@ -209,10 +209,10 @@ function generatePrintHtml(listing: any): string {
   return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Label - ${sku}</title>
 <style>
-  @page { size: 2in 1in; margin: 0; }
+  @page { size: 2.25in 1.25in; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Arial', 'Helvetica', sans-serif; background: #fff; }
-  .label { width: 2in; height: 1in; padding: 3px 5px; display: flex; flex-direction: column; justify-content: space-between; }
+  .label { width: 2.25in; height: 1.25in; padding: 4px 6px; display: flex; flex-direction: column; justify-content: space-between; }
   .biz { font-size: 6.5pt; font-weight: bold; text-align: center; letter-spacing: 1px; border-bottom: 1px solid #000; padding-bottom: 1px; margin-bottom: 1px; }
   .mid { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
   .sku { font-size: 7pt; font-weight: bold; }
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 8,
     padding: 2,
-    width: 240,
+    width: 270,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -362,8 +362,8 @@ const styles = StyleSheet.create({
     top: -9999,
   },
   captureLabel: {
-    width: 192,
-    height: 96,
+    width: 216,
+    height: 120,
   },
 });
 
@@ -374,7 +374,7 @@ const labelStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 3,
-    aspectRatio: 2 / 1,
+    aspectRatio: 2.25 / 1.25,
     justifyContent: "space-between",
   },
   businessName: {

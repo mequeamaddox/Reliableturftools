@@ -763,10 +763,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Label - ${sku}</title>
 <style>
-  @page { size: 2in 1in; margin: 0; }
+  @page { size: 2.25in 1.25in; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: Arial, Helvetica, sans-serif; background: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-  .label { width: 2in; height: 1in; padding: 3px 5px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #ccc; }
+  .label { width: 2.25in; height: 1.25in; padding: 4px 6px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #ccc; }
   .biz { font-size: 6.5pt; font-weight: bold; text-align: center; letter-spacing: 1px; border-bottom: 1px solid #000; padding-bottom: 1px; margin-bottom: 1px; }
   .mid { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
   .sku { font-size: 7pt; font-weight: bold; }

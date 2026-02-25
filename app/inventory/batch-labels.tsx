@@ -98,10 +98,10 @@ function generateBatchPrintHtml(listings: any[]): string {
   return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Batch Labels (${listings.length})</title>
 <style>
-  @page { size: 2in 1in; margin: 0; }
+  @page { size: 2.25in 1.25in; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Arial', 'Helvetica', sans-serif; background: #fff; }
-  .label { width: 2in; height: 1in; padding: 3px 5px; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; }
+  .label { width: 2.25in; height: 1.25in; padding: 4px 6px; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; }
   .biz { font-size: 6.5pt; font-weight: bold; text-align: center; letter-spacing: 1px; border-bottom: 1px solid #000; padding-bottom: 1px; margin-bottom: 1px; }
   .mid { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
   .sku { font-size: 7pt; font-weight: bold; }
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 8,
     padding: 2,
-    width: 240,
+    width: 270,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -440,7 +440,7 @@ const labelStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 3,
-    aspectRatio: 2 / 1,
+    aspectRatio: 2.25 / 1.25,
     justifyContent: "space-between",
   },
   businessName: {
