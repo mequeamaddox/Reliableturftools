@@ -7,14 +7,15 @@ import {
   StyleSheet,
   Platform,
   ActivityIndicator,
-  Linking,
+  Alert,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as Print from "expo-print";
 import Colors from "@/constants/colors";
-import { getApiUrl, apiRequest } from "@/lib/query-client";
+import { apiRequest } from "@/lib/query-client";
 
 function BarcodeVisual({ value, height = 28 }: { value: string; height?: number }) {
   const chars = value.split("");
@@ -163,7 +164,9 @@ export default function BatchLabelsScreen() {
       });
   }, [ids]);
 
-  function handlePrint() {
+  const [printing, setPrinting] = useState(false);
+
+  async function handlePrint() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (Platform.OS === "web") {
       const printWindow = window.open("", "_blank");
@@ -174,11 +177,15 @@ export default function BatchLabelsScreen() {
         setTimeout(() => printWindow.print(), 500);
       }
     } else {
-      const printWindow = window;
-      const html = generateBatchPrintHtml(listings);
-      const blob = new Blob([html], { type: "text/html" });
-      const url = URL.createObjectURL(blob);
-      Linking.openURL(url);
+      try {
+        setPrinting(true);
+        const html = generateBatchPrintHtml(listings);
+        await Print.printAsync({ html });
+      } catch (err) {
+        Alert.alert("Print Error", "Could not print the labels. Make sure your printer is connected.");
+      } finally {
+        setPrinting(false);
+      }
     }
   }
 
@@ -250,9 +257,13 @@ export default function BatchLabelsScreen() {
       </ScrollView>
 
       <View style={[styles.bottomBar, { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 16 }]}>
-        <Pressable style={styles.printBigBtn} onPress={handlePrint}>
-          <Ionicons name="print" size={24} color="#fff" />
-          <Text style={styles.printBigText}>Print All {listings.length} Labels</Text>
+        <Pressable style={[styles.printBigBtn, printing && { opacity: 0.6 }]} onPress={handlePrint} disabled={printing}>
+          {printing ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Ionicons name="print" size={24} color="#fff" />
+          )}
+          <Text style={styles.printBigText}>{printing ? "Printing..." : `Print All ${listings.length} Labels`}</Text>
         </Pressable>
       </View>
     </View>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Platform,
   ActivityIndicator,
-  Linking,
   Alert,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -15,8 +14,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as Print from "expo-print";
 import Colors from "@/constants/colors";
-import { getApiUrl } from "@/lib/query-client";
 
 function BarcodeVisual({ value, height = 28 }: { value: string; height?: number }) {
   const chars = value.split("");
@@ -75,6 +74,7 @@ export default function LabelScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const webTopInset = Platform.OS === "web" ? 67 : 0;
+  const [printing, setPrinting] = useState(false);
 
   const { data: listing, isLoading } = useQuery<any>({
     queryKey: [`/api/listings/${id}`],
@@ -92,17 +92,13 @@ export default function LabelScreen() {
       }
     } else {
       try {
-        const url = `${getApiUrl()}/api/listings/${id}/label-print`;
-        const canOpen = await Linking.canOpenURL(url);
-        if (canOpen) {
-          await Linking.openURL(url);
-        } else {
-          Alert.alert("Print", "Open this label in your browser to print it.", [
-            { text: "OK", style: "default" },
-          ]);
-        }
-      } catch {
-        Alert.alert("Print", "Could not open the print page. Try printing from a computer.");
+        setPrinting(true);
+        const html = generatePrintHtml(listing);
+        await Print.printAsync({ html });
+      } catch (err) {
+        Alert.alert("Print Error", "Could not print the label. Make sure your printer is connected.");
+      } finally {
+        setPrinting(false);
       }
     }
   }
@@ -152,9 +148,13 @@ export default function LabelScreen() {
           </View>
         )}
 
-        <Pressable style={styles.printBigBtn} onPress={handlePrint}>
-          <Ionicons name="print" size={24} color="#fff" />
-          <Text style={styles.printBigText}>Print Label</Text>
+        <Pressable style={[styles.printBigBtn, printing && { opacity: 0.6 }]} onPress={handlePrint} disabled={printing}>
+          {printing ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Ionicons name="print" size={24} color="#fff" />
+          )}
+          <Text style={styles.printBigText}>{printing ? "Printing..." : "Print Label"}</Text>
         </Pressable>
       </ScrollView>
     </View>
