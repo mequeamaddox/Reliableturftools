@@ -114,6 +114,7 @@ export default function LabelScreen() {
         format: "png",
         quality: 1,
         result: "tmpfile",
+        pixelRatio: 3,
       });
       const available = await Sharing.isAvailableAsync();
       if (available) {
@@ -163,7 +164,11 @@ export default function LabelScreen() {
         <Text style={styles.previewHint}>1" x 2" label preview</Text>
 
         <View style={styles.labelWrapper}>
-          <View ref={labelRef} collapsable={false}>
+          <LabelCard listing={listing} />
+        </View>
+
+        <View style={styles.captureArea} pointerEvents="none">
+          <View ref={labelRef} collapsable={false} style={styles.captureLabel}>
             <LabelCard listing={listing} />
           </View>
         </View>
@@ -350,6 +355,15 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: "center",
     maxWidth: 300,
+  },
+  captureArea: {
+    position: "absolute",
+    left: -9999,
+    top: -9999,
+  },
+  captureLabel: {
+    width: 192,
+    height: 96,
   },
 });
 
