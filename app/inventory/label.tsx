@@ -80,17 +80,30 @@ export default function LabelScreen() {
 
   const { data: listing, isLoading } = useQuery<any>({
     queryKey: [`/api/listings/${id}`],
+    enabled: !!id,
   });
 
   async function handleShare() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (Platform.OS === "web") {
-      const printWindow = window.open("", "_blank");
-      if (printWindow) {
-        printWindow.document.write(generatePrintHtml(listing));
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => printWindow.print(), 500);
+      const html = generatePrintHtml(listing);
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.right = "0";
+      iframe.style.bottom = "0";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "none";
+      document.body.appendChild(iframe);
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (doc) {
+        doc.open();
+        doc.write(html);
+        doc.close();
+        setTimeout(() => {
+          iframe.contentWindow?.print();
+          setTimeout(() => document.body.removeChild(iframe), 1000);
+        }, 500);
       }
       return;
     }
