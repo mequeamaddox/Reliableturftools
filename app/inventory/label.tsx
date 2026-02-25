@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
+import { captureRef } from "react-native-view-shot";
 import Colors from "@/constants/colors";
 
 function BarcodeVisual({ value, height = 28 }: { value: string; height?: number }) {
@@ -74,13 +75,14 @@ export default function LabelScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const webTopInset = Platform.OS === "web" ? 67 : 0;
-  const [printing, setPrinting] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const labelRef = useRef<View>(null);
 
   const { data: listing, isLoading } = useQuery<any>({
     queryKey: [`/api/listings/${id}`],
   });
 
-  async function handlePrint() {
+  async function handleShare() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (Platform.OS === "web") {
       const printWindow = window.open("", "_blank");
@@ -90,16 +92,30 @@ export default function LabelScreen() {
         printWindow.focus();
         setTimeout(() => printWindow.print(), 500);
       }
-    } else {
-      try {
-        setPrinting(true);
-        const html = generatePrintHtml(listing);
-        await Print.printAsync({ html });
-      } catch (err) {
-        Alert.alert("Print Error", "Could not print the label. Make sure your printer is connected.");
-      } finally {
-        setPrinting(false);
+      return;
+    }
+
+    try {
+      setSharing(true);
+      const uri = await captureRef(labelRef, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      });
+      const available = await Sharing.isAvailableAsync();
+      if (available) {
+        await Sharing.shareAsync(uri, {
+          mimeType: "image/png",
+          dialogTitle: "Send label to printer app",
+          UTI: "public.png",
+        });
+      } else {
+        Alert.alert("Sharing not available", "Sharing is not supported on this device.");
       }
+    } catch (err) {
+      Alert.alert("Error", "Could not share the label image. Please try again.");
+    } finally {
+      setSharing(false);
     }
   }
 
@@ -118,8 +134,8 @@ export default function LabelScreen() {
           <Ionicons name="close" size={28} color={Colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Label Preview</Text>
-        <Pressable onPress={handlePrint} hitSlop={12} style={styles.printBtn}>
-          <Ionicons name="print" size={20} color="#fff" />
+        <Pressable onPress={handleShare} hitSlop={12} style={styles.shareBtn}>
+          <Ionicons name="share-outline" size={20} color="#fff" />
         </Pressable>
       </View>
 
@@ -134,7 +150,9 @@ export default function LabelScreen() {
         <Text style={styles.previewHint}>1" x 2" label preview</Text>
 
         <View style={styles.labelWrapper}>
-          <LabelCard listing={listing} />
+          <View ref={labelRef} collapsable={false}>
+            <LabelCard listing={listing} />
+          </View>
         </View>
 
         <Text style={styles.sizeNote}>Actual print size: 1" x 2"</Text>
@@ -148,14 +166,18 @@ export default function LabelScreen() {
           </View>
         )}
 
-        <Pressable style={[styles.printBigBtn, printing && { opacity: 0.6 }]} onPress={handlePrint} disabled={printing}>
-          {printing ? (
+        <Pressable style={[styles.shareBigBtn, sharing && { opacity: 0.6 }]} onPress={handleShare} disabled={sharing}>
+          {sharing ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Ionicons name="print" size={24} color="#fff" />
+            <Ionicons name="share-outline" size={24} color="#fff" />
           )}
-          <Text style={styles.printBigText}>{printing ? "Printing..." : "Print Label"}</Text>
+          <Text style={styles.shareBigText}>{sharing ? "Preparing..." : "Share to Printer App"}</Text>
         </Pressable>
+
+        <Text style={styles.shareHint}>
+          Opens your share sheet — pick your SVANTTO app or save the label image
+        </Text>
       </ScrollView>
     </View>
   );
@@ -241,7 +263,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: Colors.text,
   },
-  printBtn: {
+  shareBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -291,7 +313,7 @@ const styles = StyleSheet.create({
     color: Colors.warning,
     flex: 1,
   },
-  printBigBtn: {
+  shareBigBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -303,10 +325,18 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 380,
   },
-  printBigText: {
+  shareBigText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 17,
     color: "#fff",
+  },
+  shareHint: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 10,
+    textAlign: "center",
+    maxWidth: 300,
   },
 });
 

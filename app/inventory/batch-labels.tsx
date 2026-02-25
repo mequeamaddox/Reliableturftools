@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
+import { captureRef } from "react-native-view-shot";
 import Colors from "@/constants/colors";
 import { apiRequest } from "@/lib/query-client";
 
@@ -147,6 +148,9 @@ export default function BatchLabelsScreen() {
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [sharing, setSharing] = useState(false);
+  const [sharingIndex, setSharingIndex] = useState(-1);
+  const labelRefs = useRef<(View | null)[]>([]);
 
   useEffect(() => {
     if (!ids) return;
@@ -164,7 +168,32 @@ export default function BatchLabelsScreen() {
       });
   }, [ids]);
 
-  const [printing, setPrinting] = useState(false);
+  async function handleShareSingle(index: number) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS === "web") return;
+    try {
+      setSharingIndex(index);
+      const ref = labelRefs.current[index];
+      if (!ref) return;
+      const uri = await captureRef(ref, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      });
+      const available = await Sharing.isAvailableAsync();
+      if (available) {
+        await Sharing.shareAsync(uri, {
+          mimeType: "image/png",
+          dialogTitle: "Send label to printer app",
+          UTI: "public.png",
+        });
+      }
+    } catch (err) {
+      Alert.alert("Error", "Could not share the label.");
+    } finally {
+      setSharingIndex(-1);
+    }
+  }
 
   async function handlePrint() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -177,15 +206,31 @@ export default function BatchLabelsScreen() {
         setTimeout(() => printWindow.print(), 500);
       }
     } else {
-      try {
-        setPrinting(true);
-        const html = generateBatchPrintHtml(listings);
-        await Print.printAsync({ html });
-      } catch (err) {
-        Alert.alert("Print Error", "Could not print the labels. Make sure your printer is connected.");
-      } finally {
-        setPrinting(false);
+      setSharing(true);
+      for (let i = 0; i < listings.length; i++) {
+        try {
+          setSharingIndex(i);
+          const ref = labelRefs.current[i];
+          if (!ref) continue;
+          const uri = await captureRef(ref, {
+            format: "png",
+            quality: 1,
+            result: "tmpfile",
+          });
+          const available = await Sharing.isAvailableAsync();
+          if (available) {
+            await Sharing.shareAsync(uri, {
+              mimeType: "image/png",
+              dialogTitle: `Label ${i + 1} of ${listings.length} — send to printer app`,
+              UTI: "public.png",
+            });
+          }
+        } catch (err) {
+          break;
+        }
       }
+      setSharing(false);
+      setSharingIndex(-1);
     }
   }
 
@@ -218,8 +263,8 @@ export default function BatchLabelsScreen() {
           <Ionicons name="close" size={28} color={Colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>{listings.length} Labels</Text>
-        <Pressable onPress={handlePrint} hitSlop={12} style={styles.printBtn}>
-          <Ionicons name="print" size={20} color="#fff" />
+        <Pressable onPress={handlePrint} hitSlop={12} style={styles.shareBtn}>
+          <Ionicons name="share-outline" size={20} color="#fff" />
         </Pressable>
       </View>
 
@@ -241,29 +286,37 @@ export default function BatchLabelsScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.previewHint}>1" x 2" label preview — {listings.length} total</Text>
+        <Text style={styles.previewHint}>Tap a label to share it individually</Text>
 
         {listings.map((listing, i) => (
-          <View key={listing.id || i} style={styles.labelRow}>
+          <Pressable key={listing.id || i} style={styles.labelRow} onPress={() => handleShareSingle(i)}>
             <View style={styles.labelIndex}>
-              <Text style={styles.labelIndexText}>{i + 1}</Text>
+              {sharingIndex === i ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.labelIndexText}>{i + 1}</Text>
+              )}
             </View>
             <View style={styles.labelWrapper}>
-              <LabelCard listing={listing} />
+              <View ref={(r) => { labelRefs.current[i] = r; }} collapsable={false}>
+                <LabelCard listing={listing} />
+              </View>
             </View>
             <Text style={styles.labelTitle} numberOfLines={1}>{listing.title}</Text>
-          </View>
+          </Pressable>
         ))}
       </ScrollView>
 
       <View style={[styles.bottomBar, { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 16 }]}>
-        <Pressable style={[styles.printBigBtn, printing && { opacity: 0.6 }]} onPress={handlePrint} disabled={printing}>
-          {printing ? (
+        <Pressable style={[styles.shareBigBtn, sharing && { opacity: 0.6 }]} onPress={handlePrint} disabled={sharing}>
+          {sharing ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Ionicons name="print" size={24} color="#fff" />
+            <Ionicons name="share-outline" size={24} color="#fff" />
           )}
-          <Text style={styles.printBigText}>{printing ? "Printing..." : `Print All ${listings.length} Labels`}</Text>
+          <Text style={styles.shareBigText}>
+            {sharing ? `Sharing ${sharingIndex + 1} of ${listings.length}...` : `Share All ${listings.length} Labels`}
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -287,7 +340,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: Colors.text,
   },
-  printBtn: {
+  shareBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -363,7 +416,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.cardBg,
   },
-  printBigBtn: {
+  shareBigBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -373,7 +426,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     width: "100%",
   },
-  printBigText: {
+  shareBigText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 17,
     color: "#fff",
