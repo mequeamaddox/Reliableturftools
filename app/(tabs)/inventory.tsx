@@ -10,6 +10,8 @@ import {
   RefreshControl,
   Platform,
   Alert,
+  Modal,
+  ScrollView,
 } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -132,6 +134,51 @@ function ListingCard({
   );
 }
 
+function PalletSummary({ listings }: { listings: any[] }) {
+  const totalValue = listings.reduce((sum, l) => sum + parseFloat(l.price || "0"), 0);
+  const totalCost = listings.reduce((sum, l) => sum + parseFloat(l.cost || "0"), 0);
+  const profit = totalValue - totalCost;
+  const available = listings.filter((l) => l.status === "AVAILABLE").length;
+  const sold = listings.filter((l) => l.status === "SOLD").length;
+
+  return (
+    <View style={styles.palletSummary}>
+      <View style={styles.palletSummaryRow}>
+        <View style={styles.palletStat}>
+          <Text style={styles.palletStatValue}>{listings.length}</Text>
+          <Text style={styles.palletStatLabel}>Items</Text>
+        </View>
+        <View style={styles.palletDivider} />
+        <View style={styles.palletStat}>
+          <Text style={styles.palletStatValue}>{available}</Text>
+          <Text style={styles.palletStatLabel}>Available</Text>
+        </View>
+        <View style={styles.palletDivider} />
+        <View style={styles.palletStat}>
+          <Text style={styles.palletStatValue}>{sold}</Text>
+          <Text style={styles.palletStatLabel}>Sold</Text>
+        </View>
+        <View style={styles.palletDivider} />
+        <View style={styles.palletStat}>
+          <Text style={[styles.palletStatValue, { color: Colors.primary }]}>${totalValue.toFixed(0)}</Text>
+          <Text style={styles.palletStatLabel}>Value</Text>
+        </View>
+        {totalCost > 0 && (
+          <>
+            <View style={styles.palletDivider} />
+            <View style={styles.palletStat}>
+              <Text style={[styles.palletStatValue, { color: profit >= 0 ? Colors.success : Colors.danger }]}>
+                ${profit.toFixed(0)}
+              </Text>
+              <Text style={styles.palletStatLabel}>Profit</Text>
+            </View>
+          </>
+        )}
+      </View>
+    </View>
+  );
+}
+
 export default function InventoryScreen() {
   const insets = useSafeAreaInsets();
   const tabBarHeight = Platform.OS === "web" ? 84 : 50 + insets.bottom;
@@ -141,11 +188,16 @@ export default function InventoryScreen() {
   const [listingType, setListingType] = useState<"ITEM" | "PART">("ITEM");
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [activePallet, setActivePallet] = useState<string | null>(null);
+  const [palletPickerVisible, setPalletPickerVisible] = useState(false);
+
+  const { data: pallets = [] } = useQuery<string[]>({ queryKey: ["/api/pallets"] });
 
   const queryParams = new URLSearchParams();
   if (activeFilter !== "ALL") queryParams.set("status", activeFilter);
   if (search) queryParams.set("search", search);
   queryParams.set("listingType", listingType);
+  if (activePallet) queryParams.set("pallet", activePallet);
   const queryString = queryParams.toString();
 
   const listingsUrl = "/api/listings" + (queryString ? `?${queryString}` : "");
@@ -213,6 +265,13 @@ export default function InventoryScreen() {
     router.push(`/inventory/batch-labels?ids=${ids}` as any);
   }
 
+  function selectPallet(p: string | null) {
+    setActivePallet(p);
+    setPalletPickerVisible(false);
+    setActiveFilter("ALL");
+    Haptics.selectionAsync();
+  }
+
   return (
     <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
       {selectMode ? (
@@ -277,20 +336,42 @@ export default function InventoryScreen() {
             </Pressable>
           </View>
 
+          {/* Filter row with pallet chip */}
           <View style={styles.filterRow}>
             {FILTERS.map((f) => (
               <Pressable
                 key={f}
-                style={[styles.filterChip, activeFilter === f && styles.filterChipActive]}
-                onPress={() => { setActiveFilter(f); Haptics.selectionAsync(); }}
+                style={[styles.filterChip, !activePallet && activeFilter === f && styles.filterChipActive]}
+                onPress={() => { setActiveFilter(f); setActivePallet(null); Haptics.selectionAsync(); }}
               >
-                <Text style={[styles.filterText, activeFilter === f && styles.filterTextActive]}>
+                <Text style={[styles.filterText, !activePallet && activeFilter === f && styles.filterTextActive]}>
                   {f === "ALL" ? "All" : f.charAt(0) + f.slice(1).toLowerCase()}
                 </Text>
               </Pressable>
             ))}
+            {pallets.length > 0 && (
+              <Pressable
+                style={[styles.filterChip, styles.palletChip, !!activePallet && styles.palletChipActive]}
+                onPress={() => { setPalletPickerVisible(true); Haptics.selectionAsync(); }}
+              >
+                <Ionicons name="layers-outline" size={13} color={activePallet ? "#fff" : Colors.primary} />
+                <Text style={[styles.filterText, styles.palletChipText, !!activePallet && styles.filterTextActive]}>
+                  {activePallet ? activePallet : "Pallet"}
+                </Text>
+                {activePallet && (
+                  <Pressable hitSlop={8} onPress={() => selectPallet(null)}>
+                    <Ionicons name="close-circle" size={14} color="rgba(255,255,255,0.8)" />
+                  </Pressable>
+                )}
+              </Pressable>
+            )}
           </View>
         </>
+      )}
+
+      {/* Pallet Summary */}
+      {activePallet && listings.length > 0 && !isLoading && (
+        <PalletSummary listings={listings} />
       )}
 
       {isLoading ? (
@@ -314,10 +395,14 @@ export default function InventoryScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="cube-outline" size={48} color={Colors.textMuted} />
-              <Text style={styles.emptyText}>No listings found</Text>
-              <Pressable style={styles.emptyBtn} onPress={() => router.push("/inventory/new" as any)}>
-                <Text style={styles.emptyBtnText}>Add your first item</Text>
-              </Pressable>
+              <Text style={styles.emptyText}>
+                {activePallet ? `No items in "${activePallet}"` : "No listings found"}
+              </Text>
+              {!activePallet && (
+                <Pressable style={styles.emptyBtn} onPress={() => router.push("/inventory/new" as any)}>
+                  <Text style={styles.emptyBtnText}>Add your first item</Text>
+                </Pressable>
+              )}
             </View>
           }
           scrollEnabled={true}
@@ -332,6 +417,35 @@ export default function InventoryScreen() {
           </Pressable>
         </View>
       )}
+
+      {/* Pallet Picker Modal */}
+      <Modal
+        visible={palletPickerVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPalletPickerVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setPalletPickerVisible(false)}>
+          <View style={[styles.modalSheet, { paddingBottom: insets.bottom + 16 }]}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Filter by Pallet</Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Pressable style={styles.palletOption} onPress={() => selectPallet(null)}>
+                <Ionicons name="list-outline" size={20} color={Colors.textSecondary} />
+                <Text style={styles.palletOptionText}>All Items</Text>
+                {!activePallet && <Ionicons name="checkmark" size={18} color={Colors.primary} />}
+              </Pressable>
+              {pallets.map((p) => (
+                <Pressable key={p} style={styles.palletOption} onPress={() => selectPallet(p)}>
+                  <Ionicons name="layers-outline" size={20} color={Colors.primary} />
+                  <Text style={styles.palletOptionText}>{p}</Text>
+                  {activePallet === p && <Ionicons name="checkmark" size={18} color={Colors.primary} />}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -423,6 +537,7 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
     paddingHorizontal: 16,
     marginBottom: 12,
@@ -443,6 +558,53 @@ const styles = StyleSheet.create({
   },
   filterTextActive: {
     color: "#fff",
+  },
+  palletChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    backgroundColor: Colors.cardBg,
+  },
+  palletChipActive: {
+    backgroundColor: Colors.primary,
+  },
+  palletChipText: {
+    color: Colors.primary,
+  },
+  palletSummary: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    backgroundColor: `${Colors.primary}12`,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: `${Colors.primary}25`,
+  },
+  palletSummaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+  },
+  palletStat: {
+    alignItems: "center",
+    gap: 2,
+  },
+  palletStatValue: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 18,
+    color: Colors.text,
+  },
+  palletStatLabel: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  palletDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: Colors.border,
   },
   card: {
     backgroundColor: Colors.cardBg,
@@ -540,6 +702,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     fontSize: 16,
     color: Colors.textMuted,
+    textAlign: "center",
   },
   emptyBtn: {
     backgroundColor: Colors.primary,
@@ -576,5 +739,46 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     fontSize: 17,
     color: "#fff",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 12,
+    paddingHorizontal: 16,
+    maxHeight: "60%",
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.border,
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 18,
+    color: Colors.text,
+    marginBottom: 16,
+  },
+  palletOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  palletOptionText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 15,
+    color: Colors.text,
+    flex: 1,
   },
 });

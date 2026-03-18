@@ -60,8 +60,8 @@ export const storage = {
     category?: string;
     search?: string;
     listingType?: string;
+    pallet?: string;
   }): Promise<Listing[]> {
-    let query = db.select().from(listings);
     const conditions: any[] = [];
 
     if (filters?.listingType) {
@@ -75,6 +75,9 @@ export const storage = {
     }
     if (filters?.category) {
       conditions.push(eq(listings.category, filters.category as any));
+    }
+    if (filters?.pallet) {
+      conditions.push(ilike(listings.palletName, filters.pallet));
     }
     if (filters?.search) {
       conditions.push(
@@ -95,6 +98,15 @@ export const storage = {
         .orderBy(desc(listings.createdAt));
     }
     return db.select().from(listings).orderBy(desc(listings.createdAt));
+  },
+
+  async getDistinctPallets(): Promise<string[]> {
+    const rows = await db
+      .selectDistinct({ palletName: listings.palletName })
+      .from(listings)
+      .where(sql`${listings.palletName} IS NOT NULL AND ${listings.palletName} != ''`)
+      .orderBy(desc(listings.createdAt));
+    return rows.map((r) => r.palletName as string).filter(Boolean);
   },
 
   async getListingById(id: string): Promise<Listing | undefined> {

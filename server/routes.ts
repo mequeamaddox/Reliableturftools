@@ -211,9 +211,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/listings", requireAuth, async (req: Request, res: Response) => {
     try {
-      const { status, powerType, category, search, listingType } = req.query;
+      const { status, powerType, category, search, listingType, pallet } = req.query;
       const list = await storage.getListings({
         status: status as string,
+        pallet: pallet as string,
         powerType: powerType as string,
         category: category as string,
         search: search as string,
@@ -222,6 +223,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json(list);
     } catch (err) {
       console.error("Listings error:", err);
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  app.get("/api/pallets", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const pallets = await storage.getDistinctPallets();
+      return res.json(pallets);
+    } catch (err) {
       return res.status(500).json({ error: "Server error" });
     }
   });
