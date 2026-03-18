@@ -53,9 +53,6 @@ export default function NewListingScreen() {
 
   // Pallet-level defaults (sticky in pallet mode)
   const [palletName, setPalletName] = useState("");
-  const [palletBrand, setPalletBrand] = useState("");
-  const [palletPowerType, setPalletPowerType] = useState("ELECTRIC_18V");
-  const [palletCategory, setPalletCategory] = useState("OTHER");
   const [palletAddedCount, setPalletAddedCount] = useState(0);
 
   // Item-level fields (reset between items in pallet mode)
@@ -101,7 +98,7 @@ export default function NewListingScreen() {
         setNotes("");
         setBarcode("");
         setQuantity("1");
-        setCondition("USED");
+        // brand, condition, powerType, category stay sticky
         setTimeout(() => titleRef.current?.focus(), 100);
       } else {
         router.back();
@@ -118,12 +115,12 @@ export default function NewListingScreen() {
         title: title.trim(),
         price,
         cost: cost || undefined,
-        brand: palletBrand || undefined,
+        brand: brand || undefined,
         barcode: barcode || undefined,
         quantity: parseInt(quantity) || 1,
         condition,
-        powerType: palletPowerType,
-        category: palletCategory,
+        powerType,
+        category,
         notes: notes || undefined,
         listingType,
         palletName: palletName.trim() || undefined,
@@ -230,7 +227,7 @@ export default function NewListingScreen() {
             <View style={styles.palletCard}>
               <View style={styles.palletCardHeader}>
                 <Ionicons name="lock-closed" size={14} color={Colors.primary} />
-                <Text style={styles.palletCardTitle}>Pallet Defaults — stays between items</Text>
+                <Text style={styles.palletCardTitle}>Pallet Name — locked for all items</Text>
               </View>
 
               <View style={styles.fieldGroup}>
@@ -244,20 +241,7 @@ export default function NewListingScreen() {
                 />
               </View>
 
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Brand</Text>
-                <TextInput
-                  style={styles.input}
-                  value={palletBrand}
-                  onChangeText={setPalletBrand}
-                  placeholder="e.g. Ryobi, Black+Decker, EGO"
-                  placeholderTextColor={Colors.textMuted}
-                />
               </View>
-
-              <ChipSelect options={POWER_TYPES} value={palletPowerType} onChange={setPalletPowerType} label="Power Type" />
-              <ChipSelect options={CATEGORIES} value={palletCategory} onChange={setPalletCategory} label="Category" />
-            </View>
 
             {/* Item Fields */}
             <View style={styles.itemSection}>
@@ -284,7 +268,20 @@ export default function NewListingScreen() {
                 />
               </View>
 
-              <ChipSelect options={CONDITIONS} value={condition} onChange={setCondition} label="Condition" />
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Brand <Text style={styles.stickyNote}>(sticky)</Text></Text>
+                <TextInput
+                  style={styles.input}
+                  value={brand}
+                  onChangeText={setBrand}
+                  placeholder="e.g. Ryobi, Black+Decker, Homelite"
+                  placeholderTextColor={Colors.textMuted}
+                />
+              </View>
+
+              <ChipSelect options={POWER_TYPES} value={powerType} onChange={setPowerType} label="Power Type (sticky)" />
+              <ChipSelect options={CATEGORIES} value={category} onChange={setCategory} label="Category (sticky)" />
+              <ChipSelect options={CONDITIONS} value={condition} onChange={setCondition} label="Condition (sticky)" />
 
               <View style={styles.row}>
                 <View style={[styles.fieldGroup, { flex: 1 }]}>
@@ -675,6 +672,12 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
+  },
+  stickyNote: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: Colors.textMuted,
+    textTransform: "none" as const,
   },
   itemSection: {
     marginBottom: 8,
