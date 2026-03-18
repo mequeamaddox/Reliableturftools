@@ -362,6 +362,35 @@ export default function ListingDetailScreen() {
                 <Ionicons name="pricetag" size={18} color="#fff" />
                 <Text style={styles.actionBtnText}>Label</Text>
               </Pressable>
+              <Pressable
+                style={[styles.actionBtn, { backgroundColor: "rgba(234, 88, 12, 0.9)" }]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  Alert.alert(
+                    "Part Out This Item?",
+                    "This item will be archived and you'll be taken to a part-entry screen to list its individual parts.",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Part Out",
+                        style: "destructive",
+                        onPress: () => {
+                          updateMutation.mutate({ status: "ARCHIVED", isPublished: false });
+                          const params = new URLSearchParams({
+                            partFromTitle: listing?.title || "",
+                            partFromBrand: listing?.brand || "",
+                            partFromPallet: listing?.palletName || "",
+                          });
+                          router.push(`/inventory/new?${params.toString()}` as any);
+                        },
+                      },
+                    ]
+                  );
+                }}
+              >
+                <Ionicons name="cut" size={18} color="#fff" />
+                <Text style={styles.actionBtnText}>Part Out</Text>
+              </Pressable>
             </View>
 
             <View style={styles.photoSection}>

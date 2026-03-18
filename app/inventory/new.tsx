@@ -45,22 +45,26 @@ function ChipSelect({ options, value, onChange, label }: { options: readonly str
 
 export default function NewListingScreen() {
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ barcode?: string }>();
+  const params = useLocalSearchParams<{ barcode?: string; partFromTitle?: string; partFromBrand?: string; partFromPallet?: string }>();
   const webTopInset = Platform.OS === "web" ? 67 : 0;
   const titleRef = useRef<TextInput>(null);
 
-  const [mode, setMode] = useState<"single" | "pallet">("single");
+  const isPartOut = !!params.partFromTitle;
+
+  const [mode, setMode] = useState<"single" | "pallet">(isPartOut ? "pallet" : "single");
 
   // Pallet-level defaults (sticky in pallet mode)
-  const [palletName, setPalletName] = useState("");
+  const [palletName, setPalletName] = useState(
+    isPartOut ? `Parts: ${params.partFromTitle}` : ""
+  );
   const [palletAddedCount, setPalletAddedCount] = useState(0);
 
   // Item-level fields (reset between items in pallet mode)
-  const [listingType, setListingType] = useState<"ITEM" | "PART">("ITEM");
+  const [listingType, setListingType] = useState<"ITEM" | "PART">(isPartOut ? "PART" : "ITEM");
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [cost, setCost] = useState("");
-  const [brand, setBrand] = useState("");
+  const [brand, setBrand] = useState(params.partFromBrand || "");
   const [barcode, setBarcode] = useState(params.barcode || "");
   const [quantity, setQuantity] = useState("1");
   const [condition, setCondition] = useState("USED");
@@ -149,7 +153,7 @@ export default function NewListingScreen() {
   function validate() {
     if (!title.trim()) { Alert.alert("Required", "Please enter a title"); return false; }
     if (!price.trim()) { Alert.alert("Required", "Please enter a price"); return false; }
-    if (mode === "pallet" && !palletName.trim()) { Alert.alert("Required", "Please enter a pallet name"); return false; }
+    if (mode === "pallet" && !isPartOut && !palletName.trim()) { Alert.alert("Required", "Please enter a pallet name"); return false; }
     return true;
   }
 
@@ -177,7 +181,11 @@ export default function NewListingScreen() {
           <Ionicons name="close" size={28} color={Colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>
-          {mode === "pallet" ? (palletAddedCount > 0 ? `${palletAddedCount} added` : "Pallet Intake") : "Quick Add"}
+          {isPartOut
+            ? (palletAddedCount > 0 ? `${palletAddedCount} parts added` : "Part Out")
+            : mode === "pallet"
+              ? (palletAddedCount > 0 ? `${palletAddedCount} added` : "Pallet Intake")
+              : "Quick Add"}
         </Text>
         {mode === "single" ? (
           <Pressable
@@ -196,23 +204,25 @@ export default function NewListingScreen() {
         )}
       </View>
 
-      {/* Mode Toggle */}
-      <View style={styles.modeToggleRow}>
-        <Pressable
-          style={[styles.modeBtn, mode === "single" && styles.modeBtnActive]}
-          onPress={() => switchMode("single")}
-        >
-          <Ionicons name="add-circle-outline" size={16} color={mode === "single" ? "#fff" : Colors.textSecondary} />
-          <Text style={[styles.modeBtnText, mode === "single" && styles.modeBtnTextActive]}>Single Item</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.modeBtn, mode === "pallet" && styles.modeBtnActive]}
-          onPress={() => switchMode("pallet")}
-        >
-          <Ionicons name="layers-outline" size={16} color={mode === "pallet" ? "#fff" : Colors.textSecondary} />
-          <Text style={[styles.modeBtnText, mode === "pallet" && styles.modeBtnTextActive]}>Pallet Intake</Text>
-        </Pressable>
-      </View>
+      {/* Mode Toggle — hidden in Part Out mode */}
+      {!isPartOut && (
+        <View style={styles.modeToggleRow}>
+          <Pressable
+            style={[styles.modeBtn, mode === "single" && styles.modeBtnActive]}
+            onPress={() => switchMode("single")}
+          >
+            <Ionicons name="add-circle-outline" size={16} color={mode === "single" ? "#fff" : Colors.textSecondary} />
+            <Text style={[styles.modeBtnText, mode === "single" && styles.modeBtnTextActive]}>Single Item</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.modeBtn, mode === "pallet" && styles.modeBtnActive]}
+            onPress={() => switchMode("pallet")}
+          >
+            <Ionicons name="layers-outline" size={16} color={mode === "pallet" ? "#fff" : Colors.textSecondary} />
+            <Text style={[styles.modeBtnText, mode === "pallet" && styles.modeBtnTextActive]}>Pallet Intake</Text>
+          </Pressable>
+        </View>
+      )}
 
       <ScrollView
         contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 120 : insets.bottom + 120, paddingHorizontal: 16 }}
@@ -224,24 +234,32 @@ export default function NewListingScreen() {
         {mode === "pallet" && (
           <>
             {/* Pallet Defaults Card */}
-            <View style={styles.palletCard}>
+            <View style={[styles.palletCard, isPartOut && styles.partOutCard]}>
               <View style={styles.palletCardHeader}>
-                <Ionicons name="lock-closed" size={14} color={Colors.primary} />
-                <Text style={styles.palletCardTitle}>Pallet Name — locked for all items</Text>
+                <Ionicons name={isPartOut ? "cut" : "lock-closed"} size={14} color={isPartOut ? Colors.warning : Colors.primary} />
+                <Text style={[styles.palletCardTitle, isPartOut && styles.partOutCardTitle]}>
+                  {isPartOut ? `Parts from: ${params.partFromTitle}` : "Pallet Name — locked for all items"}
+                </Text>
               </View>
 
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Pallet Name *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={palletName}
-                  onChangeText={setPalletName}
-                  placeholder="e.g. Ryobi Mar-18, HD Pallet #4"
-                  placeholderTextColor={Colors.textMuted}
-                />
-              </View>
-
-              </View>
+              {!isPartOut && (
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Pallet Name *</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={palletName}
+                    onChangeText={setPalletName}
+                    placeholder="e.g. Ryobi Mar-18, HD Pallet #4"
+                    placeholderTextColor={Colors.textMuted}
+                  />
+                </View>
+              )}
+              {isPartOut && (
+                <Text style={styles.partOutHint}>
+                  Each part will be tagged "Parts: {params.partFromTitle}" so you can find them together later.
+                </Text>
+              )}
+            </View>
 
             {/* Item Fields */}
             <View style={styles.itemSection}>
@@ -581,7 +599,7 @@ export default function NewListingScreen() {
             ) : (
               <>
                 <Ionicons name="checkmark-circle" size={22} color="#fff" />
-                <Text style={styles.nextBtnText}>Save & Next Item</Text>
+                <Text style={styles.nextBtnText}>{isPartOut ? "Save Part & Next" : "Save & Next Item"}</Text>
               </>
             )}
           </Pressable>
@@ -591,7 +609,9 @@ export default function NewListingScreen() {
             disabled={createMutation.isPending}
           >
             <Text style={styles.doneBtnText}>
-              {palletAddedCount > 0 ? `Done (${palletAddedCount + 1} total)` : "Save & Done"}
+              {isPartOut
+                ? (palletAddedCount > 0 ? `Done — ${palletAddedCount + 1} parts total` : "Save Last Part & Done")
+                : (palletAddedCount > 0 ? `Done (${palletAddedCount + 1} total)` : "Save & Done")}
             </Text>
           </Pressable>
         </View>
@@ -678,6 +698,20 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textMuted,
     textTransform: "none" as const,
+  },
+  partOutCard: {
+    backgroundColor: "rgba(234,88,12,0.08)",
+    borderColor: "rgba(234,88,12,0.3)",
+  },
+  partOutCardTitle: {
+    color: Colors.warning,
+  },
+  partOutHint: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: Colors.textMuted,
+    lineHeight: 18,
+    marginTop: 2,
   },
   itemSection: {
     marginBottom: 8,
