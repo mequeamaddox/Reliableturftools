@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import * as Sharing from "expo-sharing";
+import * as MediaLibrary from "expo-media-library";
 import { captureRef } from "react-native-view-shot";
 import Colors from "@/constants/colors";
 
@@ -83,7 +83,7 @@ export default function LabelScreen() {
     enabled: !!id,
   });
 
-  async function handleShare() {
+  async function handleSave() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (Platform.OS === "web") {
       const html = generatePrintHtml(listing);
@@ -110,24 +110,22 @@ export default function LabelScreen() {
 
     try {
       setSharing(true);
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission needed", "Allow photo library access to save the label image.");
+        return;
+      }
       const uri = await captureRef(labelRef, {
         format: "png",
         quality: 1,
         result: "tmpfile",
         pixelRatio: 3,
       });
-      const available = await Sharing.isAvailableAsync();
-      if (available) {
-        await Sharing.shareAsync(uri, {
-          mimeType: "image/png",
-          dialogTitle: "Send label to printer app",
-          UTI: "public.png",
-        });
-      } else {
-        Alert.alert("Sharing not available", "Sharing is not supported on this device.");
-      }
+      await MediaLibrary.saveToLibraryAsync(uri);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Saved!", "Label saved to your Photos. Open your printer app and print from there.");
     } catch (err) {
-      Alert.alert("Error", "Could not share the label image. Please try again.");
+      Alert.alert("Error", "Could not save the label image. Please try again.");
     } finally {
       setSharing(false);
     }
@@ -148,8 +146,8 @@ export default function LabelScreen() {
           <Ionicons name="close" size={28} color={Colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Label Preview</Text>
-        <Pressable onPress={handleShare} hitSlop={12} style={styles.shareBtn}>
-          <Ionicons name="share-outline" size={20} color="#fff" />
+        <Pressable onPress={handleSave} hitSlop={12} style={styles.shareBtn}>
+          <Ionicons name="download-outline" size={20} color="#fff" />
         </Pressable>
       </View>
 
@@ -184,17 +182,17 @@ export default function LabelScreen() {
           </View>
         )}
 
-        <Pressable style={[styles.shareBigBtn, sharing && { opacity: 0.6 }]} onPress={handleShare} disabled={sharing}>
+        <Pressable style={[styles.shareBigBtn, sharing && { opacity: 0.6 }]} onPress={handleSave} disabled={sharing}>
           {sharing ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Ionicons name="share-outline" size={24} color="#fff" />
+            <Ionicons name="download-outline" size={24} color="#fff" />
           )}
-          <Text style={styles.shareBigText}>{sharing ? "Preparing..." : "Share to Printer App"}</Text>
+          <Text style={styles.shareBigText}>{sharing ? "Saving..." : "Save to Photos"}</Text>
         </Pressable>
 
         <Text style={styles.shareHint}>
-          Opens your share sheet — pick your SVANTTO app or save the label image
+          Saves the label as a PNG — open your SVANTTO printer app and print from Photos
         </Text>
       </ScrollView>
     </View>

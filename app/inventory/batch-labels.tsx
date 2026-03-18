@@ -13,7 +13,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import * as Sharing from "expo-sharing";
+import * as MediaLibrary from "expo-media-library";
 import { captureRef } from "react-native-view-shot";
 import Colors from "@/constants/colors";
 import { apiRequest } from "@/lib/query-client";
@@ -168,34 +168,35 @@ export default function BatchLabelsScreen() {
       });
   }, [ids]);
 
-  async function handleShareSingle(index: number) {
+  async function handleSaveSingle(index: number) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (Platform.OS === "web") return;
     try {
       setSharingIndex(index);
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission needed", "Allow photo library access to save label images.");
+        return;
+      }
       const ref = labelRefs.current[index];
       if (!ref) return;
       const uri = await captureRef(ref, {
         format: "png",
         quality: 1,
         result: "tmpfile",
+        pixelRatio: 3,
       });
-      const available = await Sharing.isAvailableAsync();
-      if (available) {
-        await Sharing.shareAsync(uri, {
-          mimeType: "image/png",
-          dialogTitle: "Send label to printer app",
-          UTI: "public.png",
-        });
-      }
+      await MediaLibrary.saveToLibraryAsync(uri);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Saved!", "Label saved to your Photos.");
     } catch (err) {
-      Alert.alert("Error", "Could not share the label.");
+      Alert.alert("Error", "Could not save the label.");
     } finally {
       setSharingIndex(-1);
     }
   }
 
-  async function handlePrint() {
+  async function handleSaveAll() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (Platform.OS === "web") {
       const printWindow = window.open("", "_blank");
@@ -206,7 +207,13 @@ export default function BatchLabelsScreen() {
         setTimeout(() => printWindow.print(), 500);
       }
     } else {
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission needed", "Allow photo library access to save label images.");
+        return;
+      }
       setSharing(true);
+      let saved = 0;
       for (let i = 0; i < listings.length; i++) {
         try {
           setSharingIndex(i);
@@ -216,21 +223,18 @@ export default function BatchLabelsScreen() {
             format: "png",
             quality: 1,
             result: "tmpfile",
+            pixelRatio: 3,
           });
-          const available = await Sharing.isAvailableAsync();
-          if (available) {
-            await Sharing.shareAsync(uri, {
-              mimeType: "image/png",
-              dialogTitle: `Label ${i + 1} of ${listings.length} — send to printer app`,
-              UTI: "public.png",
-            });
-          }
+          await MediaLibrary.saveToLibraryAsync(uri);
+          saved++;
         } catch (err) {
-          break;
+          // continue with remaining labels
         }
       }
       setSharing(false);
       setSharingIndex(-1);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Saved!", `${saved} of ${listings.length} labels saved to your Photos. Open your SVANTTO app and print from there.`);
     }
   }
 
@@ -286,10 +290,10 @@ export default function BatchLabelsScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.previewHint}>Tap a label to share it individually</Text>
+        <Text style={styles.previewHint}>Tap a label to save it individually</Text>
 
         {listings.map((listing, i) => (
-          <Pressable key={listing.id || i} style={styles.labelRow} onPress={() => handleShareSingle(i)}>
+          <Pressable key={listing.id || i} style={styles.labelRow} onPress={() => handleSaveSingle(i)}>
             <View style={styles.labelIndex}>
               {sharingIndex === i ? (
                 <ActivityIndicator size="small" color="#fff" />
@@ -308,14 +312,14 @@ export default function BatchLabelsScreen() {
       </ScrollView>
 
       <View style={[styles.bottomBar, { paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 16 }]}>
-        <Pressable style={[styles.shareBigBtn, sharing && { opacity: 0.6 }]} onPress={handlePrint} disabled={sharing}>
+        <Pressable style={[styles.shareBigBtn, sharing && { opacity: 0.6 }]} onPress={handleSaveAll} disabled={sharing}>
           {sharing ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Ionicons name="share-outline" size={24} color="#fff" />
+            <Ionicons name="download-outline" size={24} color="#fff" />
           )}
           <Text style={styles.shareBigText}>
-            {sharing ? `Sharing ${sharingIndex + 1} of ${listings.length}...` : `Share All ${listings.length} Labels`}
+            {sharing ? `Saving ${sharingIndex + 1} of ${listings.length}...` : `Save All ${listings.length} Labels to Photos`}
           </Text>
         </Pressable>
       </View>
