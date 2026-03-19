@@ -236,6 +236,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/pallets/distribute-cost", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { palletName } = req.body;
+      if (!palletName) return res.status(400).json({ error: "palletName required" });
+      const updated = await storage.distributePalletCost(palletName);
+      return res.json({ updated, costPerItem: updated > 0 ? "distributed" : "no palletCost set" });
+    } catch (err) {
+      console.error("Distribute pallet cost error:", err);
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
   app.get("/api/listings/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const listing = await storage.getListingById(req.params.id);

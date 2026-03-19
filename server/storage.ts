@@ -109,6 +109,23 @@ export const storage = {
     return rows.map((r) => r.palletName as string).filter(Boolean);
   },
 
+  async distributePalletCost(palletName: string): Promise<number> {
+    const items = await db
+      .select()
+      .from(listings)
+      .where(sql`${listings.palletName} = ${palletName}`);
+    if (items.length === 0) return 0;
+    const palletCostStr = items.find((i) => i.palletCost != null)?.palletCost;
+    if (!palletCostStr) return 0;
+    const palletCost = parseFloat(palletCostStr);
+    const costPerItem = (palletCost / items.length).toFixed(2);
+    await db
+      .update(listings)
+      .set({ cost: costPerItem, updatedAt: new Date() })
+      .where(sql`${listings.palletName} = ${palletName}`);
+    return items.length;
+  },
+
   async getListingById(id: string): Promise<Listing | undefined> {
     const [listing] = await db
       .select()

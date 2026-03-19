@@ -738,6 +738,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginLeft: 4,
   },
+  palletCostHint: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginTop: 4,
+    marginLeft: 4,
+  },
   input: {
     backgroundColor: Colors.inputBg,
     borderRadius: 12,

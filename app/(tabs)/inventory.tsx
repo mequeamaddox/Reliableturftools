@@ -134,14 +134,16 @@ function ListingCard({
   );
 }
 
-function PalletSummary({ listings }: { listings: any[] }) {
+function PalletSummary({ listings, onDistributeCost, distributing }: { listings: any[]; onDistributeCost: () => void; distributing: boolean }) {
   const totalListedValue = listings.reduce((sum, l) => sum + parseFloat(l.price || "0"), 0);
   const soldRevenue = listings.filter((l) => l.status === "SOLD").reduce((sum, l) => sum + parseFloat(l.price || "0"), 0);
   const palletCostStr = listings.find((l) => l.palletCost != null)?.palletCost;
   const palletCost = palletCostStr ? parseFloat(palletCostStr) : null;
+  const costPerItem = palletCost != null && listings.length > 0 ? palletCost / listings.length : null;
   const profit = palletCost != null ? soldRevenue - palletCost : null;
   const available = listings.filter((l) => l.status === "AVAILABLE").length;
   const sold = listings.filter((l) => l.status === "SOLD").length;
+  const costAlreadySet = listings.every((l) => l.cost != null && l.cost !== "");
 
   return (
     <View style={styles.palletSummary}>
@@ -182,6 +184,26 @@ function PalletSummary({ listings }: { listings: any[] }) {
           </>
         )}
       </View>
+      {palletCost != null && (
+        <View style={styles.palletCostRow}>
+          <View style={styles.palletCostInfo}>
+            <Ionicons name="calculator-outline" size={14} color={Colors.textMuted} />
+            <Text style={styles.palletCostText}>
+              ${palletCost.toFixed(0)} ÷ {listings.length} items = <Text style={{ color: Colors.text, fontFamily: "Inter_600SemiBold" }}>${costPerItem!.toFixed(2)}/item</Text>
+            </Text>
+          </View>
+          <Pressable
+            style={[styles.distributeCostBtn, costAlreadySet && styles.distributeCostBtnSecondary]}
+            onPress={onDistributeCost}
+            disabled={distributing}
+          >
+            {distributing
+              ? <ActivityIndicator size="small" color="#fff" />
+              : <Text style={styles.distributeCostBtnText}>{costAlreadySet ? "Recalculate" : "Set Cost on Items"}</Text>
+            }
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }
@@ -199,6 +221,16 @@ export default function InventoryScreen() {
   const [palletPickerVisible, setPalletPickerVisible] = useState(false);
 
   const { data: pallets = [] } = useQuery<string[]>({ queryKey: ["/api/pallets"] });
+
+  const distributeCostMutation = useMutation({
+    mutationFn: (palletName: string) => apiRequest("POST", "/api/pallets/distribute-cost", { palletName }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith("/api/listings") });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Done", "Item cost has been set on all items in this pallet. You can still edit individual items.");
+    },
+    onError: () => Alert.alert("Error", "Could not distribute cost"),
+  });
 
   const queryParams = new URLSearchParams();
   if (activeFilter !== "ALL") queryParams.set("status", activeFilter);
@@ -376,7 +408,14 @@ export default function InventoryScreen() {
 
       {/* Pallet Summary */}
       {activePallet && listings.length > 0 && !isLoading && (
-        <PalletSummary listings={listings} />
+        <PalletSummary
+          listings={listings}
+          onDistributeCost={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            distributeCostMutation.mutate(activePallet);
+          }}
+          distributing={distributeCostMutation.isPending}
+        />
       )}
 
       {isLoading ? (
@@ -632,6 +671,44 @@ const styles = StyleSheet.create({
     width: 1,
     height: 30,
     backgroundColor: Colors.border,
+  },
+  palletCostRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    gap: 10,
+  },
+  palletCostInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flex: 1,
+  },
+  palletCostText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: Colors.textMuted,
+    flex: 1,
+  },
+  distributeCostBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    minWidth: 80,
+    alignItems: "center",
+  },
+  distributeCostBtnSecondary: {
+    backgroundColor: Colors.surface,
+  },
+  distributeCostBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+    color: "#fff",
   },
   card: {
     backgroundColor: Colors.cardBg,
