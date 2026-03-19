@@ -208,7 +208,7 @@ export default function BatchLabelsScreen() {
         format: "png",
         quality: 1,
         result: "tmpfile",
-        pixelRatio: 508 / 240, // outputs exactly 508×203px = 2.5"×1" at 203 DPI (SVANTTO native)
+        pixelRatio: 3,
       });
       await MediaLibrary.saveToLibraryAsync(uri);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -247,7 +247,7 @@ export default function BatchLabelsScreen() {
             format: "png",
             quality: 1,
             result: "tmpfile",
-            pixelRatio: 508 / 240, // outputs exactly 508×203px = 2.5"×1" at 203 DPI (SVANTTO native)
+            pixelRatio: 3,
           });
           await MediaLibrary.saveToLibraryAsync(uri);
           saved++;
