@@ -10,7 +10,9 @@ import {
   Platform,
   Alert,
   Image,
+  Modal,
 } from "react-native";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { File } from "expo-file-system";
 import { fetch } from "expo/fetch";
@@ -97,6 +99,9 @@ export default function ListingDetailScreen() {
   const [meetupSpot, setMeetupSpot] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [scannerVisible, setScannerVisible] = useState(false);
+  const [scannerScanned, setScannerScanned] = useState(false);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
   useEffect(() => {
     if (listing) {
@@ -469,7 +474,12 @@ export default function ListingDetailScreen() {
 
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Barcode</Text>
-              <TextInput style={styles.input} value={barcode} onChangeText={setBarcode} placeholder="Barcode" placeholderTextColor={Colors.textMuted} />
+              <View style={styles.barcodeRow}>
+                <TextInput style={[styles.input, { flex: 1 }]} value={barcode} onChangeText={setBarcode} placeholder="Scan or type barcode" placeholderTextColor={Colors.textMuted} />
+                <Pressable style={styles.scanBtn} onPress={() => { setScannerScanned(false); setScannerVisible(true); }}>
+                  <Ionicons name="barcode" size={22} color="#fff" />
+                </Pressable>
+              </View>
             </View>
 
             <View style={styles.fieldGroup}>
@@ -667,6 +677,53 @@ export default function ListingDetailScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* Barcode Scanner Modal */}
+      <Modal visible={scannerVisible} animationType="slide" onRequestClose={() => setScannerVisible(false)}>
+        {!cameraPermission?.granted ? (
+          <View style={scanStyles.permContainer}>
+            <Ionicons name="camera-outline" size={64} color={Colors.textMuted} />
+            <Text style={scanStyles.permTitle}>Camera Access Needed</Text>
+            <Text style={scanStyles.permDesc}>Allow camera access to scan barcodes.</Text>
+            <Pressable style={scanStyles.permBtn} onPress={requestCameraPermission}>
+              <Text style={scanStyles.permBtnText}>Allow Camera</Text>
+            </Pressable>
+            <Pressable style={[scanStyles.permBtn, { backgroundColor: Colors.surface, marginTop: 8 }]} onPress={() => setScannerVisible(false)}>
+              <Text style={[scanStyles.permBtnText, { color: Colors.text }]}>Cancel</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={{ flex: 1, backgroundColor: "#000" }}>
+            <CameraView
+              style={StyleSheet.absoluteFill}
+              facing="back"
+              barcodeScannerSettings={{ barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e", "code128", "code39", "code93", "itf14", "codabar", "qr"] }}
+              onBarcodeScanned={scannerScanned ? undefined : ({ data }) => {
+                setScannerScanned(true);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                setBarcode(data);
+                setScannerVisible(false);
+              }}
+            />
+            <View style={[scanStyles.camHeader, { paddingTop: insets.top + 8 }]}>
+              <Pressable onPress={() => setScannerVisible(false)} hitSlop={12}>
+                <Ionicons name="close" size={28} color="#fff" />
+              </Pressable>
+              <Text style={scanStyles.camTitle}>Scan Barcode</Text>
+              <View style={{ width: 28 }} />
+            </View>
+            <View style={scanStyles.camOverlay}>
+              <View style={scanStyles.scanFrame}>
+                <View style={[scanStyles.corner, scanStyles.topLeft]} />
+                <View style={[scanStyles.corner, scanStyles.topRight]} />
+                <View style={[scanStyles.corner, scanStyles.bottomLeft]} />
+                <View style={[scanStyles.corner, scanStyles.bottomRight]} />
+              </View>
+              <Text style={scanStyles.hint}>Point camera at a barcode</Text>
+            </View>
+          </View>
+        )}
+      </Modal>
     </View>
   );
 }
@@ -992,4 +1049,35 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     marginTop: 2,
   },
+  barcodeRow: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "center",
+  },
+  scanBtn: {
+    backgroundColor: Colors.info,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
+
+const scanStyles = StyleSheet.create({
+  permContainer: { flex: 1, backgroundColor: Colors.background, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, gap: 12 },
+  permTitle: { fontFamily: "Inter_700Bold", fontSize: 22, color: Colors.text, marginTop: 8 },
+  permDesc: { fontFamily: "Inter_400Regular", fontSize: 15, color: Colors.textSecondary, textAlign: "center" },
+  permBtn: { backgroundColor: Colors.primary, borderRadius: 14, paddingVertical: 16, paddingHorizontal: 32, marginTop: 8 },
+  permBtnText: { fontFamily: "Inter_700Bold", fontSize: 16, color: "#fff" },
+  camHeader: { position: "absolute", top: 0, left: 0, right: 0, flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingBottom: 12, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 10 },
+  camTitle: { fontFamily: "Inter_700Bold", fontSize: 18, color: "#fff" },
+  camOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
+  scanFrame: { width: 280, height: 170, position: "relative" },
+  corner: { position: "absolute", width: 24, height: 24, borderColor: "#fff", borderWidth: 3 },
+  topLeft: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0 },
+  topRight: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0 },
+  bottomLeft: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0 },
+  bottomRight: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0 },
+  hint: { color: "#fff", fontFamily: "Inter_400Regular", fontSize: 14, marginTop: 24, opacity: 0.8 },
 });
