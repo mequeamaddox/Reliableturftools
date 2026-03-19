@@ -159,7 +159,8 @@ export default function LabelScreen() {
         format: "png",
         quality: 1,
         result: "tmpfile",
-        pixelRatio: 3,
+        width: 720,
+        height: 288,
       });
       await MediaLibrary.saveToLibraryAsync(uri);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

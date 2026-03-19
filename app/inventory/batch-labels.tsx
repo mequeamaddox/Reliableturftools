@@ -208,7 +208,8 @@ export default function BatchLabelsScreen() {
         format: "png",
         quality: 1,
         result: "tmpfile",
-        pixelRatio: 3,
+        width: 720,
+        height: 288,
       });
       await MediaLibrary.saveToLibraryAsync(uri);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -247,7 +248,8 @@ export default function BatchLabelsScreen() {
             format: "png",
             quality: 1,
             result: "tmpfile",
-            pixelRatio: 3,
+            width: 720,
+            height: 288,
           });
           await MediaLibrary.saveToLibraryAsync(uri);
           saved++;
@@ -291,7 +293,7 @@ export default function BatchLabelsScreen() {
           <Ionicons name="close" size={28} color={Colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>{listings.length} Labels</Text>
-        <Pressable onPress={handlePrint} hitSlop={12} style={styles.shareBtn}>
+        <Pressable onPress={handleSaveAll} hitSlop={12} style={styles.shareBtn}>
           <Ionicons name="share-outline" size={20} color="#fff" />
         </Pressable>
       </View>
