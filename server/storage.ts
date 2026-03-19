@@ -109,6 +109,14 @@ export const storage = {
     return rows.map((r) => r.palletName as string).filter(Boolean);
   },
 
+  async setPalletCost(palletName: string, cost: string): Promise<number> {
+    const result = await db
+      .update(listings)
+      .set({ palletCost: cost, updatedAt: new Date() })
+      .where(sql`${listings.palletName} = ${palletName}`);
+    return (result as any).rowCount ?? 0;
+  },
+
   async distributePalletCost(palletName: string): Promise<number> {
     const items = await db
       .select()

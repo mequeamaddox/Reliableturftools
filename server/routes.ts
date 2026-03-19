@@ -236,6 +236,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/pallets/set-cost", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { palletName, cost } = req.body;
+      if (!palletName || !cost) return res.status(400).json({ error: "palletName and cost required" });
+      const updated = await storage.setPalletCost(palletName, cost);
+      return res.json({ updated });
+    } catch (err) {
+      console.error("Set pallet cost error:", err);
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
   app.post("/api/pallets/distribute-cost", requireAuth, async (req: Request, res: Response) => {
     try {
       const { palletName } = req.body;

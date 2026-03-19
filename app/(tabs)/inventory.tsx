@@ -134,7 +134,8 @@ function ListingCard({
   );
 }
 
-function PalletSummary({ listings, onDistributeCost, distributing }: { listings: any[]; onDistributeCost: () => void; distributing: boolean }) {
+function PalletSummary({ listings, onDistributeCost, distributing, onSetPalletCost, settingCost }: { listings: any[]; onDistributeCost: () => void; distributing: boolean; onSetPalletCost: (cost: string) => void; settingCost: boolean }) {
+  const [palletCostInput, setPalletCostInput] = React.useState("");
   const totalListedValue = listings.reduce((sum, l) => sum + parseFloat(l.price || "0"), 0);
   const soldRevenue = listings.filter((l) => l.status === "SOLD").reduce((sum, l) => sum + parseFloat(l.price || "0"), 0);
   const palletCostStr = listings.find((l) => l.palletCost != null)?.palletCost;
@@ -184,6 +185,28 @@ function PalletSummary({ listings, onDistributeCost, distributing }: { listings:
           </>
         )}
       </View>
+      {palletCost == null && (
+        <View style={styles.palletCostRow}>
+          <TextInput
+            style={styles.palletCostInput}
+            value={palletCostInput}
+            onChangeText={setPalletCostInput}
+            placeholder="What did this pallet cost? e.g. 600"
+            placeholderTextColor={Colors.textMuted}
+            keyboardType="decimal-pad"
+          />
+          <Pressable
+            style={[styles.distributeCostBtn, !palletCostInput && { opacity: 0.5 }]}
+            onPress={() => { if (palletCostInput) onSetPalletCost(palletCostInput); }}
+            disabled={!palletCostInput || settingCost}
+          >
+            {settingCost
+              ? <ActivityIndicator size="small" color="#fff" />
+              : <Text style={styles.distributeCostBtnText}>Save</Text>
+            }
+          </Pressable>
+        </View>
+      )}
       {palletCost != null && (
         <View style={styles.palletCostRow}>
           <View style={styles.palletCostInfo}>
@@ -221,6 +244,16 @@ export default function InventoryScreen() {
   const [palletPickerVisible, setPalletPickerVisible] = useState(false);
 
   const { data: pallets = [] } = useQuery<string[]>({ queryKey: ["/api/pallets"] });
+
+  const setPalletCostMutation = useMutation({
+    mutationFn: ({ palletName, cost }: { palletName: string; cost: string }) =>
+      apiRequest("POST", "/api/pallets/set-cost", { palletName, cost }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith("/api/listings") });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    onError: () => Alert.alert("Error", "Could not save pallet cost"),
+  });
 
   const distributeCostMutation = useMutation({
     mutationFn: (palletName: string) => apiRequest("POST", "/api/pallets/distribute-cost", { palletName }),
@@ -410,6 +443,11 @@ export default function InventoryScreen() {
       {activePallet && listings.length > 0 && !isLoading && (
         <PalletSummary
           listings={listings}
+          onSetPalletCost={(cost) => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            setPalletCostMutation.mutate({ palletName: activePallet, cost });
+          }}
+          settingCost={setPalletCostMutation.isPending}
           onDistributeCost={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             distributeCostMutation.mutate(activePallet);
@@ -709,6 +747,18 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 13,
     color: "#fff",
+  },
+  palletCostInput: {
+    flex: 1,
+    backgroundColor: Colors.inputBg,
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    color: Colors.text,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   card: {
     backgroundColor: Colors.cardBg,
