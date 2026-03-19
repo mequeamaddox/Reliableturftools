@@ -91,38 +91,38 @@ export default function DashboardScreen() {
 
         <Text style={styles.sectionTitle}>Today</Text>
         <View style={styles.todayRow}>
-          <View style={styles.todayCard}>
+          <Pressable style={styles.todayCard} onPress={() => quickAction("/(tabs)/sales")}>
             <View style={[styles.todayIcon, { backgroundColor: "rgba(34,197,94,0.15)" }]}>
               <Ionicons name="cash-outline" size={20} color={Colors.success} />
             </View>
             <Text style={styles.todayValue}>{formatMoney(stats?.revenueToday)}</Text>
             <Text style={styles.todayLabel}>Revenue</Text>
-          </View>
-          <View style={styles.todayCard}>
+          </Pressable>
+          <Pressable style={styles.todayCard} onPress={() => quickAction("/(tabs)/sales")}>
             <View style={[styles.todayIcon, { backgroundColor: "rgba(59,130,246,0.15)" }]}>
               <Ionicons name="cart-outline" size={20} color={Colors.info} />
             </View>
             <Text style={styles.todayValue}>{stats?.salesTodayCount || 0}</Text>
             <Text style={styles.todayLabel}>Sales</Text>
-          </View>
-          <View style={styles.todayCard}>
+          </Pressable>
+          <Pressable style={styles.todayCard} onPress={() => quickAction("/(tabs)/inventory")}>
             <View style={[styles.todayIcon, { backgroundColor: "rgba(168,85,247,0.15)" }]}>
               <Ionicons name="cube-outline" size={20} color="#a855f7" />
             </View>
             <Text style={styles.todayValue}>{stats?.itemsListedToday || 0}</Text>
             <Text style={styles.todayLabel}>Listed</Text>
-          </View>
-          <View style={styles.todayCard}>
+          </Pressable>
+          <Pressable style={styles.todayCard} onPress={() => quickAction("/(tabs)/more")}>
             <View style={[styles.todayIcon, { backgroundColor: "rgba(245,158,11,0.15)" }]}>
               <Ionicons name="chatbubble-outline" size={20} color={Colors.warning} />
             </View>
             <Text style={styles.todayValue}>{stats?.inquiriesToday || 0}</Text>
             <Text style={styles.todayLabel}>Inquiries</Text>
-          </View>
+          </Pressable>
         </View>
 
         <Text style={styles.sectionTitle}>This Week</Text>
-        <View style={styles.weekCard}>
+        <Pressable style={styles.weekCard} onPress={() => quickAction("/(tabs)/sales")}>
           <View style={styles.weekTopRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.weekRevenue}>{formatMoney(stats?.revenueThisWeek)}</Text>
@@ -151,7 +151,7 @@ export default function DashboardScreen() {
           {stats?.avgSalePrice7d > 0 && (
             <Text style={styles.avgPrice}>Avg sale: {formatMoney(stats.avgSalePrice7d)}</Text>
           )}
-        </View>
+        </Pressable>
 
         <Text style={styles.sectionTitle}>Last 7 Days</Text>
         <View style={styles.chartCard}>
@@ -186,20 +186,20 @@ export default function DashboardScreen() {
 
         <Text style={styles.sectionTitle}>Revenue</Text>
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
+          <Pressable style={styles.statCard} onPress={() => quickAction("/(tabs)/sales")}>
             <Text style={styles.statLabel}>7 Days</Text>
             <Text style={styles.statValue}>{formatMoney(stats?.revenue7d)}</Text>
             <Text style={[styles.statProfit, { color: Colors.success }]}>
               Profit: {formatMoney(stats?.profit7d)}
             </Text>
-          </View>
-          <View style={styles.statCard}>
+          </Pressable>
+          <Pressable style={styles.statCard} onPress={() => quickAction("/(tabs)/sales")}>
             <Text style={styles.statLabel}>30 Days</Text>
             <Text style={styles.statValue}>{formatMoney(stats?.revenue30d)}</Text>
             <Text style={[styles.statProfit, { color: Colors.success }]}>
               Profit: {formatMoney(stats?.profit30d)}
             </Text>
-          </View>
+          </Pressable>
         </View>
 
         {(stats?.topCategories?.length || 0) > 0 && (
@@ -210,7 +210,7 @@ export default function DashboardScreen() {
                 const maxCount = stats.topCategories[0]?.count || 1;
                 const barWidth = Math.max((cat.count / maxCount) * 100, 8);
                 return (
-                  <View key={cat.name} style={styles.categoryRow}>
+                  <Pressable key={cat.name} style={styles.categoryRow} onPress={() => quickAction("/(tabs)/inventory")}>
                     <Text style={styles.categoryRank}>{i + 1}</Text>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.categoryName}>{cat.name}</Text>
@@ -219,7 +219,7 @@ export default function DashboardScreen() {
                       </View>
                     </View>
                     <Text style={styles.categoryCount}>{cat.count}</Text>
-                  </View>
+                  </Pressable>
                 );
               })}
             </View>
@@ -228,22 +228,22 @@ export default function DashboardScreen() {
 
         <Text style={styles.sectionTitle}>Inventory</Text>
         <View style={styles.inventoryGrid}>
-          <View style={[styles.invCard, { borderLeftColor: Colors.available }]}>
+          <Pressable style={[styles.invCard, { borderLeftColor: Colors.available }]} onPress={() => quickAction("/(tabs)/inventory?filter=AVAILABLE")}>
             <Text style={styles.invCount}>{stats?.totalAvailable || 0}</Text>
             <Text style={styles.invLabel}>Available</Text>
-          </View>
-          <View style={[styles.invCard, { borderLeftColor: Colors.pending }]}>
+          </Pressable>
+          <Pressable style={[styles.invCard, { borderLeftColor: Colors.pending }]} onPress={() => quickAction("/(tabs)/inventory?filter=PENDING")}>
             <Text style={styles.invCount}>{stats?.totalPending || 0}</Text>
             <Text style={styles.invLabel}>Pending</Text>
-          </View>
-          <View style={[styles.invCard, { borderLeftColor: Colors.sold }]}>
+          </Pressable>
+          <Pressable style={[styles.invCard, { borderLeftColor: Colors.sold }]} onPress={() => quickAction("/(tabs)/inventory?filter=SOLD")}>
             <Text style={styles.invCount}>{stats?.totalSold || 0}</Text>
             <Text style={styles.invLabel}>Sold</Text>
-          </View>
-          <View style={[styles.invCard, { borderLeftColor: Colors.archived }]}>
+          </Pressable>
+          <Pressable style={[styles.invCard, { borderLeftColor: Colors.archived }]} onPress={() => quickAction("/(tabs)/inventory?filter=ARCHIVED")}>
             <Text style={styles.invCount}>{stats?.totalArchived || 0}</Text>
             <Text style={styles.invLabel}>Archived</Text>
-          </View>
+          </Pressable>
         </View>
 
         <Text style={styles.sectionTitle}>Alerts</Text>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
   Modal,
   ScrollView,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
@@ -241,6 +241,16 @@ export default function InventoryScreen() {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activePallet, setActivePallet] = useState<string | null>(null);
+  const params = useLocalSearchParams<{ filter?: string }>();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (params.filter) {
+        setActiveFilter(params.filter.toUpperCase());
+        setActivePallet(null);
+      }
+    }, [params.filter])
+  );
   const [palletPickerVisible, setPalletPickerVisible] = useState(false);
 
   const { data: pallets = [] } = useQuery<string[]>({ queryKey: ["/api/pallets"] });
