@@ -635,6 +635,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/inquiries/:id/convert-to-buyer", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const allInq = await storage.getInquiries();
+      const inq = allInq.find((i) => i.id === req.params.id);
+      if (!inq) return res.status(404).json({ error: "Inquiry not found" });
+      const allBuyers = await storage.getBuyers();
+      const existing = allBuyers.find((b) => b.phone === inq.phone);
+      if (existing) {
+        await storage.markInquiryRead(req.params.id);
+        return res.json({ buyer: existing, created: false });
+      }
+      const buyer = await storage.createBuyer({ name: inq.name, phone: inq.phone, notes: `Converted from storefront inquiry` });
+      await storage.markInquiryRead(req.params.id);
+      return res.status(201).json({ buyer, created: true });
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
   app.get("/api/meetup-spots", requireAuth, async (_req: Request, res: Response) => {
     try {
       const list = await storage.getMeetupSpots();

@@ -306,8 +306,24 @@ export const storage = {
     await db.delete(followUps).where(eq(followUps.id, id));
   },
 
-  async getInquiries(): Promise<Inquiry[]> {
-    return db.select().from(inquiries).orderBy(desc(inquiries.createdAt));
+  async getInquiries() {
+    const rows = await db
+      .select({
+        id: inquiries.id,
+        listingId: inquiries.listingId,
+        name: inquiries.name,
+        phone: inquiries.phone,
+        message: inquiries.message,
+        isRead: inquiries.isRead,
+        isArchived: inquiries.isArchived,
+        createdAt: inquiries.createdAt,
+        listingTitle: listings.title,
+        listingSku: listings.sku,
+      })
+      .from(inquiries)
+      .leftJoin(listings, eq(inquiries.listingId, listings.id))
+      .orderBy(desc(inquiries.createdAt));
+    return rows;
   },
 
   async createInquiry(data: InsertInquiry): Promise<Inquiry> {

@@ -74,8 +74,10 @@ All API routes are prefixed with `/api/`:
 - `GET/POST /api/buyers`, `GET/PUT/DELETE /api/buyers/:id` — Buyer CRUD
 - `GET/POST /api/sales` — Sales management
 - `GET/POST /api/followups`, `PUT/DELETE /api/followups/:id` — Follow-up management
+- `GET/POST /api/inquiries`, `PUT /api/inquiries/:id/read|unread|archive|unarchive`, `DELETE /api/inquiries/:id` — Inquiry management (GET returns listing title/SKU via left join)
+- `POST /api/inquiries/:id/convert-to-buyer` — Convert storefront inquiry into a buyer record (finds or creates)
 - `GET/POST /api/meetup-spots`, `PUT/DELETE /api/meetup-spots/:id` — Meetup location management
-- `GET/POST /api/message-templates`, `PUT/DELETE /api/message-templates/:id` — Template management
+- `GET/POST /api/message-templates`, `PUT/DELETE /api/message-templates/:id` — Template management (6 defaults auto-seeded on server start if missing by name)
 - `GET /api/dashboard` — Dashboard statistics
 - `GET/PUT /api/inventory-options` — Custom condition/powerType/category/paymentTypes/leadSources options (GET is public, PUT requires auth)
 - `POST /api/generate-sku` — Auto-generate SKU in RTT-[CAT]-XXXX format

@@ -288,6 +288,48 @@ export default function MoreScreen() {
     ]);
   }
 
+  function relativeTime(dateStr: string): string {
+    const now = new Date();
+    const d = new Date(dateStr);
+    const diffMs = now.getTime() - d.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHrs = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    if (diffMins < 2) return "just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHrs < 24) return `${diffHrs}h ago`;
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  }
+
+  const convertToBuyerMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("POST", `/api/inquiries/${id}/convert-to-buyer`);
+      return res.json();
+    },
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/inquiries"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/buyers"] });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert(
+        res.created ? "Buyer Created!" : "Buyer Already Exists",
+        res.created
+          ? `${res.buyer.name} has been added to your buyers list.`
+          : `${res.buyer.name} is already in your buyers list.`,
+        [
+          { text: "View Buyer", onPress: () => router.push(`/buyers/${res.buyer.id}` as any) },
+          {
+            text: "Create Follow-Up",
+            onPress: () =>
+              router.push(`/followups/new?buyerId=${res.buyer.id}` as any),
+          },
+          { text: "OK", style: "cancel" },
+        ]
+      );
+    },
+  });
+
   function fillPlaceholders(text: string, buyerName?: string) {
     let filled = text;
     filled = filled.replace(/\{buyer_name\}/gi, buyerName || "there");
@@ -323,7 +365,27 @@ export default function MoreScreen() {
     ]);
   }
 
-  const filteredFollowUps = allFollowUps.filter((fu: any) => {
+  function sortFollowUps(list: any[]): any[] {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today.getTime() + 86400000);
+    return [...list].sort((a, b) => {
+      const aOverdue = a.dueDate && new Date(a.dueDate) < now && !a.isCompleted;
+      const bOverdue = b.dueDate && new Date(b.dueDate) < now && !b.isCompleted;
+      const aToday = a.dueDate && new Date(a.dueDate) >= today && new Date(a.dueDate) < tomorrow;
+      const bToday = b.dueDate && new Date(b.dueDate) >= today && new Date(b.dueDate) < tomorrow;
+      if (aOverdue && !bOverdue) return -1;
+      if (!aOverdue && bOverdue) return 1;
+      if (aToday && !bToday) return -1;
+      if (!aToday && bToday) return 1;
+      if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      if (a.dueDate && !b.dueDate) return -1;
+      if (!a.dueDate && b.dueDate) return 1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }
+
+  const filteredFollowUps = sortFollowUps(allFollowUps.filter((fu: any) => {
     if (fuFilter === "pending") return !fu.isCompleted;
     if (fuFilter === "completed") return fu.isCompleted;
     if (fuFilter === "overdue")
@@ -331,7 +393,7 @@ export default function MoreScreen() {
         !fu.isCompleted && fu.dueDate && new Date(fu.dueDate) < new Date()
       );
     return true;
-  });
+  }));
 
   const pendingCount = allFollowUps.filter(
     (f: any) => !f.isCompleted
@@ -527,50 +589,66 @@ export default function MoreScreen() {
                   )}
                 </View>
               ) : (
-                filteredFollowUps.map((fu: any) => {
-                  const buyer = buyers.find(
-                    (b: any) => b.id === fu.buyerId
-                  );
-                  return (
-                    <SwipeableRow
-                      key={fu.id}
-                      leftAction={fu.isCompleted ? {
-                        icon: "arrow-undo",
-                        color: Colors.info,
-                        label: "Undo",
-                        onPress: () => uncompleteMutation.mutate(fu.id),
-                      } : {
-                        icon: "checkmark-circle",
-                        color: Colors.success,
-                        label: "Done",
-                        onPress: () => completeMutation.mutate(fu.id),
-                      }}
-                      rightAction={{
-                        icon: "trash",
-                        color: Colors.danger,
-                        label: "Delete",
-                        onPress: () => confirmDeleteFu(fu.id),
-                      }}
-                    >
-                      <FollowUpCard
-                        fu={fu}
-                        buyer={buyer}
-                        onComplete={() => completeMutation.mutate(fu.id)}
-                        onUncomplete={() =>
-                          uncompleteMutation.mutate(fu.id)
-                        }
-                        onEdit={() =>
-                          router.push(
-                            `/followups/new?editId=${fu.id}` as any
-                          )
-                        }
-                        onDelete={() => confirmDeleteFu(fu.id)}
-                        onCopy={() => copyMessage(fu.message, buyer?.name)}
-                        onSendText={() => sendTextMessage(fu.message, buyer?.phone, buyer?.name)}
-                      />
-                    </SwipeableRow>
-                  );
-                })
+                (() => {
+                  const now = new Date();
+                  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                  const tomorrow = new Date(today.getTime() + 86400000);
+                  let lastSection = "";
+                  return filteredFollowUps.map((fu: any) => {
+                    const buyer = buyers.find((b: any) => b.id === fu.buyerId);
+                    let section = "";
+                    if (!fu.isCompleted) {
+                      if (fu.dueDate && new Date(fu.dueDate) < now) section = "overdue";
+                      else if (fu.dueDate && new Date(fu.dueDate) >= today && new Date(fu.dueDate) < tomorrow) section = "today";
+                      else if (fu.dueDate) section = "upcoming";
+                    }
+                    const showHeader = section && section !== lastSection;
+                    lastSection = section || lastSection;
+                    return (
+                      <React.Fragment key={fu.id}>
+                        {showHeader && section === "overdue" && (
+                          <Text style={[styles.fuSectionHeader, styles.fuSectionHeaderDanger]}>⚠ Overdue</Text>
+                        )}
+                        {showHeader && section === "today" && (
+                          <Text style={[styles.fuSectionHeader, styles.fuSectionHeaderWarning]}>Due Today</Text>
+                        )}
+                        {showHeader && section === "upcoming" && (
+                          <Text style={styles.fuSectionHeader}>Upcoming</Text>
+                        )}
+                        <SwipeableRow
+                          leftAction={fu.isCompleted ? {
+                            icon: "arrow-undo",
+                            color: Colors.info,
+                            label: "Undo",
+                            onPress: () => uncompleteMutation.mutate(fu.id),
+                          } : {
+                            icon: "checkmark-circle",
+                            color: Colors.success,
+                            label: "Done",
+                            onPress: () => completeMutation.mutate(fu.id),
+                          }}
+                          rightAction={{
+                            icon: "trash",
+                            color: Colors.danger,
+                            label: "Delete",
+                            onPress: () => confirmDeleteFu(fu.id),
+                          }}
+                        >
+                          <FollowUpCard
+                            fu={fu}
+                            buyer={buyer}
+                            onComplete={() => completeMutation.mutate(fu.id)}
+                            onUncomplete={() => uncompleteMutation.mutate(fu.id)}
+                            onEdit={() => router.push(`/followups/new?editId=${fu.id}` as any)}
+                            onDelete={() => confirmDeleteFu(fu.id)}
+                            onCopy={() => copyMessage(fu.message, buyer?.name)}
+                            onSendText={() => sendTextMessage(fu.message, buyer?.phone, buyer?.name)}
+                          />
+                        </SwipeableRow>
+                      </React.Fragment>
+                    );
+                  });
+                })()
               )}
             </>
           )}
@@ -612,109 +690,129 @@ export default function MoreScreen() {
                   );
                 }
                 return filtered.map((inq: any) => (
-                  <View
+                  <SwipeableRow
                     key={inq.id}
-                    style={[
-                      styles.inqCard,
-                      inq.isRead && styles.inqRead,
-                      inq.isArchived && styles.inqArchived,
-                    ]}
+                    leftAction={inq.isArchived ? {
+                      icon: "arrow-undo",
+                      color: Colors.info,
+                      label: "Restore",
+                      onPress: () => unarchiveInquiryMutation.mutate(inq.id),
+                    } : {
+                      icon: "archive",
+                      color: Colors.textMuted,
+                      label: "Archive",
+                      onPress: () => archiveInquiryMutation.mutate(inq.id),
+                    }}
+                    rightAction={{
+                      icon: "trash",
+                      color: Colors.danger,
+                      label: "Delete",
+                      onPress: () => confirmDeleteInquiry(inq.id),
+                    }}
                   >
-                    <View style={styles.inqHeader}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.inqName}>
-                          {!inq.isRead && !inq.isArchived && <View style={styles.unreadDot} />}
-                          {inq.name}
-                        </Text>
-                        <Text style={styles.inqPhone}>{inq.phone}</Text>
-                      </View>
-                      <View style={styles.inqHeaderActions}>
-                        {!inq.isArchived && (
-                          <Pressable
-                            onPress={() => {
-                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                              if (inq.isRead) {
-                                unreadInquiryMutation.mutate(inq.id);
-                              } else {
-                                readInquiryMutation.mutate(inq.id);
-                              }
-                            }}
-                            style={[styles.markReadBtn, inq.isRead && styles.markUnreadBtn]}
-                          >
-                            <Ionicons
-                              name={inq.isRead ? "mail-unread-outline" : "checkmark-circle-outline"}
-                              size={14}
-                              color={inq.isRead ? Colors.warning : Colors.primary}
-                            />
+                    <View
+                      style={[
+                        styles.inqCard,
+                        inq.isRead && styles.inqRead,
+                        inq.isArchived && styles.inqArchived,
+                      ]}
+                    >
+                      <View style={styles.inqHeader}>
+                        <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 6 }}>
+                          {!inq.isRead && !inq.isArchived && (
+                            <View style={styles.unreadDot} />
+                          )}
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.inqName, !inq.isRead && !inq.isArchived && { fontFamily: "Inter_700Bold" }]}>
+                              {inq.name}
+                            </Text>
+                            <Text style={styles.inqPhone}>{inq.phone}</Text>
+                          </View>
+                        </View>
+                        <View style={styles.inqHeaderActions}>
+                          {!inq.isArchived && (
+                            <Pressable
+                              onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                inq.isRead ? unreadInquiryMutation.mutate(inq.id) : readInquiryMutation.mutate(inq.id);
+                              }}
+                              style={[styles.markReadBtn, inq.isRead && styles.markUnreadBtn]}
+                            >
+                              <Ionicons
+                                name={inq.isRead ? "mail-unread-outline" : "checkmark-circle-outline"}
+                                size={14}
+                                color={inq.isRead ? Colors.warning : Colors.primary}
+                              />
+                            </Pressable>
+                          )}
+                          <Pressable onPress={() => confirmDeleteInquiry(inq.id)} hitSlop={8}>
+                            <Ionicons name="trash" size={18} color={Colors.danger} />
                           </Pressable>
-                        )}
-                        <Pressable
-                          onPress={() => {
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            if (inq.isArchived) {
-                              unarchiveInquiryMutation.mutate(inq.id);
-                            } else {
-                              archiveInquiryMutation.mutate(inq.id);
-                            }
-                          }}
-                          hitSlop={8}
-                        >
-                          <Ionicons
-                            name={inq.isArchived ? "arrow-undo" : "archive"}
-                            size={18}
-                            color={inq.isArchived ? Colors.info : Colors.textMuted}
-                          />
-                        </Pressable>
-                        <Pressable
-                          onPress={() => confirmDeleteInquiry(inq.id)}
-                          hitSlop={8}
-                        >
-                          <Ionicons name="trash" size={18} color={Colors.danger} />
-                        </Pressable>
+                        </View>
                       </View>
-                    </View>
-                    {inq.message && (
-                      <Text style={styles.inqMessage}>{inq.message}</Text>
-                    )}
-                    <View style={styles.inqFooter}>
-                      <Text style={styles.inqDate}>
-                        {new Date(inq.createdAt).toLocaleDateString()}
-                      </Text>
-                      <View style={styles.inqActions}>
-                        {inq.phone && !inq.isArchived && (
-                          <>
+
+                      {inq.listingTitle && (
+                        <View style={styles.inqListingChip}>
+                          <Ionicons name="cube-outline" size={12} color={Colors.primary} />
+                          <Text style={styles.inqListingText} numberOfLines={1}>
+                            {inq.listingTitle}
+                          </Text>
+                        </View>
+                      )}
+
+                      {inq.message && (
+                        <Text style={styles.inqMessage} numberOfLines={3}>{inq.message}</Text>
+                      )}
+
+                      <View style={styles.inqFooter}>
+                        <Text style={styles.inqDate}>{relativeTime(inq.createdAt)}</Text>
+                        <View style={styles.inqActions}>
+                          {!inq.isArchived && (
                             <Pressable
-                              style={styles.inqTextBtn}
+                              style={styles.inqConvertBtn}
                               onPress={() => {
-                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                const phone = inq.phone.replace(/[^0-9+]/g, "");
-                                const body = encodeURIComponent(
-                                  `Hi ${inq.name || "there"}! Thanks for reaching out about your inquiry. `
-                                );
-                                const sep = Platform.OS === "ios" ? "&" : "?";
-                                Linking.openURL(`sms:${phone}${sep}body=${body}`);
-                                if (!inq.isRead) readInquiryMutation.mutate(inq.id);
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                convertToBuyerMutation.mutate(inq.id);
                               }}
                             >
-                              <Ionicons name="chatbubble" size={16} color="#fff" />
-                              <Text style={styles.inqTextBtnLabel}>Text</Text>
+                              <Ionicons name="person-add" size={13} color={Colors.info} />
+                              <Text style={styles.inqConvertBtnText}>Add Buyer</Text>
                             </Pressable>
-                            <Pressable
-                              style={styles.inqCallBtn}
-                              onPress={() => {
-                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                const phone = inq.phone.replace(/[^0-9+]/g, "");
-                                Linking.openURL(`tel:${phone}`);
-                                if (!inq.isRead) readInquiryMutation.mutate(inq.id);
-                              }}
-                            >
-                              <Ionicons name="call" size={16} color="#fff" />
-                            </Pressable>
-                          </>
-                        )}
+                          )}
+                          {inq.phone && !inq.isArchived && (
+                            <>
+                              <Pressable
+                                style={styles.inqTextBtn}
+                                onPress={() => {
+                                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                  const phone = inq.phone.replace(/[^0-9+]/g, "");
+                                  const listingRef = inq.listingTitle ? ` about the ${inq.listingTitle}` : "";
+                                  const body = encodeURIComponent(`Hi ${inq.name || "there"}! Thanks for reaching out${listingRef}. `);
+                                  const sep = Platform.OS === "ios" ? "&" : "?";
+                                  Linking.openURL(`sms:${phone}${sep}body=${body}`);
+                                  if (!inq.isRead) readInquiryMutation.mutate(inq.id);
+                                }}
+                              >
+                                <Ionicons name="chatbubble" size={14} color="#fff" />
+                                <Text style={styles.inqTextBtnLabel}>Text</Text>
+                              </Pressable>
+                              <Pressable
+                                style={styles.inqCallBtn}
+                                onPress={() => {
+                                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                  const phone = inq.phone.replace(/[^0-9+]/g, "");
+                                  Linking.openURL(`tel:${phone}`);
+                                  if (!inq.isRead) readInquiryMutation.mutate(inq.id);
+                                }}
+                              >
+                                <Ionicons name="call" size={14} color="#fff" />
+                              </Pressable>
+                            </>
+                          )}
+                        </View>
                       </View>
                     </View>
-                  </View>
+                  </SwipeableRow>
                 ));
               })()}
             </>
@@ -1210,8 +1308,55 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: Colors.info,
     borderRadius: 10,
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
+  },
+  inqListingChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(22, 163, 74, 0.1)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+    marginBottom: 8,
+  },
+  inqListingText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+    color: Colors.primary,
+    flexShrink: 1,
+  },
+  inqConvertBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(59, 130, 246, 0.1)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  inqConvertBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 12,
+    color: Colors.info,
+  },
+  fuSectionHeader: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 11,
+    color: Colors.textMuted,
+    textTransform: "uppercase" as const,
+    letterSpacing: 0.8,
+    marginTop: 10,
+    marginBottom: 6,
+    paddingLeft: 2,
+  },
+  fuSectionHeaderDanger: {
+    color: Colors.danger,
+  },
+  fuSectionHeaderWarning: {
+    color: Colors.warning,
   },
   settingsContainer: {
     gap: 10,

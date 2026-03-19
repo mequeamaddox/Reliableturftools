@@ -261,41 +261,44 @@ async function ensureAdminAndData() {
       log("Second admin account created successfully");
     }
 
-    const existingTemplates = await db.select().from(messageTemplates).limit(1);
-    if (existingTemplates.length === 0) {
-      log("No message templates found — seeding defaults...");
-      await db.insert(messageTemplates).values([
-        {
-          name: "New Listing Alert",
-          template: "Hey {buyer_name}! Just got in a {listing_title} that I think you'd be interested in. Let me know if you want more details or photos!",
-          type: "NEW_INVENTORY" as const,
-        },
-        {
-          name: "Back in Stock",
-          template: "Hey {buyer_name}, good news! The {listing_title} is back in stock. Want me to hold it for you?",
-          type: "BACK_IN_STOCK" as const,
-        },
-        {
-          name: "Meetup Confirm",
-          template: "Hey {buyer_name}, just confirming our meetup today. I'll be there with the {listing_title}. See you soon!",
-          type: "MEETUP_REMINDER" as const,
-        },
-        {
-          name: "Check In",
-          template: "Hey {buyer_name}! Just checking in - how's that {listing_title} working out for you?",
-          type: "CHECK_IN" as const,
-        },
-        {
-          name: "Price Drop",
-          template: "Hey {buyer_name}, I just dropped the price on the {listing_title}. Let me know if you're still interested!",
-          type: "CUSTOM" as const,
-        },
-        {
-          name: "Follow Up Interest",
-          template: "Hey {buyer_name}! Just following up on the {listing_title} you were looking at. Still interested? I can hold it for you.",
-          type: "CUSTOM" as const,
-        },
-      ]);
+    const DEFAULT_TEMPLATES: { name: string; template: string; type: "CHECK_IN" | "NEW_INVENTORY" | "MEETUP_REMINDER" | "BACK_IN_STOCK" | "PRICE_DROP" | "CUSTOM" }[] = [
+      {
+        name: "New Listing Alert",
+        template: "Hey {buyer_name}! Just got in a {listing_title} that I think you'd be interested in. Let me know if you want more details or photos!",
+        type: "NEW_INVENTORY",
+      },
+      {
+        name: "Back in Stock",
+        template: "Hey {buyer_name}, good news! The {listing_title} is back in stock. Want me to hold it for you?",
+        type: "BACK_IN_STOCK",
+      },
+      {
+        name: "Meetup Confirm",
+        template: "Hey {buyer_name}, just confirming our meetup today. I'll be there with the {listing_title}. See you soon!",
+        type: "MEETUP_REMINDER",
+      },
+      {
+        name: "Check In",
+        template: "Hey {buyer_name}! Just checking in - how's that {listing_title} working out for you?",
+        type: "CHECK_IN",
+      },
+      {
+        name: "Price Drop",
+        template: "Hey {buyer_name}, I just dropped the price on the {listing_title}. Let me know if you're still interested!",
+        type: "CUSTOM",
+      },
+      {
+        name: "Follow Up Interest",
+        template: "Hey {buyer_name}! Just following up on the {listing_title} you were looking at. Still interested? I can hold it for you.",
+        type: "CUSTOM",
+      },
+    ];
+    const existingTemplates = await db.select().from(messageTemplates);
+    const existingNames = new Set(existingTemplates.map((t) => t.name));
+    const toInsert = DEFAULT_TEMPLATES.filter((t) => !existingNames.has(t.name));
+    if (toInsert.length > 0) {
+      log(`Seeding ${toInsert.length} missing default message template(s)...`);
+      await db.insert(messageTemplates).values(toInsert);
       log("Message templates seeded successfully");
     }
 
