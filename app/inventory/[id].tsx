@@ -376,12 +376,14 @@ export default function ListingDetailScreen() {
                         style: "destructive",
                         onPress: () => {
                           updateMutation.mutate({ status: "ARCHIVED", isPublished: false });
-                          const params = new URLSearchParams({
-                            partFromTitle: listing?.title || "",
-                            partFromBrand: listing?.brand || "",
-                            partFromPallet: listing?.palletName || "",
+                          router.push({
+                            pathname: "/inventory/new" as any,
+                            params: {
+                              partFromTitle: listing?.title || "",
+                              partFromBrand: listing?.brand || "",
+                              partFromPallet: listing?.palletName || "",
+                            },
                           });
-                          router.push(`/inventory/new?${params.toString()}` as any);
                         },
                       },
                     ]

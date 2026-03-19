@@ -18,34 +18,48 @@ import * as MediaLibrary from "expo-media-library";
 import { captureRef } from "react-native-view-shot";
 import Colors from "@/constants/colors";
 
-function BarcodeVisual({ value, height = 28 }: { value: string; height?: number }) {
-  const chars = value.split("");
-  const bars: { width: number; filled: boolean }[] = [];
-  chars.forEach((char, i) => {
-    const code = char.charCodeAt(0);
-    bars.push({ width: 1.5, filled: true });
-    bars.push({ width: code % 3 === 0 ? 2 : 1, filled: false });
-    bars.push({ width: code % 2 === 0 ? 1.5 : 2, filled: true });
-    bars.push({ width: 1, filled: false });
-    if (i < chars.length - 1) {
-      bars.push({ width: 1, filled: code % 5 > 2 });
-    }
-  });
+const CODE39: Record<string, string> = {
+  '0':'000110100','1':'100100001','2':'001100001','3':'101100000',
+  '4':'000110001','5':'100110000','6':'001110000','7':'000100101',
+  '8':'100100100','9':'001100100','A':'100001001','B':'001001001',
+  'C':'101001000','D':'000011001','E':'100011000','F':'001011000',
+  'G':'000001101','H':'100001100','I':'001001100','J':'000011100',
+  'K':'100000011','L':'001000011','M':'101000010','N':'000010011',
+  'O':'100010010','P':'001010010','Q':'000000111','R':'100000110',
+  'S':'001000110','T':'000010110','U':'110000001','V':'011000001',
+  'W':'111000000','X':'010010001','Y':'110010000','Z':'011010000',
+  '-':'010000101','.':'110000100',' ':'011000100','$':'010101000',
+  '/':'010100010','+':'010001010','%':'000101010','*':'010010100',
+};
 
+function encodeCode39(text: string): { w: number; filled: boolean }[] {
+  const result: { w: number; filled: boolean }[] = [];
+  const addChar = (ch: string) => {
+    const pat = CODE39[ch];
+    if (!pat) return;
+    pat.split('').forEach((bit, i) => {
+      result.push({ w: bit === '1' ? 3 : 1, filled: i % 2 === 0 });
+    });
+  };
+  addChar('*');
+  for (const ch of text.toUpperCase()) {
+    if (CODE39[ch]) {
+      result.push({ w: 1, filled: false });
+      addChar(ch);
+    }
+  }
+  result.push({ w: 1, filled: false });
+  addChar('*');
+  return result;
+}
+
+function BarcodeCode39({ value, height = 20 }: { value: string; height?: number }) {
+  const bars = encodeCode39(value);
   return (
-    <View style={{ alignItems: "center" }}>
-      <View style={{ flexDirection: "row", height, justifyContent: "center" }}>
-        {bars.map((bar, i) => (
-          <View
-            key={i}
-            style={{
-              width: bar.width,
-              height,
-              backgroundColor: bar.filled ? "#000" : "#fff",
-            }}
-          />
-        ))}
-      </View>
+    <View style={{ flexDirection: 'row', height, alignSelf: 'center' }}>
+      {bars.map((bar, i) => (
+        <View key={i} style={{ width: bar.w, height, backgroundColor: bar.filled ? '#000' : '#fff' }} />
+      ))}
     </View>
   );
 }
@@ -54,19 +68,23 @@ function LabelCard({ listing }: { listing: any }) {
   const sku = listing.sku || "N/A";
   const price = parseFloat(listing.price || 0).toFixed(2);
   const condition = (listing.condition || "").replace(/_/g, " ");
+  const title = listing.title || "";
 
   return (
     <View style={labelStyles.label}>
       <Text style={labelStyles.businessName}>RELIABLE TURF TOOLS</Text>
       <View style={labelStyles.midRow}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, paddingRight: 4 }}>
           <Text style={labelStyles.sku}>{sku}</Text>
           <Text style={labelStyles.condition}>{condition}</Text>
+          <Text style={labelStyles.itemTitle} numberOfLines={1}>{title}</Text>
         </View>
         <Text style={labelStyles.price}>${price}</Text>
       </View>
-      <BarcodeVisual value={sku} height={24} />
-      <Text style={labelStyles.barcodeText}>{sku}</Text>
+      <View style={labelStyles.barcodeArea}>
+        <BarcodeCode39 value={sku === "N/A" ? "RTT-000-0000" : sku} height={18} />
+        <Text style={labelStyles.barcodeText}>{sku}</Text>
+      </View>
     </View>
   );
 }
@@ -203,6 +221,7 @@ function generatePrintHtml(listing: any): string {
   const sku = listing.sku || "N/A";
   const price = parseFloat(listing.price || 0).toFixed(2);
   const condition = (listing.condition || "").replace(/_/g, " ");
+  const title = (listing.title || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
   return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Label - ${sku}</title>
@@ -211,54 +230,39 @@ function generatePrintHtml(listing: any): string {
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Arial', 'Helvetica', sans-serif; background: #fff; }
   .label { width: 2.5in; height: 1in; padding: 3px 8px; display: flex; flex-direction: column; justify-content: space-between; }
-  .biz { font-size: 6.5pt; font-weight: bold; text-align: center; letter-spacing: 1px; border-bottom: 1px solid #000; padding-bottom: 1px; margin-bottom: 1px; }
-  .mid { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
-  .sku { font-size: 7pt; font-weight: bold; }
-  .cond { font-size: 5.5pt; color: #555; }
-  .price { font-size: 14pt; font-weight: bold; }
-  .barcode { text-align: center; }
-  .barcode-text { font-size: 5.5pt; letter-spacing: 1px; }
+  .biz { font-size: 6.5pt; font-weight: bold; text-align: center; letter-spacing: 1.5px; border-bottom: 0.5pt solid #000; padding-bottom: 1px; }
+  .mid { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 2px 0; }
+  .left { flex: 1; padding-right: 4px; overflow: hidden; }
+  .sku { font-size: 9pt; font-weight: bold; }
+  .cond { font-size: 6pt; color: #555; margin-top: 1px; }
+  .item-title { font-size: 5.5pt; color: #333; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .price { font-size: 16pt; font-weight: bold; white-space: nowrap; }
+  .barcode-wrap { text-align: center; }
   .bars { display: flex; justify-content: center; height: 18px; }
-  .bar { height: 100%; }
-</style></head>
+  .barcode-text { font-size: 5pt; letter-spacing: 1px; margin-top: 1px; }
+</style>
+<script>
+const C39={'0':'000110100','1':'100100001','2':'001100001','3':'101100000','4':'000110001','5':'100110000','6':'001110000','7':'000100101','8':'100100100','9':'001100100','A':'100001001','B':'001001001','C':'101001000','D':'000011001','E':'100011000','F':'001011000','G':'000001101','H':'100001100','I':'001001100','J':'000011100','K':'100000011','L':'001000011','M':'101000010','N':'000010011','O':'100010010','P':'001010010','Q':'000000111','R':'100000110','S':'001000110','T':'000010110','U':'110000001','V':'011000001','W':'111000000','X':'010010001','Y':'110010000','Z':'011010000','-':'010000101','.':'110000100',' ':'011000100','$':'010101000','/':'010100010','+':'010001010','%':'000101010','*':'010010100'};
+function drawCode39(el,text){var N=1,W=3;var s=text.toUpperCase();var chars=['*'].concat(s.split('')).concat(['*']);var first=true;chars.forEach(function(ch,ci){if(ci>0)el.appendChild(Object.assign(document.createElement('div'),{style:'width:'+N+'px;height:100%;background:#fff;display:inline-block;'}));var pat=C39[ch];if(!pat)return;pat.split('').forEach(function(b,i){var d=document.createElement('div');d.style.cssText='width:'+(b==='1'?W:N)+'px;height:100%;background:'+(i%2===0?'#000':'#fff')+';display:inline-block;';el.appendChild(d);});});};
+window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'${sku}');setTimeout(function(){window.print();},600);};
+</script>
+</head>
 <body>
 <div class="label">
   <div class="biz">RELIABLE TURF TOOLS</div>
   <div class="mid">
-    <div>
+    <div class="left">
       <div class="sku">${sku}</div>
       <div class="cond">${condition}</div>
+      <div class="item-title">${title}</div>
     </div>
     <div class="price">$${price}</div>
   </div>
-  <div class="barcode">
-    <div class="bars" id="bars"></div>
+  <div class="barcode-wrap">
+    <div class="bars" id="bars" style="display:flex;height:18px;justify-content:center;"></div>
     <div class="barcode-text">${sku}</div>
   </div>
 </div>
-<script>
-  const sku = "${sku}";
-  const barsEl = document.getElementById('bars');
-  for (let i = 0; i < sku.length; i++) {
-    const c = sku.charCodeAt(i);
-    const widths = [1.5, c%3===0?2:1, c%2===0?1.5:2, 1];
-    const fills = [true, false, true, false];
-    widths.forEach((w, j) => {
-      const bar = document.createElement('div');
-      bar.className = 'bar';
-      bar.style.width = w + 'px';
-      bar.style.backgroundColor = fills[j] ? '#000' : '#fff';
-      barsEl.appendChild(bar);
-    });
-    if (i < sku.length - 1) {
-      const sep = document.createElement('div');
-      sep.className = 'bar';
-      sep.style.width = '1px';
-      sep.style.backgroundColor = c%5>2 ? '#000' : '#fff';
-      barsEl.appendChild(sep);
-    }
-  }
-</script>
 </body></html>`;
 }
 
@@ -390,29 +394,39 @@ const labelStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    flex: 1,
     paddingVertical: 2,
   },
   sku: {
     fontFamily: "Inter_700Bold",
-    fontSize: 9,
+    fontSize: 10,
     color: "#000",
   },
   condition: {
     fontFamily: "Inter_400Regular",
-    fontSize: 6.5,
+    fontSize: 7,
     color: "#555",
+    marginTop: 1,
+  },
+  itemTitle: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 6.5,
+    color: "#333",
+    marginTop: 1,
   },
   price: {
     fontFamily: "Inter_700Bold",
     fontSize: 18,
     color: "#000",
   },
+  barcodeArea: {
+    alignItems: "center",
+    paddingTop: 1,
+  },
   barcodeText: {
     fontFamily: "Inter_400Regular",
-    fontSize: 7,
+    fontSize: 5.5,
     color: "#000",
-    textAlign: "center",
     letterSpacing: 1,
+    marginTop: 1,
   },
 });

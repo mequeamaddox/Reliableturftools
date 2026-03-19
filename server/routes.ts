@@ -769,6 +769,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sku = listing.sku || "N/A";
       const price = parseFloat(listing.price || "0").toFixed(2);
       const condition = (listing.condition || "").replace(/_/g, " ");
+      const title = (listing.title || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       const html = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Label - ${sku}</title>
@@ -777,39 +778,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: Arial, Helvetica, sans-serif; background: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
   .label { width: 2.5in; height: 1in; padding: 3px 8px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #ccc; }
-  .biz { font-size: 6.5pt; font-weight: bold; text-align: center; letter-spacing: 1px; border-bottom: 1px solid #000; padding-bottom: 1px; margin-bottom: 1px; }
-  .mid { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
-  .sku { font-size: 7pt; font-weight: bold; }
-  .cond { font-size: 5.5pt; color: #555; }
-  .price { font-size: 14pt; font-weight: bold; }
-  .barcode { text-align: center; }
-  .barcode-text { font-size: 5.5pt; letter-spacing: 1px; }
-  .bars { display: flex; justify-content: center; height: 18px; }
-  .bar { height: 100%; }
+  .biz { font-size: 6.5pt; font-weight: bold; text-align: center; letter-spacing: 1.5px; border-bottom: 0.5pt solid #000; padding-bottom: 1px; }
+  .mid { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 2px 0; }
+  .left { flex: 1; padding-right: 4px; overflow: hidden; }
+  .sku { font-size: 9pt; font-weight: bold; }
+  .cond { font-size: 6pt; color: #555; margin-top: 1px; }
+  .item-title { font-size: 5.5pt; color: #333; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .price { font-size: 16pt; font-weight: bold; white-space: nowrap; }
+  .barcode-wrap { text-align: center; }
+  .barcode-text { font-size: 5pt; letter-spacing: 1px; margin-top: 1px; }
   @media print { body { min-height: auto; } .label { border: none; } }
-</style></head>
+</style>
+<script>
+const C39={'0':'000110100','1':'100100001','2':'001100001','3':'101100000','4':'000110001','5':'100110000','6':'001110000','7':'000100101','8':'100100100','9':'001100100','A':'100001001','B':'001001001','C':'101001000','D':'000011001','E':'100011000','F':'001011000','G':'000001101','H':'100001100','I':'001001100','J':'000011100','K':'100000011','L':'001000011','M':'101000010','N':'000010011','O':'100010010','P':'001010010','Q':'000000111','R':'100000110','S':'001000110','T':'000010110','U':'110000001','V':'011000001','W':'111000000','X':'010010001','Y':'110010000','Z':'011010000','-':'010000101','.':'110000100',' ':'011000100','$':'010101000','/':'010100010','+':'010001010','%':'000101010','*':'010010100'};
+function drawCode39(el,text){var N=1,W=3;['*'].concat(text.toUpperCase().split('')).concat(['*']).forEach(function(ch,ci){if(ci>0){var g=document.createElement('div');g.style.cssText='width:'+N+'px;height:100%;background:#fff;display:inline-block;';el.appendChild(g);}var pat=C39[ch];if(!pat)return;pat.split('').forEach(function(b,i){var d=document.createElement('div');d.style.cssText='width:'+(b==='1'?W:N)+'px;height:100%;background:'+(i%2===0?'#000':'#fff')+';display:inline-block;';el.appendChild(d);});});}
+window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'${sku}');setTimeout(function(){window.print();},600);};
+</script>
+</head>
 <body>
 <div class="label">
   <div class="biz">RELIABLE TURF TOOLS</div>
   <div class="mid">
-    <div><div class="sku">${sku}</div><div class="cond">${condition}</div></div>
+    <div class="left">
+      <div class="sku">${sku}</div>
+      <div class="cond">${condition}</div>
+      <div class="item-title">${title || ""}</div>
+    </div>
     <div class="price">$${price}</div>
   </div>
-  <div class="barcode">
-    <div class="bars" id="bars"></div>
+  <div class="barcode-wrap">
+    <div class="bars" id="bars" style="display:flex;height:18px;justify-content:center;"></div>
     <div class="barcode-text">${sku}</div>
   </div>
 </div>
-<script>
-const sku="${sku}";const b=document.getElementById('bars');
-for(let i=0;i<sku.length;i++){const c=sku.charCodeAt(i);
-[{w:1.5,f:true},{w:c%3===0?2:1,f:false},{w:c%2===0?1.5:2,f:true},{w:1,f:false}].forEach(x=>{
-const d=document.createElement('div');d.className='bar';d.style.width=x.w+'px';
-d.style.backgroundColor=x.f?'#000':'#fff';b.appendChild(d);});
-if(i<sku.length-1){const s=document.createElement('div');s.className='bar';s.style.width='1px';
-s.style.backgroundColor=c%5>2?'#000':'#fff';b.appendChild(s);}}
-window.onload=function(){setTimeout(function(){window.print();},500);};
-</script></body></html>`;
+</body></html>`;
       res.setHeader("Content-Type", "text/html");
       return res.send(html);
     } catch (err) {
