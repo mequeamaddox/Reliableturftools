@@ -8,7 +8,9 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  LayoutChangeEvent,
 } from "react-native";
+import { Svg, Rect } from "react-native-svg";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
@@ -55,11 +57,31 @@ function encodeCode39(text: string): { w: number; filled: boolean }[] {
 
 function BarcodeCode39({ value, height = 20 }: { value: string; height?: number }) {
   const bars = encodeCode39(value);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const totalUnits = bars.reduce((sum, b) => sum + b.w, 0);
+  const unitPx = containerWidth > 0 ? containerWidth / totalUnits : 0;
+
+  let xPos = 0;
+  const rects: { x: number; w: number }[] = [];
+  for (const bar of bars) {
+    const bw = bar.w * unitPx;
+    if (bar.filled && unitPx > 0) rects.push({ x: xPos, w: bw });
+    xPos += bw;
+  }
+
   return (
-    <View style={{ flexDirection: 'row', height, alignSelf: 'center' }}>
-      {bars.map((bar, i) => (
-        <View key={i} style={{ width: bar.w, height, backgroundColor: bar.filled ? '#000' : '#fff' }} />
-      ))}
+    <View
+      style={{ width: '100%', height }}
+      onLayout={(e: LayoutChangeEvent) => setContainerWidth(e.nativeEvent.layout.width)}
+    >
+      {containerWidth > 0 && (
+        <Svg width={containerWidth} height={height}>
+          <Rect x={0} y={0} width={containerWidth} height={height} fill="#fff" />
+          {rects.map((r, i) => (
+            <Rect key={i} x={r.x} y={0} width={r.w} height={height} fill="#000" />
+          ))}
+        </Svg>
+      )}
     </View>
   );
 }
