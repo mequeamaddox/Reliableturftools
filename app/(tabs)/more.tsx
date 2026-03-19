@@ -278,14 +278,8 @@ export default function MoreScreen() {
   });
 
   function confirmDeleteInquiry(id: string) {
-    Alert.alert("Delete Inquiry", "Permanently delete this inquiry?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => deleteInquiryMutation.mutate(id),
-      },
-    ]);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    deleteInquiryMutation.mutate(id);
   }
 
   function relativeTime(dateStr: string): string {
@@ -355,14 +349,8 @@ export default function MoreScreen() {
   }
 
   function confirmDeleteFu(id: string) {
-    Alert.alert("Delete Follow-Up", "Remove this follow-up?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => deleteFuMutation.mutate(id),
-      },
-    ]);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    deleteFuMutation.mutate(id);
   }
 
   function sortFollowUps(list: any[]): any[] {
