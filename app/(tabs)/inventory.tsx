@@ -135,9 +135,11 @@ function ListingCard({
 }
 
 function PalletSummary({ listings }: { listings: any[] }) {
-  const totalValue = listings.reduce((sum, l) => sum + parseFloat(l.price || "0"), 0);
-  const totalCost = listings.reduce((sum, l) => sum + parseFloat(l.cost || "0"), 0);
-  const profit = totalValue - totalCost;
+  const totalListedValue = listings.reduce((sum, l) => sum + parseFloat(l.price || "0"), 0);
+  const soldRevenue = listings.filter((l) => l.status === "SOLD").reduce((sum, l) => sum + parseFloat(l.price || "0"), 0);
+  const palletCostStr = listings.find((l) => l.palletCost != null)?.palletCost;
+  const palletCost = palletCostStr ? parseFloat(palletCostStr) : null;
+  const profit = palletCost != null ? soldRevenue - palletCost : null;
   const available = listings.filter((l) => l.status === "AVAILABLE").length;
   const sold = listings.filter((l) => l.status === "SOLD").length;
 
@@ -160,15 +162,20 @@ function PalletSummary({ listings }: { listings: any[] }) {
         </View>
         <View style={styles.palletDivider} />
         <View style={styles.palletStat}>
-          <Text style={[styles.palletStatValue, { color: Colors.primary }]}>${totalValue.toFixed(0)}</Text>
-          <Text style={styles.palletStatLabel}>Value</Text>
+          <Text style={[styles.palletStatValue, { color: Colors.primary }]}>${totalListedValue.toFixed(0)}</Text>
+          <Text style={styles.palletStatLabel}>Listed</Text>
         </View>
-        {totalCost > 0 && (
+        {palletCost != null && (
           <>
             <View style={styles.palletDivider} />
             <View style={styles.palletStat}>
-              <Text style={[styles.palletStatValue, { color: profit >= 0 ? Colors.success : Colors.danger }]}>
-                ${profit.toFixed(0)}
+              <Text style={[styles.palletStatValue, { color: Colors.textSecondary }]}>${palletCost.toFixed(0)}</Text>
+              <Text style={styles.palletStatLabel}>Paid</Text>
+            </View>
+            <View style={styles.palletDivider} />
+            <View style={styles.palletStat}>
+              <Text style={[styles.palletStatValue, { color: profit! >= 0 ? Colors.success : Colors.danger }]}>
+                {profit! >= 0 ? "+" : ""}${profit!.toFixed(0)}
               </Text>
               <Text style={styles.palletStatLabel}>Profit</Text>
             </View>

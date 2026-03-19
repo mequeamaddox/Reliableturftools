@@ -59,6 +59,7 @@ export default function NewListingScreen() {
   const [palletName, setPalletName] = useState(
     isPartOut ? `Parts: ${params.partFromTitle}` : ""
   );
+  const [palletCost, setPalletCost] = useState("");
   const [palletAddedCount, setPalletAddedCount] = useState(0);
 
   // Item-level fields (reset between items in pallet mode)
@@ -87,6 +88,8 @@ export default function NewListingScreen() {
     powerTypes: string[];
     categories: string[];
   }>({ queryKey: ["/api/inventory-options"] });
+
+  const { data: existingPallets = [] } = useQuery<string[]>({ queryKey: ["/api/pallets"] });
 
   const CONDITIONS = inventoryOptions?.conditions ?? FALLBACK_CONDITIONS;
   const POWER_TYPES = inventoryOptions?.powerTypes ?? FALLBACK_POWER_TYPES;
@@ -123,7 +126,6 @@ export default function NewListingScreen() {
       return {
         title: title.trim(),
         price,
-        cost: cost || undefined,
         brand: brand || undefined,
         barcode: barcode || undefined,
         quantity: parseInt(quantity) || 1,
@@ -133,6 +135,7 @@ export default function NewListingScreen() {
         notes: notes || undefined,
         listingType,
         palletName: palletName.trim() || undefined,
+        palletCost: palletCost || undefined,
       };
     }
     return {
@@ -248,16 +251,29 @@ export default function NewListingScreen() {
               </View>
 
               {!isPartOut && (
-                <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Pallet Name *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={palletName}
-                    onChangeText={setPalletName}
-                    placeholder="e.g. Ryobi Mar-18, HD Pallet #4"
-                    placeholderTextColor={Colors.textMuted}
-                  />
-                </View>
+                <>
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.label}>Pallet Name *</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={palletName}
+                      onChangeText={setPalletName}
+                      placeholder="e.g. Ryobi Mar-18, HD Pallet #4"
+                      placeholderTextColor={Colors.textMuted}
+                    />
+                  </View>
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.label}>What did this pallet cost? (total paid)</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={palletCost}
+                      onChangeText={setPalletCost}
+                      placeholder="0.00"
+                      placeholderTextColor={Colors.textMuted}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                </>
               )}
               {isPartOut && (
                 <Text style={styles.partOutHint}>
@@ -306,29 +322,16 @@ export default function NewListingScreen() {
               <ChipSelect options={CATEGORIES} value={category} onChange={setCategory} label="Category (sticky)" />
               <ChipSelect options={CONDITIONS} value={condition} onChange={setCondition} label="Condition (sticky)" />
 
-              <View style={styles.row}>
-                <View style={[styles.fieldGroup, { flex: 1 }]}>
-                  <Text style={styles.label}>Price *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={price}
-                    onChangeText={setPrice}
-                    placeholder="0.00"
-                    placeholderTextColor={Colors.textMuted}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-                <View style={[styles.fieldGroup, { flex: 1 }]}>
-                  <Text style={styles.label}>Cost</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={cost}
-                    onChangeText={setCost}
-                    placeholder="0.00"
-                    placeholderTextColor={Colors.textMuted}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Price *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={price}
+                  onChangeText={setPrice}
+                  placeholder="0.00"
+                  placeholderTextColor={Colors.textMuted}
+                  keyboardType="decimal-pad"
+                />
               </View>
 
               <View style={styles.fieldGroup}>
@@ -507,12 +510,27 @@ export default function NewListingScreen() {
                   <Text style={styles.sectionHeaderText}>Sourcing</Text>
                 </View>
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Pallet / Source</Text>
+                  <Text style={styles.label}>Assign to Pallet</Text>
+                  {existingPallets.length > 0 && (
+                    <View style={styles.palletChipsRow}>
+                      {existingPallets.map((p) => (
+                        <Pressable
+                          key={p}
+                          style={[styles.palletSelectChip, palletName === p && styles.palletSelectChipActive]}
+                          onPress={() => { setPalletName(palletName === p ? "" : p); Haptics.selectionAsync(); }}
+                        >
+                          <Text style={[styles.palletSelectChipText, palletName === p && styles.palletSelectChipTextActive]}>
+                            {p}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, existingPallets.length > 0 && { marginTop: 6 }]}
                     value={palletName}
                     onChangeText={setPalletName}
-                    placeholder="e.g. Pallet #3, HD Jan"
+                    placeholder={existingPallets.length > 0 ? "Or type a new pallet name" : "e.g. Pallet #3, HD Jan"}
                     placeholderTextColor={Colors.textMuted}
                   />
                 </View>
@@ -852,6 +870,32 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     lineHeight: 18,
     marginTop: 2,
+  },
+  palletChipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 2,
+  },
+  palletSelectChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: Colors.backgroundLight,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  palletSelectChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  palletSelectChipText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: Colors.text,
+  },
+  palletSelectChipTextActive: {
+    color: "#fff",
   },
   itemSection: {
     marginBottom: 8,
