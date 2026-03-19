@@ -105,7 +105,7 @@ export const storage = {
       .selectDistinct({ palletName: listings.palletName })
       .from(listings)
       .where(sql`${listings.palletName} IS NOT NULL AND ${listings.palletName} != ''`)
-      .orderBy(desc(listings.createdAt));
+      .orderBy(listings.palletName);
     return rows.map((r) => r.palletName as string).filter(Boolean);
   },
 
