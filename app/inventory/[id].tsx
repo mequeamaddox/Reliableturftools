@@ -444,6 +444,9 @@ export default function ListingDetailScreen() {
               <View style={[styles.fieldGroup, { flex: 1 }]}>
                 <Text style={styles.label}>Cost</Text>
                 <TextInput style={styles.input} value={cost} onChangeText={setCost} keyboardType="decimal-pad" placeholder="Optional" placeholderTextColor={Colors.textMuted} />
+                {listing?.palletCost && !cost && (
+                  <Text style={styles.palletCostHint}>Pallet total: ${parseFloat(listing.palletCost).toFixed(0)}</Text>
+                )}
               </View>
               <View style={[styles.fieldGroup, { flex: 1 }]}>
                 <Text style={styles.label}>Qty</Text>
