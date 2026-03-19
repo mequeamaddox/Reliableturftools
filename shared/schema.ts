@@ -67,6 +67,7 @@ export const listings = pgTable("listings", {
   status: listingStatusEnum("status").notNull().default("AVAILABLE"),
   listingType: text("listing_type").notNull().default("ITEM"),
   notes: text("notes"),
+  description: text("description"),
   weightLbs: decimal("weight_lbs", { precision: 6, scale: 2 }),
   boxLengthIn: decimal("box_length_in", { precision: 6, scale: 2 }),
   boxWidthIn: decimal("box_width_in", { precision: 6, scale: 2 }),

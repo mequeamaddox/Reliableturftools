@@ -74,6 +74,7 @@ export default function NewListingScreen() {
   const [powerType, setPowerType] = useState("GAS");
   const [category, setCategory] = useState("OTHER");
   const [notes, setNotes] = useState("");
+  const [description, setDescription] = useState("");
   const [weightLbs, setWeightLbs] = useState("");
   const [boxLengthIn, setBoxLengthIn] = useState("");
   const [boxWidthIn, setBoxWidthIn] = useState("");
@@ -133,6 +134,7 @@ export default function NewListingScreen() {
         powerType,
         category,
         notes: notes || undefined,
+        description: description || undefined,
         listingType,
         palletName: palletName.trim() || undefined,
         palletCost: palletCost || undefined,
@@ -149,6 +151,7 @@ export default function NewListingScreen() {
       powerType,
       category,
       notes: notes || undefined,
+      description: description || undefined,
       listingType,
       palletName: palletName || undefined,
       weightLbs: weightLbs || undefined,
@@ -335,7 +338,20 @@ export default function NewListingScreen() {
               </View>
 
               <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Notes</Text>
+                <Text style={styles.label}>Public Description <Text style={styles.labelHint}>(shows on website)</Text></Text>
+                <TextInput
+                  style={[styles.input, styles.textarea]}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="Describe the item for customers..."
+                  placeholderTextColor={Colors.textMuted}
+                  multiline
+                  numberOfLines={2}
+                />
+              </View>
+
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Internal Notes <Text style={styles.labelHint}>(admin only)</Text></Text>
                 <TextInput
                   style={[styles.input, styles.textarea]}
                   value={notes}
@@ -493,7 +509,20 @@ export default function NewListingScreen() {
                 </View>
 
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Notes</Text>
+                  <Text style={styles.label}>Public Description <Text style={styles.labelHint}>(shows on website)</Text></Text>
+                  <TextInput
+                    style={[styles.input, styles.textarea]}
+                    value={description}
+                    onChangeText={setDescription}
+                    placeholder="Describe the item for customers..."
+                    placeholderTextColor={Colors.textMuted}
+                    multiline
+                    numberOfLines={3}
+                  />
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Internal Notes <Text style={styles.labelHint}>(admin only)</Text></Text>
                   <TextInput
                     style={[styles.input, styles.textarea]}
                     value={notes}
@@ -967,6 +996,11 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginBottom: 8,
     marginLeft: 4,
+  },
+  labelHint: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: Colors.textMuted,
   },
   input: {
     backgroundColor: Colors.inputBg,

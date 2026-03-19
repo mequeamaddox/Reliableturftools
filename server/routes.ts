@@ -1058,8 +1058,8 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
 
       const brandRow = listing.brand ? `<tr><th>Brand</th><td>${escapeHtml(listing.brand)}</td></tr>` : "";
       const skuRow = listing.sku ? `<tr><th>SKU</th><td>${escapeHtml(listing.sku)}</td></tr>` : "";
-      const notesHtml = listing.notes
-        ? `<div class="listing-notes"><h3>Notes</h3><p>${escapeHtml(listing.notes)}</p></div>`
+      const notesHtml = listing.description
+        ? `<div class="listing-notes"><h3>Description</h3><p>${escapeHtml(listing.description)}</p></div>`
         : "";
 
       const ogCondition = listing.condition.includes("NEW") ? "NewCondition" : "UsedCondition";

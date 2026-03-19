@@ -82,6 +82,7 @@ export default function ListingDetailScreen() {
   const [powerType, setPowerType] = useState("GAS");
   const [category, setCategory] = useState("OTHER");
   const [notes, setNotes] = useState("");
+  const [description, setDescription] = useState("");
   const [palletName, setPalletName] = useState("");
   const [weightLbs, setWeightLbs] = useState("");
   const [boxLengthIn, setBoxLengthIn] = useState("");
@@ -109,6 +110,7 @@ export default function ListingDetailScreen() {
       setPowerType(listing.powerType || "GAS");
       setCategory(listing.category || "OTHER");
       setNotes(listing.notes || "");
+      setDescription(listing.description || "");
       setPalletName(listing.palletName || "");
       setWeightLbs(listing.weightLbs || "");
       setBoxLengthIn(listing.boxLengthIn || "");
@@ -164,6 +166,7 @@ export default function ListingDetailScreen() {
       powerType,
       category,
       notes: notes || null,
+      description: description || null,
       palletName: palletName || null,
       weightLbs: weightLbs || null,
       boxLengthIn: boxLengthIn || null,
@@ -214,6 +217,7 @@ export default function ListingDetailScreen() {
       powerType,
       category,
       notes: notes || undefined,
+      description: description || undefined,
       listingType: listing?.listingType || "ITEM",
     }).then(() => {
       queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith("/api/listings") });
@@ -496,8 +500,13 @@ export default function ListingDetailScreen() {
             </View>
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Notes</Text>
-              <TextInput style={[styles.input, styles.textarea]} value={notes} onChangeText={setNotes} multiline numberOfLines={3} placeholderTextColor={Colors.textMuted} placeholder="Notes..." />
+              <Text style={styles.label}>Public Description <Text style={styles.labelHint}>(shows on website)</Text></Text>
+              <TextInput style={[styles.input, styles.textarea]} value={description} onChangeText={setDescription} multiline numberOfLines={3} placeholderTextColor={Colors.textMuted} placeholder="Describe the item for customers..." />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Internal Notes <Text style={styles.labelHint}>(admin only)</Text></Text>
+              <TextInput style={[styles.input, styles.textarea]} value={notes} onChangeText={setNotes} multiline numberOfLines={3} placeholderTextColor={Colors.textMuted} placeholder="Missing battery, damage, etc..." />
             </View>
 
             <View style={styles.sectionHeader}>
@@ -737,6 +746,11 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginBottom: 8,
     marginLeft: 4,
+  },
+  labelHint: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: Colors.textMuted,
   },
   palletCostHint: {
     fontFamily: "Inter_400Regular",
