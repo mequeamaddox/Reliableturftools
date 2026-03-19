@@ -9,12 +9,14 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
+  Modal,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import Colors from "@/constants/colors";
 import { apiRequest, queryClient } from "@/lib/query-client";
 
@@ -76,6 +78,9 @@ export default function NewListingScreen() {
   const [boxWidthIn, setBoxWidthIn] = useState("");
   const [boxHeightIn, setBoxHeightIn] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [scannerVisible, setScannerVisible] = useState(false);
+  const [scannerScanned, setScannerScanned] = useState(false);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
   const { data: inventoryOptions } = useQuery<{
     conditions: string[];
@@ -351,7 +356,7 @@ export default function NewListingScreen() {
                   />
                   <Pressable
                     style={styles.scanBtn}
-                    onPress={() => router.push("/inventory/scan" as any)}
+                    onPress={() => { setScannerScanned(false); setScannerVisible(true); }}
                   >
                     <Ionicons name="barcode" size={22} color="#fff" />
                   </Pressable>
@@ -477,7 +482,7 @@ export default function NewListingScreen() {
                     />
                     <Pressable
                       style={styles.scanBtn}
-                      onPress={() => router.push("/inventory/scan" as any)}
+                      onPress={() => { setScannerScanned(false); setScannerVisible(true); }}
                     >
                       <Ionicons name="barcode" size={22} color="#fff" />
                     </Pressable>
@@ -616,9 +621,144 @@ export default function NewListingScreen() {
           </Pressable>
         </View>
       )}
+
+      {/* ─── INLINE BARCODE SCANNER MODAL ─── */}
+      <Modal visible={scannerVisible} animationType="slide" onRequestClose={() => setScannerVisible(false)}>
+        {!cameraPermission?.granted ? (
+          <View style={scanStyles.permContainer}>
+            <Ionicons name="camera-outline" size={64} color={Colors.textMuted} />
+            <Text style={scanStyles.permTitle}>Camera Access Needed</Text>
+            <Text style={scanStyles.permDesc}>Allow camera access to scan barcodes.</Text>
+            <Pressable style={scanStyles.permBtn} onPress={requestCameraPermission}>
+              <Text style={scanStyles.permBtnText}>Allow Camera</Text>
+            </Pressable>
+            <Pressable style={[scanStyles.permBtn, { backgroundColor: Colors.surface, marginTop: 8 }]} onPress={() => setScannerVisible(false)}>
+              <Text style={[scanStyles.permBtnText, { color: Colors.text }]}>Cancel</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={{ flex: 1, backgroundColor: "#000" }}>
+            <CameraView
+              style={StyleSheet.absoluteFill}
+              facing="back"
+              barcodeScannerSettings={{
+                barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e", "code128", "code39", "code93", "itf14", "codabar", "qr"],
+              }}
+              onBarcodeScanned={scannerScanned ? undefined : ({ data }) => {
+                setScannerScanned(true);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                setBarcode(data);
+                setScannerVisible(false);
+              }}
+            />
+            <View style={[scanStyles.camHeader, { paddingTop: insets.top + 8 }]}>
+              <Pressable onPress={() => setScannerVisible(false)} hitSlop={12}>
+                <Ionicons name="close" size={28} color="#fff" />
+              </Pressable>
+              <Text style={scanStyles.camTitle}>Scan Barcode</Text>
+              <View style={{ width: 28 }} />
+            </View>
+            <View style={scanStyles.camOverlay}>
+              <View style={scanStyles.scanFrame}>
+                <View style={[scanStyles.corner, scanStyles.topLeft]} />
+                <View style={[scanStyles.corner, scanStyles.topRight]} />
+                <View style={[scanStyles.corner, scanStyles.bottomLeft]} />
+                <View style={[scanStyles.corner, scanStyles.bottomRight]} />
+              </View>
+              <Text style={scanStyles.hint}>Point camera at a barcode</Text>
+            </View>
+          </View>
+        )}
+      </Modal>
     </View>
   );
 }
+
+const scanStyles = StyleSheet.create({
+  permContainer: {
+    flex: 1,
+    backgroundColor: Colors.background,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+    gap: 12,
+  },
+  permTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 22,
+    color: Colors.text,
+    marginTop: 8,
+  },
+  permDesc: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 15,
+    color: Colors.textSecondary,
+    textAlign: "center",
+  },
+  permBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    marginTop: 8,
+  },
+  permBtnText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+    color: "#fff",
+  },
+  camHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    zIndex: 10,
+  },
+  camTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 18,
+    color: "#fff",
+  },
+  camOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  scanFrame: {
+    width: 280,
+    height: 170,
+    position: "relative",
+  },
+  corner: {
+    position: "absolute",
+    width: 32,
+    height: 32,
+    borderColor: Colors.primary,
+  },
+  topLeft: { top: 0, left: 0, borderTopWidth: 4, borderLeftWidth: 4, borderTopLeftRadius: 10 },
+  topRight: { top: 0, right: 0, borderTopWidth: 4, borderRightWidth: 4, borderTopRightRadius: 10 },
+  bottomLeft: { bottom: 0, left: 0, borderBottomWidth: 4, borderLeftWidth: 4, borderBottomLeftRadius: 10 },
+  bottomRight: { bottom: 0, right: 0, borderBottomWidth: 4, borderRightWidth: 4, borderBottomRightRadius: 10 },
+  hint: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 15,
+    color: "#fff",
+    marginTop: 20,
+    textShadowColor: "rgba(0,0,0,0.7)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
+});
 
 const styles = StyleSheet.create({
   container: {
