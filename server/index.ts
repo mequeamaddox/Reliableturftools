@@ -242,6 +242,14 @@ function setupErrorHandler(app: express.Application) {
 
 async function ensureAdminAndData() {
   try {
+    const { sql: rawSql } = await import("drizzle-orm");
+    const enumValues = ["BACK_IN_STOCK", "PRICE_DROP", "CUSTOM"];
+    for (const val of enumValues) {
+      try {
+        await db.execute(rawSql.raw(`ALTER TYPE follow_up_type ADD VALUE IF NOT EXISTS '${val}'`));
+      } catch (_) {}
+    }
+
     const adminEmail = "mequeamaddox@gmail.com";
     const existingUsers = await db.select().from(users).limit(1);
     if (existingUsers.length === 0) {
