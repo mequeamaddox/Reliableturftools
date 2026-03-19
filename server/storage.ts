@@ -146,7 +146,7 @@ export const storage = {
     const [listing] = await db
       .select()
       .from(listings)
-      .where(eq(listings.barcode, barcode));
+      .where(or(eq(listings.barcode, barcode), eq(listings.sku, barcode)));
     return listing;
   },
 
