@@ -126,7 +126,6 @@ export default function NewListingScreen() {
       return {
         title: title.trim(),
         price,
-        cost: cost || undefined,
         brand: brand || undefined,
         barcode: barcode || undefined,
         quantity: parseInt(quantity) || 1,
@@ -323,29 +322,16 @@ export default function NewListingScreen() {
               <ChipSelect options={CATEGORIES} value={category} onChange={setCategory} label="Category (sticky)" />
               <ChipSelect options={CONDITIONS} value={condition} onChange={setCondition} label="Condition (sticky)" />
 
-              <View style={styles.row}>
-                <View style={[styles.fieldGroup, { flex: 1 }]}>
-                  <Text style={styles.label}>Price *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={price}
-                    onChangeText={setPrice}
-                    placeholder="0.00"
-                    placeholderTextColor={Colors.textMuted}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-                <View style={[styles.fieldGroup, { flex: 1 }]}>
-                  <Text style={styles.label}>Item Cost</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={cost}
-                    onChangeText={setCost}
-                    placeholder="0.00"
-                    placeholderTextColor={Colors.textMuted}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Price *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={price}
+                  onChangeText={setPrice}
+                  placeholder="0.00"
+                  placeholderTextColor={Colors.textMuted}
+                  keyboardType="decimal-pad"
+                />
               </View>
 
               <View style={styles.fieldGroup}>
