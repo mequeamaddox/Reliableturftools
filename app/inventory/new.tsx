@@ -47,13 +47,13 @@ function ChipSelect({ options, value, onChange, label }: { options: readonly str
 
 export default function NewListingScreen() {
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ barcode?: string; partFromTitle?: string; partFromBrand?: string; partFromPallet?: string }>();
+  const params = useLocalSearchParams<{ barcode?: string; partFromTitle?: string; partFromBrand?: string; partFromPallet?: string; startPallet?: string }>();
   const webTopInset = Platform.OS === "web" ? 67 : 0;
   const titleRef = useRef<TextInput>(null);
 
   const isPartOut = !!params.partFromTitle;
 
-  const [mode, setMode] = useState<"single" | "pallet">(isPartOut ? "pallet" : "single");
+  const [mode, setMode] = useState<"single" | "pallet">(isPartOut || params.startPallet === "1" ? "pallet" : "single");
 
   // Pallet-level defaults (sticky in pallet mode)
   const [palletName, setPalletName] = useState(

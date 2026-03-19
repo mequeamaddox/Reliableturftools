@@ -349,22 +349,20 @@ export default function InventoryScreen() {
                 </Text>
               </Pressable>
             ))}
-            {pallets.length > 0 && (
-              <Pressable
-                style={[styles.filterChip, styles.palletChip, !!activePallet && styles.palletChipActive]}
-                onPress={() => { setPalletPickerVisible(true); Haptics.selectionAsync(); }}
-              >
-                <Ionicons name="layers-outline" size={13} color={activePallet ? "#fff" : Colors.primary} />
-                <Text style={[styles.filterText, styles.palletChipText, !!activePallet && styles.filterTextActive]}>
-                  {activePallet ? activePallet : "Pallet"}
-                </Text>
-                {activePallet && (
-                  <Pressable hitSlop={8} onPress={() => selectPallet(null)}>
-                    <Ionicons name="close-circle" size={14} color="rgba(255,255,255,0.8)" />
-                  </Pressable>
-                )}
-              </Pressable>
-            )}
+            <Pressable
+              style={[styles.filterChip, styles.palletChip, !!activePallet && styles.palletChipActive]}
+              onPress={() => { setPalletPickerVisible(true); Haptics.selectionAsync(); }}
+            >
+              <Ionicons name="layers-outline" size={13} color={activePallet ? "#fff" : Colors.primary} />
+              <Text style={[styles.filterText, styles.palletChipText, !!activePallet && styles.filterTextActive]}>
+                {activePallet ? activePallet : "Pallets"}
+              </Text>
+              {activePallet && (
+                <Pressable hitSlop={8} onPress={() => selectPallet(null)}>
+                  <Ionicons name="close-circle" size={14} color="rgba(255,255,255,0.8)" />
+                </Pressable>
+              )}
+            </Pressable>
           </View>
         </>
       )}
@@ -428,13 +426,15 @@ export default function InventoryScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setPalletPickerVisible(false)}>
           <View style={[styles.modalSheet, { paddingBottom: insets.bottom + 16 }]}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Filter by Pallet</Text>
+            <Text style={styles.modalTitle}>Pallets</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Pressable style={styles.palletOption} onPress={() => selectPallet(null)}>
-                <Ionicons name="list-outline" size={20} color={Colors.textSecondary} />
-                <Text style={styles.palletOptionText}>All Items</Text>
-                {!activePallet && <Ionicons name="checkmark" size={18} color={Colors.primary} />}
-              </Pressable>
+              {pallets.length > 0 && (
+                <Pressable style={styles.palletOption} onPress={() => selectPallet(null)}>
+                  <Ionicons name="list-outline" size={20} color={Colors.textSecondary} />
+                  <Text style={styles.palletOptionText}>All Items</Text>
+                  {!activePallet && <Ionicons name="checkmark" size={18} color={Colors.primary} />}
+                </Pressable>
+              )}
               {pallets.map((p) => (
                 <Pressable key={p} style={styles.palletOption} onPress={() => selectPallet(p)}>
                   <Ionicons name="layers-outline" size={20} color={Colors.primary} />
@@ -442,7 +442,27 @@ export default function InventoryScreen() {
                   {activePallet === p && <Ionicons name="checkmark" size={18} color={Colors.primary} />}
                 </Pressable>
               ))}
+              {pallets.length === 0 && (
+                <View style={styles.palletEmpty}>
+                  <Ionicons name="layers-outline" size={40} color={Colors.textMuted} />
+                  <Text style={styles.palletEmptyText}>No pallets yet</Text>
+                  <Text style={styles.palletEmptySubtext}>
+                    Use pallet mode when adding items to group them together
+                  </Text>
+                </View>
+              )}
             </ScrollView>
+            <Pressable
+              style={styles.newPalletBtn}
+              onPress={() => {
+                setPalletPickerVisible(false);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                router.push({ pathname: "/inventory/new" as any, params: { startPallet: "1" } });
+              }}
+            >
+              <Ionicons name="add" size={20} color="#fff" />
+              <Text style={styles.newPalletBtnText}>Start New Pallet Intake</Text>
+            </Pressable>
           </View>
         </Pressable>
       </Modal>
@@ -780,5 +800,38 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.text,
     flex: 1,
+  },
+  palletEmpty: {
+    alignItems: "center",
+    paddingVertical: 32,
+    gap: 8,
+  },
+  palletEmptyText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 16,
+    color: Colors.text,
+  },
+  palletEmptySubtext: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: Colors.textMuted,
+    textAlign: "center",
+    paddingHorizontal: 16,
+  },
+  newPalletBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: 14,
+    paddingVertical: 16,
+    marginTop: 12,
+    marginHorizontal: 4,
+  },
+  newPalletBtnText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 15,
+    color: "#fff",
   },
 });
