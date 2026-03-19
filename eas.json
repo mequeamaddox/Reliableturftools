@@ -13,12 +13,14 @@
     },
     "preview": {
       "distribution": "internal",
+      "channel": "preview",
       "env": {
         "EXPO_PUBLIC_DOMAIN": "reliableturftools.replit.app"
       }
     },
     "production": {
       "autoIncrement": true,
+      "channel": "production",
       "env": {
         "EXPO_PUBLIC_DOMAIN": "reliableturftools.replit.app"
       }

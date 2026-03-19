@@ -45,6 +45,12 @@
         }
       ]
     ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/b8c16f7d-ef18-4c2b-b143-e60face938a1"
+    },
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
