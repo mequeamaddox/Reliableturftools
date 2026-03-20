@@ -57,7 +57,7 @@ export default function NewListingScreen() {
 
   // Pallet-level defaults (sticky in pallet mode)
   const [palletName, setPalletName] = useState(
-    isPartOut ? `Parts: ${params.partFromTitle}` : ""
+    isPartOut ? (params.partFromPallet || `Parts: ${params.partFromTitle}`) : ""
   );
   const [palletCost, setPalletCost] = useState("");
   const [palletAddedCount, setPalletAddedCount] = useState(0);
@@ -284,7 +284,10 @@ export default function NewListingScreen() {
               )}
               {isPartOut && (
                 <Text style={styles.partOutHint}>
-                  Each part will be tagged "Parts: {params.partFromTitle}" so you can find them together later.
+                  {params.partFromPallet
+                    ? `Parts will be added to "${params.partFromPallet}" so revenue shows in the pallet summary.`
+                    : `Each part will be tagged "Parts: ${params.partFromTitle}" so you can find them together.`
+                  }
                 </Text>
               )}
             </View>
