@@ -67,6 +67,7 @@ export default function NewListingScreen() {
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [cost, setCost] = useState("");
+  const [retailPrice, setRetailPrice] = useState("");
   const [brand, setBrand] = useState(params.partFromBrand || "");
   const [barcode, setBarcode] = useState(params.barcode || "");
   const [quantity, setQuantity] = useState("1");
@@ -108,6 +109,7 @@ export default function NewListingScreen() {
         setTitle("");
         setPrice("");
         setCost("");
+        setRetailPrice("");
         setNotes("");
         setBarcode("");
         setQuantity("1");
@@ -138,12 +140,14 @@ export default function NewListingScreen() {
         listingType,
         palletName: palletName.trim() || undefined,
         palletCost: palletCost || undefined,
+        retailPrice: retailPrice || undefined,
       };
     }
     return {
       title: title.trim(),
       price,
       cost: cost || undefined,
+      retailPrice: retailPrice || undefined,
       brand: brand || undefined,
       barcode: barcode || undefined,
       quantity: parseInt(quantity) || 1,
@@ -483,6 +487,18 @@ export default function NewListingScreen() {
                     style={styles.input}
                     value={cost}
                     onChangeText={setCost}
+                    placeholder="0.00"
+                    placeholderTextColor={Colors.textMuted}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Retail Price (MSRP reference)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={retailPrice}
+                    onChangeText={setRetailPrice}
                     placeholder="0.00"
                     placeholderTextColor={Colors.textMuted}
                     keyboardType="decimal-pad"

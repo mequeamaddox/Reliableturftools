@@ -77,6 +77,7 @@ export default function ListingDetailScreen() {
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [cost, setCost] = useState("");
+  const [retailPrice, setRetailPrice] = useState("");
   const [brand, setBrand] = useState("");
   const [barcode, setBarcode] = useState("");
   const [quantity, setQuantity] = useState("1");
@@ -108,6 +109,7 @@ export default function ListingDetailScreen() {
       setTitle(listing.title || "");
       setPrice(listing.price || "");
       setCost(listing.cost || "");
+      setRetailPrice((listing as any).retailPrice || "");
       setBrand(listing.brand || "");
       setBarcode(listing.barcode || "");
       setQuantity(String(listing.quantity || 1));
@@ -164,6 +166,7 @@ export default function ListingDetailScreen() {
       title: title.trim(),
       price,
       cost: cost || null,
+      retailPrice: retailPrice || null,
       brand: brand || null,
       barcode: barcode || null,
       quantity: parseInt(quantity) || 1,
@@ -462,6 +465,10 @@ export default function ListingDetailScreen() {
                 {listing?.palletCost && !cost && (
                   <Text style={styles.palletCostHint}>Pallet total: ${parseFloat(listing.palletCost).toFixed(0)}</Text>
                 )}
+              </View>
+              <View style={[styles.fieldGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Retail</Text>
+                <TextInput style={styles.input} value={retailPrice} onChangeText={setRetailPrice} keyboardType="decimal-pad" placeholder="MSRP" placeholderTextColor={Colors.textMuted} />
               </View>
               <View style={[styles.fieldGroup, { flex: 1 }]}>
                 <Text style={styles.label}>Qty</Text>

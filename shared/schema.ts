@@ -63,6 +63,7 @@ export const listings = pgTable("listings", {
   brand: text("brand"),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   cost: decimal("cost", { precision: 10, scale: 2 }),
+  retailPrice: decimal("retail_price", { precision: 10, scale: 2 }),
   quantity: integer("quantity").notNull().default(1),
   status: listingStatusEnum("status").notNull().default("AVAILABLE"),
   listingType: text("listing_type").notNull().default("ITEM"),
