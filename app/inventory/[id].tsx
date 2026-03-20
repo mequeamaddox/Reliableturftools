@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -74,6 +74,7 @@ export default function ListingDetailScreen() {
   const PAY_TYPES = inventoryOptions?.paymentTypes ?? FALLBACK_PAYMENT_TYPES;
   const LEAD_SOURCES = inventoryOptions?.leadSources ?? FALLBACK_LEAD_SOURCES;
 
+  const initializedRef = useRef(false);
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [cost, setCost] = useState("");
@@ -105,11 +106,12 @@ export default function ListingDetailScreen() {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
   useEffect(() => {
-    if (listing) {
+    if (listing && !initializedRef.current) {
+      initializedRef.current = true;
       setTitle(listing.title || "");
       setPrice(listing.price || "");
       setCost(listing.cost || "");
-      setRetailPrice((listing as any).retailPrice || "");
+      setRetailPrice(listing.retailPrice || "");
       setBrand(listing.brand || "");
       setBarcode(listing.barcode || "");
       setQuantity(String(listing.quantity || 1));
