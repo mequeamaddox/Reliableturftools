@@ -284,6 +284,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const data = req.body;
       const listing = await storage.createListing(data);
+      if (listing.palletName) {
+        await storage.distributePalletCost(listing.palletName);
+      }
       return res.status(201).json(listing);
     } catch (err) {
       console.error("Create listing error:", err);
