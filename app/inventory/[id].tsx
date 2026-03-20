@@ -58,6 +58,8 @@ export default function ListingDetailScreen() {
 
   const { data: listing, isLoading } = useQuery<any>({
     queryKey: [`/api/listings/${id}`],
+    refetchOnWindowFocus: false,
+    staleTime: Infinity,
   });
   const { data: meetupSpots = [] } = useQuery<any[]>({ queryKey: ["/api/meetup-spots"] });
   const { data: inventoryOptions } = useQuery<{
