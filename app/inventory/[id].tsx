@@ -83,6 +83,7 @@ export default function ListingDetailScreen() {
   const [retailPrice, setRetailPrice] = useState("");
   const [brand, setBrand] = useState("");
   const [barcode, setBarcode] = useState("");
+  const [sku, setSku] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [condition, setCondition] = useState("USED");
   const [powerType, setPowerType] = useState("GAS");
@@ -116,6 +117,7 @@ export default function ListingDetailScreen() {
       setRetailPrice(listing.retailPrice || "");
       setBrand(listing.brand || "");
       setBarcode(listing.barcode || "");
+      setSku(listing.sku || "");
       setQuantity(String(listing.quantity || 1));
       setCondition(listing.condition || "USED");
       setPowerType(listing.powerType || "GAS");
@@ -173,6 +175,7 @@ export default function ListingDetailScreen() {
       retailPrice: retailPrice || null,
       brand: brand || null,
       barcode: barcode || null,
+      sku: sku || null,
       quantity: parseInt(quantity) || 1,
       condition,
       powerType,
@@ -502,7 +505,14 @@ export default function ListingDetailScreen() {
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>SKU</Text>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <TextInput style={[styles.input, { flex: 1 }]} value={listing?.sku || ""} editable={false} placeholderTextColor={Colors.textMuted} placeholder="No SKU yet" />
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  value={sku}
+                  onChangeText={setSku}
+                  placeholderTextColor={Colors.textMuted}
+                  placeholder="No SKU yet"
+                  autoCapitalize="characters"
+                />
                 <Pressable
                   style={styles.generateSkuBtn}
                   onPress={() => {
@@ -511,10 +521,8 @@ export default function ListingDetailScreen() {
                       .then((res: any) => res.json())
                       .then((data: any) => {
                         if (data.sku) {
-                          apiRequest("PUT", `/api/listings/${id}`, { sku: data.sku }).then(() => {
-                            queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith("/api/listings") });
-                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                          });
+                          setSku(data.sku);
+                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                         }
                       })
                       .catch(() => Alert.alert("Error", "Failed to generate SKU"));
