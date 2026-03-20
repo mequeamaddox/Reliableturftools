@@ -356,10 +356,16 @@ export default function ListingDetailScreen() {
                 </>
               )}
               {listing?.status === "PENDING" && (
-                <Pressable style={[styles.actionBtn, { backgroundColor: Colors.sold }]} onPress={() => setShowSellModal(true)}>
-                  <Ionicons name="cash" size={18} color="#fff" />
-                  <Text style={styles.actionBtnText}>Sell</Text>
-                </Pressable>
+                <>
+                  <Pressable style={[styles.actionBtn, { backgroundColor: Colors.available }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); updateMutation.mutate({ status: "AVAILABLE" }); }}>
+                    <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                    <Text style={styles.actionBtnText}>Available</Text>
+                  </Pressable>
+                  <Pressable style={[styles.actionBtn, { backgroundColor: Colors.sold }]} onPress={() => setShowSellModal(true)}>
+                    <Ionicons name="cash" size={18} color="#fff" />
+                    <Text style={styles.actionBtnText}>Sell</Text>
+                  </Pressable>
+                </>
               )}
               <Pressable
                 style={[styles.actionBtn, { backgroundColor: "rgba(168, 85, 247, 0.9)" }]}
