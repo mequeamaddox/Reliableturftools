@@ -126,10 +126,14 @@ export const storage = {
     const palletCostStr = items.find((i) => i.palletCost != null)?.palletCost;
     if (!palletCostStr) return 0;
     const palletCost = parseFloat(palletCostStr);
-    const costPerItem = (palletCost / items.length).toFixed(2);
+    const totalUnits = items.reduce((sum, i) => {
+      if (i.status === "SOLD") return sum + 1;
+      return sum + Math.max(i.quantity ?? 1, 1);
+    }, 0);
+    const costPerUnit = (palletCost / totalUnits).toFixed(2);
     await db
       .update(listings)
-      .set({ cost: costPerItem, updatedAt: new Date() })
+      .set({ cost: costPerUnit, updatedAt: new Date() })
       .where(sql`${listings.palletName} = ${palletName}`);
     return items.length;
   },
