@@ -136,14 +136,23 @@ function ListingCard({
 
 function PalletSummary({ listings, onDistributeCost, distributing, onSetPalletCost, settingCost }: { listings: any[]; onDistributeCost: () => void; distributing: boolean; onSetPalletCost: (cost: string) => void; settingCost: boolean }) {
   const [palletCostInput, setPalletCostInput] = React.useState("");
-  const totalListedValue = listings.reduce((sum, l) => sum + parseFloat(l.price || "0"), 0);
-  const soldRevenue = listings.filter((l) => l.status === "SOLD").reduce((sum, l) => sum + parseFloat(l.price || "0"), 0);
-  const palletCostStr = listings.find((l) => l.palletCost != null)?.palletCost;
-  const palletCost = palletCostStr ? parseFloat(palletCostStr) : null;
-  const costPerItem = palletCost != null && listings.length > 0 ? palletCost / listings.length : null;
-  const profit = palletCost != null ? soldRevenue - palletCost : null;
   const available = listings.filter((l) => l.status === "AVAILABLE").length;
   const sold = listings.filter((l) => l.status === "SOLD").length;
+  const availableValue = listings
+    .filter((l) => l.status === "AVAILABLE")
+    .reduce((sum, l) => sum + parseFloat(l.price || "0") * Math.max(parseInt(l.quantity || "0"), 1), 0);
+  const soldRevenue = listings
+    .filter((l) => l.status === "SOLD")
+    .reduce((sum, l) => sum + parseFloat(l.price || "0"), 0);
+  const totalListedValue = availableValue + soldRevenue;
+  const palletCostStr = listings.find((l) => l.palletCost != null)?.palletCost;
+  const palletCost = palletCostStr ? parseFloat(palletCostStr) : null;
+  const totalUnits = listings.reduce((sum, l) => {
+    if (l.status === "SOLD") return sum + 1;
+    return sum + Math.max(parseInt(l.quantity || "0"), 1);
+  }, 0);
+  const costPerItem = palletCost != null && totalUnits > 0 ? palletCost / totalUnits : null;
+  const profit = palletCost != null ? totalListedValue - palletCost : null;
   const costAlreadySet = listings.every((l) => l.cost != null && l.cost !== "");
 
   return (
@@ -180,7 +189,7 @@ function PalletSummary({ listings, onDistributeCost, distributing, onSetPalletCo
               <Text style={[styles.palletStatValue, { color: profit! >= 0 ? Colors.success : Colors.danger }]}>
                 {profit! >= 0 ? "+" : ""}${profit!.toFixed(0)}
               </Text>
-              <Text style={styles.palletStatLabel}>Profit</Text>
+              <Text style={styles.palletStatLabel}>Net</Text>
             </View>
           </>
         )}
@@ -212,7 +221,7 @@ function PalletSummary({ listings, onDistributeCost, distributing, onSetPalletCo
           <View style={styles.palletCostInfo}>
             <Ionicons name="calculator-outline" size={14} color={Colors.textMuted} />
             <Text style={styles.palletCostText}>
-              ${palletCost.toFixed(0)} ÷ {listings.length} items = <Text style={{ color: Colors.text, fontFamily: "Inter_600SemiBold" }}>${costPerItem!.toFixed(2)}/item</Text>
+              ${palletCost.toFixed(0)} ÷ {totalUnits} units = <Text style={{ color: Colors.text, fontFamily: "Inter_600SemiBold" }}>${costPerItem!.toFixed(2)}/unit</Text>
             </Text>
           </View>
           <Pressable
