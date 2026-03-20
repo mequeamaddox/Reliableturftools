@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -116,17 +116,26 @@ export default function LabelScreen() {
   const insets = useSafeAreaInsets();
   const webTopInset = Platform.OS === "web" ? 67 : 0;
   const [sharing, setSharing] = useState(false);
+  const [copies, setCopies] = useState(1);
   const labelRef = useRef<View>(null);
+  const copiesInitialized = useRef(false);
 
   const { data: listing, isLoading } = useQuery<any>({
     queryKey: [`/api/listings/${id}`],
     enabled: !!id,
   });
 
+  useEffect(() => {
+    if (listing && !copiesInitialized.current) {
+      copiesInitialized.current = true;
+      setCopies(Math.max(1, listing.quantity || 1));
+    }
+  }, [listing]);
+
   async function handleSave() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (Platform.OS === "web") {
-      const html = generatePrintHtml(listing);
+      const html = generatePrintHtml(listing, copies);
       const iframe = document.createElement("iframe");
       iframe.style.position = "fixed";
       iframe.style.right = "0";
@@ -162,9 +171,16 @@ export default function LabelScreen() {
         width: 720,
         height: 288,
       });
-      await MediaLibrary.saveToLibraryAsync(uri);
+      for (let i = 0; i < copies; i++) {
+        await MediaLibrary.saveToLibraryAsync(uri);
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("Saved!", "Label saved to your Photos. Open your printer app and print from there.");
+      Alert.alert(
+        "Saved!",
+        copies === 1
+          ? "Label saved to your Photos. Open your printer app and print from there."
+          : `${copies} labels saved to your Photos. Open your printer app and print from there.`
+      );
     } catch (err) {
       Alert.alert("Error", "Could not save the label image. Please try again.");
     } finally {
@@ -214,6 +230,28 @@ export default function LabelScreen() {
 
         <Text style={styles.sizeNote}>Actual print size: 2.5" x 1"</Text>
 
+        <View style={styles.copiesRow}>
+          <Text style={styles.copiesLabel}>Copies</Text>
+          <View style={styles.copiesStepper}>
+            <Pressable
+              style={[styles.stepBtn, copies <= 1 && { opacity: 0.3 }]}
+              onPress={() => { if (copies > 1) { setCopies(c => c - 1); Haptics.selectionAsync(); } }}
+              hitSlop={8}
+            >
+              <Ionicons name="remove" size={20} color={Colors.text} />
+            </Pressable>
+            <Text style={styles.copiesCount}>{copies}</Text>
+            <Pressable
+              style={[styles.stepBtn, copies >= 99 && { opacity: 0.3 }]}
+              onPress={() => { if (copies < 99) { setCopies(c => c + 1); Haptics.selectionAsync(); } }}
+              hitSlop={8}
+            >
+              <Ionicons name="add" size={20} color={Colors.text} />
+            </Pressable>
+          </View>
+          <Text style={styles.copiesHint}>Qty on hand: {listing.quantity || 1}</Text>
+        </View>
+
         {!listing.sku && (
           <View style={styles.warningCard}>
             <Ionicons name="warning" size={18} color={Colors.warning} />
@@ -229,30 +267,51 @@ export default function LabelScreen() {
           ) : (
             <Ionicons name="download-outline" size={24} color="#fff" />
           )}
-          <Text style={styles.shareBigText}>{sharing ? "Saving..." : "Save to Photos"}</Text>
+          <Text style={styles.shareBigText}>
+            {sharing ? "Saving..." : `Save ${copies} Label${copies !== 1 ? "s" : ""} to Photos`}
+          </Text>
         </Pressable>
 
         <Text style={styles.shareHint}>
-          Saves the label as a PNG — open your SVANTTO printer app and print from Photos
+          Saves to your Photos — open your SVANTTO printer app and print from there
         </Text>
       </ScrollView>
     </View>
   );
 }
 
-function generatePrintHtml(listing: any): string {
+function generatePrintHtml(listing: any, copies: number = 1): string {
   const sku = listing.sku || "N/A";
   const price = parseFloat(listing.price || 0).toFixed(2);
   const condition = (listing.condition || "").replace(/_/g, " ");
   const title = (listing.title || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+  const labelHtml = `
+<div class="label">
+  <div class="biz">RELIABLE TURF TOOLS</div>
+  <div class="mid">
+    <div class="left">
+      <div class="sku">${sku}</div>
+      <div class="cond">${condition}</div>
+      <div class="item-title">${title}</div>
+    </div>
+    <div class="price">$${price}</div>
+  </div>
+  <div class="barcode-wrap">
+    <div class="bars" style="display:flex;height:18px;justify-content:center;"></div>
+    <div class="barcode-text">${sku}</div>
+  </div>
+</div>`;
+
+  const labelsHtml = Array(copies).fill(labelHtml).join("\n");
+
   return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Label - ${sku}</title>
+<html><head><meta charset="UTF-8"><title>Labels - ${sku}</title>
 <style>
   @page { size: 2.5in 1in; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Arial', 'Helvetica', sans-serif; background: #fff; }
-  .label { width: 2.5in; height: 1in; padding: 3px 8px; display: flex; flex-direction: column; justify-content: space-between; }
+  .label { width: 2.5in; height: 1in; padding: 3px 8px; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; }
   .biz { font-size: 6.5pt; font-weight: bold; text-align: center; letter-spacing: 1.5px; border-bottom: 0.5pt solid #000; padding-bottom: 1px; }
   .mid { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 2px 0; }
   .left { flex: 1; padding-right: 4px; overflow: hidden; }
@@ -266,26 +325,12 @@ function generatePrintHtml(listing: any): string {
 </style>
 <script>
 const C39={'0':'000110100','1':'100100001','2':'001100001','3':'101100000','4':'000110001','5':'100110000','6':'001110000','7':'000100101','8':'100100100','9':'001100100','A':'100001001','B':'001001001','C':'101001000','D':'000011001','E':'100011000','F':'001011000','G':'000001101','H':'100001100','I':'001001100','J':'000011100','K':'100000011','L':'001000011','M':'101000010','N':'000010011','O':'100010010','P':'001010010','Q':'000000111','R':'100000110','S':'001000110','T':'000010110','U':'110000001','V':'011000001','W':'111000000','X':'010010001','Y':'110010000','Z':'011010000','-':'010000101','.':'110000100',' ':'011000100','$':'010101000','/':'010100010','+':'010001010','%':'000101010','*':'010010100'};
-function drawCode39(el,text){var N=1,W=3;var s=text.toUpperCase();var chars=['*'].concat(s.split('')).concat(['*']);var first=true;chars.forEach(function(ch,ci){if(ci>0)el.appendChild(Object.assign(document.createElement('div'),{style:'width:'+N+'px;height:100%;background:#fff;display:inline-block;'}));var pat=C39[ch];if(!pat)return;pat.split('').forEach(function(b,i){var d=document.createElement('div');d.style.cssText='width:'+(b==='1'?W:N)+'px;height:100%;background:'+(i%2===0?'#000':'#fff')+';display:inline-block;';el.appendChild(d);});});};
-window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'${sku}');setTimeout(function(){window.print();},600);};
+function drawCode39(el,text){var N=1,W=3;var s=text.toUpperCase();var chars=['*'].concat(s.split('')).concat(['*']);chars.forEach(function(ch,ci){if(ci>0)el.appendChild(Object.assign(document.createElement('div'),{style:'width:'+N+'px;height:100%;background:#fff;display:inline-block;'}));var pat=C39[ch];if(!pat)return;pat.split('').forEach(function(b,i){var d=document.createElement('div');d.style.cssText='width:'+(b==='1'?W:N)+'px;height:100%;background:'+(i%2===0?'#000':'#fff')+';display:inline-block;';el.appendChild(d);});});}
+window.onload=function(){document.querySelectorAll('.bars').forEach(function(el){drawCode39(el,'${sku}');});setTimeout(function(){window.print();},600);};
 </script>
 </head>
 <body>
-<div class="label">
-  <div class="biz">RELIABLE TURF TOOLS</div>
-  <div class="mid">
-    <div class="left">
-      <div class="sku">${sku}</div>
-      <div class="cond">${condition}</div>
-      <div class="item-title">${title}</div>
-    </div>
-    <div class="price">$${price}</div>
-  </div>
-  <div class="barcode-wrap">
-    <div class="bars" id="bars" style="display:flex;height:18px;justify-content:center;"></div>
-    <div class="barcode-text">${sku}</div>
-  </div>
-</div>
+${labelsHtml}
 </body></html>`;
 }
 
@@ -380,6 +425,48 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: "center",
     maxWidth: 300,
+  },
+  copiesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    maxWidth: 380,
+    marginTop: 20,
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  copiesLabel: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 15,
+    color: Colors.text,
+  },
+  copiesStepper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  stepBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.background,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  copiesCount: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 20,
+    color: Colors.text,
+    minWidth: 36,
+    textAlign: "center",
+  },
+  copiesHint: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: Colors.textMuted,
   },
   captureArea: {
     position: "absolute",
