@@ -79,7 +79,7 @@ export function getApiUrl(): string {
     return `https://${domain}/`;
   }
 
-  throw new Error("EXPO_PUBLIC_DOMAIN is not set");
+  return "https://reliableturftools.replit.app/";
 }
 
 async function throwIfResNotOk(res: Response) {
