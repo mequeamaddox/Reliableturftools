@@ -189,16 +189,20 @@ export default function DashboardScreen() {
           <Pressable style={styles.statCard} onPress={() => quickAction("/(tabs)/sales")}>
             <Text style={styles.statLabel}>7 Days</Text>
             <Text style={styles.statValue}>{formatMoney(stats?.revenue7d)}</Text>
-            <Text style={[styles.statProfit, { color: Colors.success }]}>
-              Profit: {formatMoney(stats?.profit7d)}
-            </Text>
+            {stats?.profit7d !== stats?.revenue7d && (
+              <Text style={[styles.statProfit, { color: (stats?.profit7d || 0) >= 0 ? Colors.success : Colors.danger }]}>
+                Profit: {formatMoney(stats?.profit7d)}
+              </Text>
+            )}
           </Pressable>
           <Pressable style={styles.statCard} onPress={() => quickAction("/(tabs)/sales")}>
             <Text style={styles.statLabel}>30 Days</Text>
             <Text style={styles.statValue}>{formatMoney(stats?.revenue30d)}</Text>
-            <Text style={[styles.statProfit, { color: Colors.success }]}>
-              Profit: {formatMoney(stats?.profit30d)}
-            </Text>
+            {stats?.profit30d !== stats?.revenue30d && (
+              <Text style={[styles.statProfit, { color: (stats?.profit30d || 0) >= 0 ? Colors.success : Colors.danger }]}>
+                Profit: {formatMoney(stats?.profit30d)}
+              </Text>
+            )}
           </Pressable>
         </View>
 

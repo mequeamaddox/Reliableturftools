@@ -152,7 +152,7 @@ function PalletSummary({ listings, onDistributeCost, distributing, onSetPalletCo
     return sum + Math.max(parseInt(l.quantity || "0"), 1);
   }, 0);
   const costPerItem = palletCost != null && totalUnits > 0 ? palletCost / totalUnits : null;
-  const profit = palletCost != null ? totalListedValue - palletCost : null;
+  const profit = palletCost != null ? soldRevenue - palletCost : null;
   const costAlreadySet = listings.every((l) => l.cost != null && l.cost !== "");
 
   return (
