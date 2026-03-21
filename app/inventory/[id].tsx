@@ -290,12 +290,31 @@ export default function ListingDetailScreen() {
     try {
       const res = await apiRequest("GET", `/api/square-pos-link/${listing.id}`);
       const data = await res.json();
-      if (data.url) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        await Linking.openURL(data.url);
-      } else {
+      if (!data.url) {
         Alert.alert("Error", data.error || "Could not open Square POS");
+        return;
       }
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const canOpen = await Linking.canOpenURL(data.url);
+      if (!canOpen) {
+        Alert.alert(
+          "Square POS Not Installed",
+          "You need the Square Point of Sale app to take card payments in person. Download it from the app store?",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Download",
+              onPress: () => Linking.openURL(
+                Platform.OS === "android"
+                  ? "https://play.google.com/store/apps/details?id=com.squareup"
+                  : "https://apps.apple.com/us/app/square-point-of-sale-pos/id335393788"
+              ),
+            },
+          ]
+        );
+        return;
+      }
+      await Linking.openURL(data.url);
     } catch (e: any) {
       Alert.alert("Error", e?.message || "Could not open Square POS");
     } finally {
