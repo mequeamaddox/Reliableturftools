@@ -110,6 +110,7 @@ export default function ListingDetailScreen() {
   const [scannerScanned, setScannerScanned] = useState(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [shipZip, setShipZip] = useState("");
+  const [quickWeight, setQuickWeight] = useState("");
   const [shipRates, setShipRates] = useState<any[]>([]);
   const [shipLoading, setShipLoading] = useState(false);
   const [shipError, setShipError] = useState("");
@@ -243,7 +244,7 @@ export default function ListingDetailScreen() {
     try {
       const res = await apiRequest("POST", "/api/shipping-rates", {
         destinationZip: shipZip.trim(),
-        weightLbs: weightLbs || "1",
+        weightLbs: weightLbs || quickWeight || "1",
         boxLengthIn: boxLengthIn || "12",
         boxWidthIn: boxWidthIn || "10",
         boxHeightIn: boxHeightIn || "8",
@@ -739,13 +740,25 @@ export default function ListingDetailScreen() {
               </View>
             )}
 
-            {!!weightLbs && (
             <>
             <View style={styles.sectionSeparator} />
             <Text style={styles.sectionTitle}>Shipping Quote</Text>
             <Text style={[styles.shippingHint, { marginBottom: 8 }]}>
               Get rates and optionally add shipping to the payment link above.
             </Text>
+            {!weightLbs && (
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Estimated Weight (lbs)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={quickWeight}
+                  onChangeText={setQuickWeight}
+                  placeholder="e.g. 5"
+                  placeholderTextColor={Colors.textMuted}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+            )}
                 <View style={[styles.row, { alignItems: "flex-end", gap: 8 }]}>
                   <View style={[styles.fieldGroup, { flex: 1, marginBottom: 0 }]}>
                     <Text style={styles.label}>Buyer ZIP Code</Text>
@@ -810,7 +823,6 @@ export default function ListingDetailScreen() {
                   </>
                 )}
               </>
-            )}
 
             <View style={styles.bottomActions}>
               <Pressable style={styles.bottomBtn} onPress={handleDuplicate}>
