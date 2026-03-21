@@ -295,9 +295,9 @@ export default function ListingDetailScreen() {
       const data = await res.json();
       if (!data.url) throw new Error("No URL returned");
 
-      const canOpen = await Linking.canOpenURL(data.url);
+      // Check scheme only — canOpenURL can fail on long data-encoded URLs
+      const canOpen = await Linking.canOpenURL('square-commerce-v1://');
       if (canOpen) {
-        // Direct deep link — works on EAS builds with manifest queries declared
         await Linking.openURL(data.url);
       } else {
         // Fallback: open the redirect page in the browser
