@@ -295,8 +295,9 @@ export default function ListingDetailScreen() {
         return;
       }
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const canOpen = await Linking.canOpenURL(data.url);
-      if (!canOpen) {
+      try {
+        await Linking.openURL(data.url);
+      } catch {
         Alert.alert(
           "Square POS Not Installed",
           "You need the Square Point of Sale app to take card payments in person. Download it from the app store?",
@@ -312,9 +313,7 @@ export default function ListingDetailScreen() {
             },
           ]
         );
-        return;
       }
-      await Linking.openURL(data.url);
     } catch (e: any) {
       Alert.alert("Error", e?.message || "Could not open Square POS");
     } finally {
