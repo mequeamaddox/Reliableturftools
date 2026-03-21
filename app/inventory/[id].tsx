@@ -1457,8 +1457,7 @@ const styles = StyleSheet.create({
   posBtn: {
     marginTop: 10,
     width: "100%",
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
+    backgroundColor: Colors.info,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: "center",
@@ -1467,7 +1466,7 @@ const styles = StyleSheet.create({
   posBtnText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 15,
-    color: Colors.primary,
+    color: Colors.white,
   },
 });
 
