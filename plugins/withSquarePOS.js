@@ -1,42 +1,35 @@
-const { withAndroidManifest } = require("@expo/config-plugins");
+const { withDangerousMod } = require("@expo/config-plugins");
+const fs = require("fs");
+const path = require("path");
 
 module.exports = function withSquarePOS(config) {
-  return withAndroidManifest(config, (config) => {
-    const manifest = config.modResults.manifest;
+  return withDangerousMod(config, [
+    "android",
+    async (config) => {
+      const manifestPath = path.join(
+        config.modRequest.platformProjectRoot,
+        "app",
+        "src",
+        "main",
+        "AndroidManifest.xml"
+      );
 
-    if (!manifest.queries) {
-      manifest.queries = [{}];
-    } else if (!Array.isArray(manifest.queries)) {
-      manifest.queries = [manifest.queries];
-    }
+      let manifest = fs.readFileSync(manifestPath, "utf8");
 
-    const q = manifest.queries[0];
+      if (!manifest.includes('android:name="com.squareup"')) {
+        const queriesBlock = `
+    <queries>
+        <package android:name="com.squareup" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="square-commerce-v1" />
+        </intent>
+    </queries>`;
+        manifest = manifest.replace("</manifest>", queriesBlock + "\n</manifest>");
+        fs.writeFileSync(manifestPath, manifest, "utf8");
+      }
 
-    // Declare Square POS package directly — more reliable than scheme-based query
-    if (!q.package) {
-      q.package = [];
-    }
-    const pkgAlreadyAdded = q.package.some(
-      (p) => p.$ && p.$["android:name"] === "com.squareup"
-    );
-    if (!pkgAlreadyAdded) {
-      q.package.push({ $: { "android:name": "com.squareup" } });
-    }
-
-    // Also declare the scheme for canOpenURL
-    if (!q.intent) {
-      q.intent = [];
-    }
-    const intentAlreadyAdded = q.intent.some(
-      (i) => i.data && i.data.some((d) => d.$["android:scheme"] === "square-commerce-v1")
-    );
-    if (!intentAlreadyAdded) {
-      q.intent.push({
-        action: [{ $: { "android:name": "android.intent.action.VIEW" } }],
-        data: [{ $: { "android:scheme": "square-commerce-v1" } }],
-      });
-    }
-
-    return config;
-  });
+      return config;
+    },
+  ]);
 };
