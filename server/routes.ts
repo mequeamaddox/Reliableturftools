@@ -1384,6 +1384,8 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
       };
       const encoded = Buffer.from(JSON.stringify(payload)).toString("base64");
       const squareUrl = `square-commerce-v1://payment/create?data=${encoded}`;
+      // Android Intent URL — Chrome on Android requires this format to open apps
+      const intentUrl = `intent://payment/create?data=${encoded}#Intent;scheme=square-commerce-v1;package=com.squareup;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.squareup;end`;
       const price = `$${parseFloat(listing.price).toFixed(2)}`;
       res.setHeader("Content-Type", "text/html");
       return res.send(`<!DOCTYPE html>
@@ -1398,15 +1400,30 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
   h2 { font-size: 20px; color: #94a3b8; font-weight: 500; margin-bottom: 8px; }
   .amount { font-size: 56px; font-weight: 700; color: #22c55e; margin: 12px 0; }
   .title { font-size: 16px; color: #94a3b8; margin-bottom: 40px; }
-  .btn { display: block; background: #3b82f6; color: #fff; font-size: 20px; font-weight: 700; padding: 20px 40px; border-radius: 16px; text-decoration: none; -webkit-tap-highlight-color: rgba(59,130,246,0.3); }
+  .btn { display: block; background: #3b82f6; color: #fff; font-size: 20px; font-weight: 700; padding: 20px 40px; border-radius: 16px; text-decoration: none; -webkit-tap-highlight-color: rgba(59,130,246,0.3); cursor: pointer; border: none; width: 100%; max-width: 320px; }
   .btn:active { background: #2563eb; }
+  .note { margin-top: 24px; font-size: 13px; color: #64748b; }
 </style>
 </head>
 <body>
 <h2>Charge Customer</h2>
 <div class="amount">${price}</div>
 <p class="title">${listing.title.replace(/</g, "&lt;")}</p>
-<a href="${squareUrl}" class="btn">Open Square POS</a>
+<button class="btn" onclick="openSquare()">Open Square POS</button>
+<p class="note" id="note"></p>
+<script>
+  function isAndroid() { return /android/i.test(navigator.userAgent); }
+  function openSquare() {
+    if (isAndroid()) {
+      window.location.href = '${intentUrl}';
+    } else {
+      window.location.href = '${squareUrl}';
+    }
+    setTimeout(function() {
+      document.getElementById('note').textContent = 'If Square POS did not open, make sure the Square Point of Sale app is installed.';
+    }, 2000);
+  }
+</script>
 </body>
 </html>`);
     } catch (err: any) {
