@@ -295,18 +295,22 @@ export default function ListingDetailScreen() {
       const data = await res.json();
       if (!data.url) throw new Error("No URL returned");
 
-      // Check scheme only — canOpenURL can fail on long data-encoded URLs
-      const canOpen = await Linking.canOpenURL('square-commerce-v1://');
-      if (canOpen) {
+      if (Platform.OS === 'android') {
+        // On Android, skip canOpenURL (unreliable with package visibility rules)
+        // and attempt the deep link directly — Square POS handles the intent if installed
         await Linking.openURL(data.url);
       } else {
-        // Fallback: open the redirect page in the browser
-        const baseUrl = getApiUrl();
-        const redirectUrl = new URL(`/api/square-pos-redirect/${listing.id}`, baseUrl).toString();
-        await WebBrowser.openBrowserAsync(redirectUrl, {
-          dismissButtonStyle: "close",
-          presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
-        });
+        const canOpen = await Linking.canOpenURL('square-commerce-v1://');
+        if (canOpen) {
+          await Linking.openURL(data.url);
+        } else {
+          const baseUrl = getApiUrl();
+          const redirectUrl = new URL(`/api/square-pos-redirect/${listing.id}`, baseUrl).toString();
+          await WebBrowser.openBrowserAsync(redirectUrl, {
+            dismissButtonStyle: "close",
+            presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+          });
+        }
       }
     } catch (e: any) {
       Alert.alert("Error", e?.message || "Could not open Square POS");
