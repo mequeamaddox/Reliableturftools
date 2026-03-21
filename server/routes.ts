@@ -1283,19 +1283,29 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
         },
       ];
 
+      const baseUrl = getBaseUrl(req);
+
+      // Build checkout options — shipping fee goes here (not as a line item)
+      // so Square collects the address but does NOT show its own shipping method picker.
+      const checkoutOptions: any = {
+        redirectUrl: `${baseUrl}/store/thank-you`,
+        acceptedPaymentMethods: {
+          applePay: true,
+          googlePay: true,
+        },
+      };
+
       if (shippingRate && shippingRate.price > 0) {
         const shippingCents = BigInt(Math.round(shippingRate.price * 100));
-        lineItems.push({
-          name: `Shipping: ${shippingRate.service}`,
-          quantity: "1",
-          basePriceMoney: {
+        checkoutOptions.askForShippingAddress = true;
+        checkoutOptions.shippingFee = {
+          name: shippingRate.service || "Shipping",
+          charge: {
             amount: shippingCents,
             currency: "USD",
           },
-        });
+        };
       }
-
-      const baseUrl = getBaseUrl(req);
 
       const response = await squareClient.checkout.paymentLinks.create({
         idempotencyKey: crypto.randomUUID(),
@@ -1303,14 +1313,7 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
           locationId,
           lineItems,
         },
-        checkoutOptions: {
-          askForShippingAddress: !!shippingRate,
-          redirectUrl: `${baseUrl}/store/thank-you`,
-          acceptedPaymentMethods: {
-            applePay: true,
-            googlePay: true,
-          },
-        },
+        checkoutOptions,
         paymentNote: `RTT Listing: ${listing.title} (SKU: ${listing.sku || "N/A"})`,
       });
 
