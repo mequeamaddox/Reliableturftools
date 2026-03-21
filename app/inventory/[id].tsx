@@ -26,6 +26,7 @@ import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { apiRequest, queryClient, getApiUrl } from "@/lib/query-client";
 import * as WebBrowser from "expo-web-browser";
+import * as IntentLauncher from "expo-intent-launcher";
 
 const FALLBACK_CONDITIONS = ["NEW_BOXED", "USED_UNBOXED", "USED", "DAMAGED"];
 const FALLBACK_POWER_TYPES = ["GAS", "ELECTRIC_18V", "ELECTRIC_40V", "OTHER"];
@@ -295,18 +296,19 @@ export default function ListingDetailScreen() {
       const data = await res.json();
       if (!data.url) throw new Error("No URL returned");
 
-      const canOpen = await Linking.canOpenURL('square-commerce-v1://');
-      if (canOpen) {
-        // Native build with manifest queries — open directly
-        await Linking.openURL(data.url);
+      if (Platform.OS === 'android') {
+        // Explicit Android intent targeting Square POS by package name.
+        // Explicit intents bypass Android 11+ package visibility rules —
+        // no <queries> manifest entry needed.
+        await IntentLauncher.startActivityAsync(
+          'android.intent.action.VIEW',
+          {
+            data: data.url,
+            packageName: 'com.squareup',
+          }
+        );
       } else {
-        // Open via browser — Chrome can route to Square POS via Intent URL
-        const baseUrl = getApiUrl();
-        const redirectUrl = new URL(`/api/square-pos-redirect/${listing.id}`, baseUrl).toString();
-        await WebBrowser.openBrowserAsync(redirectUrl, {
-          dismissButtonStyle: "close",
-          presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
-        });
+        await Linking.openURL(data.url);
       }
     } catch (e: any) {
       Alert.alert("Error", e?.message || "Could not open Square POS");
