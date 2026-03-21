@@ -25,8 +25,6 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { apiRequest, queryClient, getApiUrl } from "@/lib/query-client";
-import * as WebBrowser from "expo-web-browser";
-import * as IntentLauncher from "expo-intent-launcher";
 
 const FALLBACK_CONDITIONS = ["NEW_BOXED", "USED_UNBOXED", "USED", "DAMAGED"];
 const FALLBACK_POWER_TYPES = ["GAS", "ELECTRIC_18V", "ELECTRIC_40V", "OTHER"];
@@ -120,7 +118,6 @@ export default function ListingDetailScreen() {
   const [payLinkLoading, setPayLinkLoading] = useState(false);
   const [payLinkUrl, setPayLinkUrl] = useState("");
   const [payLinkError, setPayLinkError] = useState("");
-  const [posLoading, setPosLoading] = useState(false);
 
   useEffect(() => {
     if (listing && !initializedRef.current) {
@@ -286,26 +283,6 @@ export default function ListingDetailScreen() {
     }
   }
 
-  async function openSquarePOS() {
-    if (!listing) return;
-    setPosLoading(true);
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      // Fetch the square-commerce-v1:// deep link URL from the backend
-      const res = await apiRequest("GET", `/api/square-pos-link/${listing.id}`);
-      const data = await res.json();
-      if (!data.url) throw new Error("No URL returned");
-
-      // Square's documented Android approach: open square-commerce-v1:// URL directly.
-      // Requires <queries><package android:name="com.squareup" /></queries> in AndroidManifest.xml
-      // which is declared via plugins/withSquarePOS.js in the native build.
-      await Linking.openURL(data.url);
-    } catch (e: any) {
-      Alert.alert("Error", e?.message || "Could not open Square POS");
-    } finally {
-      setPosLoading(false);
-    }
-  }
 
   function handleDuplicate() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -738,16 +715,6 @@ export default function ListingDetailScreen() {
               <Text style={styles.shipError}>{payLinkError}</Text>
             )}
 
-            <Pressable
-              style={[styles.posBtn, posLoading && { opacity: 0.6 }]}
-              onPress={openSquarePOS}
-              disabled={posLoading}
-            >
-              {posLoading
-                ? <ActivityIndicator size="small" color={Colors.primary} />
-                : <Text style={styles.posBtnText}>Take Card Payment (Square POS)</Text>
-              }
-            </Pressable>
 
             {!!payLinkUrl && (
               <View style={styles.payLinkBox}>
@@ -1439,20 +1406,6 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 13,
     color: Colors.primary,
-  },
-  posBtn: {
-    marginTop: 10,
-    width: "100%",
-    backgroundColor: Colors.info,
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  posBtnText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 15,
-    color: Colors.white,
   },
 });
 
