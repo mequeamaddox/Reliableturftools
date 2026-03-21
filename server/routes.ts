@@ -1354,7 +1354,7 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
           skip_receipt_screen: false,
         },
       };
-      const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
+      const encoded = encodeURIComponent(Buffer.from(JSON.stringify(payload)).toString("base64"));
       return res.json({ url: `square-commerce-v1://payment/create?data=${encoded}` });
     } catch (err: any) {
       console.error("Square POS link error:", err?.message || err);
@@ -1382,7 +1382,7 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
           skip_receipt_screen: false,
         },
       };
-      const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
+      const encoded = encodeURIComponent(Buffer.from(JSON.stringify(payload)).toString("base64"));
       const squareUrl = `square-commerce-v1://payment/create?data=${encoded}`;
       // Android Intent URL — Chrome on Android requires this format to open apps
       const intentUrl = `intent://payment/create?data=${encoded}#Intent;scheme=square-commerce-v1;package=com.squareup;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.squareup;end`;
