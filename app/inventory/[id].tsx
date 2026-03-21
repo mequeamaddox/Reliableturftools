@@ -739,15 +739,13 @@ export default function ListingDetailScreen() {
               </View>
             )}
 
+            {!!weightLbs && (
+            <>
             <View style={styles.sectionSeparator} />
             <Text style={styles.sectionTitle}>Shipping Quote</Text>
             <Text style={[styles.shippingHint, { marginBottom: 8 }]}>
-              For online sales — get rates and optionally add shipping to the payment link above.
+              Get rates and optionally add shipping to the payment link above.
             </Text>
-            {!weightLbs ? (
-              <Text style={[styles.shippingHint, { color: Colors.warning }]}>Add weight above to use the shipping calculator.</Text>
-            ) : (
-              <>
                 <View style={[styles.row, { alignItems: "flex-end", gap: 8 }]}>
                   <View style={[styles.fieldGroup, { flex: 1, marginBottom: 0 }]}>
                     <Text style={styles.label}>Buyer ZIP Code</Text>
