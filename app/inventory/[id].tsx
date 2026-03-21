@@ -11,7 +11,9 @@ import {
   Alert,
   Image,
   Modal,
+  Linking,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { File } from "expo-file-system";
@@ -111,6 +113,10 @@ export default function ListingDetailScreen() {
   const [shipRates, setShipRates] = useState<any[]>([]);
   const [shipLoading, setShipLoading] = useState(false);
   const [shipError, setShipError] = useState("");
+  const [selectedShipRate, setSelectedShipRate] = useState<number | null>(null);
+  const [payLinkLoading, setPayLinkLoading] = useState(false);
+  const [payLinkUrl, setPayLinkUrl] = useState("");
+  const [payLinkError, setPayLinkError] = useState("");
 
   useEffect(() => {
     if (listing && !initializedRef.current) {
@@ -232,6 +238,8 @@ export default function ListingDetailScreen() {
     setShipLoading(true);
     setShipError("");
     setShipRates([]);
+    setSelectedShipRate(null);
+    setPayLinkUrl("");
     try {
       const res = await apiRequest("POST", "/api/shipping-rates", {
         destinationZip: shipZip.trim(),
@@ -246,6 +254,31 @@ export default function ListingDetailScreen() {
       setShipError(e?.message || "Could not get rates. Check the ZIP and try again.");
     } finally {
       setShipLoading(false);
+    }
+  }
+
+  async function generatePayLink() {
+    if (!listing) return;
+    setPayLinkLoading(true);
+    setPayLinkError("");
+    setPayLinkUrl("");
+    try {
+      const body: any = { listingId: listing.id };
+      if (selectedShipRate !== null && shipRates[selectedShipRate]) {
+        body.shippingRate = shipRates[selectedShipRate];
+      }
+      const res = await apiRequest("POST", "/api/checkout", body);
+      const data = await res.json();
+      if (data.checkoutUrl) {
+        setPayLinkUrl(data.checkoutUrl);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        setPayLinkError(data.error || "Failed to generate link");
+      }
+    } catch (e: any) {
+      setPayLinkError(e?.message || "Failed to generate link");
+    } finally {
+      setPayLinkLoading(false);
     }
   }
 
@@ -691,21 +724,88 @@ export default function ListingDetailScreen() {
                 )}
 
                 {shipRates.length > 0 && (
-                  <View style={styles.ratesContainer}>
-                    {shipRates.map((rate, i) => (
-                      <View key={i} style={styles.rateRow}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.rateService}>{rate.service}</Text>
-                          {!!rate.delivery && (
-                            <Text style={styles.rateDelivery}>{rate.delivery}</Text>
-                          )}
-                        </View>
-                        <Text style={styles.ratePrice}>${Number(rate.price).toFixed(2)}</Text>
-                      </View>
-                    ))}
-                  </View>
+                  <>
+                    <Text style={[styles.label, { marginTop: 12 }]}>Tap a rate to include it in a payment link:</Text>
+                    <View style={styles.ratesContainer}>
+                      {shipRates.map((rate, i) => {
+                        const isSelected = selectedShipRate === i;
+                        return (
+                          <Pressable
+                            key={i}
+                            style={[styles.rateRow, isSelected && styles.rateRowSelected]}
+                            onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              setSelectedShipRate(isSelected ? null : i);
+                              setPayLinkUrl("");
+                            }}
+                          >
+                            <View style={[styles.rateRadio, isSelected && styles.rateRadioSelected]}>
+                              {isSelected && <View style={styles.rateRadioDot} />}
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.rateService}>{rate.service}</Text>
+                              {!!rate.delivery && (
+                                <Text style={styles.rateDelivery}>{rate.delivery}</Text>
+                              )}
+                            </View>
+                            <Text style={styles.ratePrice}>${Number(rate.price).toFixed(2)}</Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </>
                 )}
               </>
+            )}
+
+            <View style={styles.sectionSeparator} />
+            <Text style={styles.sectionTitle}>Payment Link</Text>
+            <Text style={styles.shippingHint}>
+              Generate a Square checkout link to send the buyer.
+              {selectedShipRate !== null && shipRates[selectedShipRate]
+                ? ` Includes ${shipRates[selectedShipRate].service} shipping.`
+                : " Item price only — select a shipping rate above to include it."}
+            </Text>
+
+            <Pressable
+              style={[styles.getRatesBtn, { marginTop: 8, width: "100%" }, payLinkLoading && { opacity: 0.6 }]}
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); generatePayLink(); }}
+              disabled={payLinkLoading}
+            >
+              {payLinkLoading
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={styles.getRatesBtnText}>Generate Payment Link</Text>
+              }
+            </Pressable>
+
+            {!!payLinkError && (
+              <Text style={styles.shipError}>{payLinkError}</Text>
+            )}
+
+            {!!payLinkUrl && (
+              <View style={styles.payLinkBox}>
+                <Text style={styles.payLinkUrl} numberOfLines={1} ellipsizeMode="middle">{payLinkUrl}</Text>
+                <View style={styles.payLinkActions}>
+                  <Pressable
+                    style={styles.payLinkBtn}
+                    onPress={() => {
+                      Clipboard.setStringAsync(payLinkUrl);
+                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                      Alert.alert("Copied!", "Payment link copied to clipboard.");
+                    }}
+                  >
+                    <Ionicons name="copy-outline" size={16} color={Colors.primary} />
+                    <Text style={styles.payLinkBtnText}>Copy</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.payLinkBtn}
+                    onPress={() => Linking.openURL(payLinkUrl)}
+                  >
+                    <Ionicons name="open-outline" size={16} color={Colors.info} />
+                    <Text style={[styles.payLinkBtnText, { color: Colors.info }]}>Open</Text>
+                  </Pressable>
+                </View>
+              </View>
             )}
 
             <View style={styles.bottomActions}>
@@ -1212,12 +1312,33 @@ const styles = StyleSheet.create({
   rateRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 10,
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
     backgroundColor: Colors.cardBg,
+  },
+  rateRowSelected: {
+    backgroundColor: "rgba(34,197,94,0.08)",
+  },
+  rateRadio: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rateRadioSelected: {
+    borderColor: Colors.primary,
+  },
+  rateRadioDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
   },
   rateService: {
     fontFamily: "Inter_600SemiBold",
@@ -1235,6 +1356,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.primary,
     marginLeft: 12,
+  },
+  payLinkBox: {
+    marginTop: 12,
+    backgroundColor: Colors.cardBg,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    padding: 14,
+    gap: 10,
+  },
+  payLinkUrl: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  payLinkActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  payLinkBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: Colors.surface,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  payLinkBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+    color: Colors.primary,
   },
 });
 

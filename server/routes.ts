@@ -1255,8 +1255,12 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
         return res.status(500).json({ error: "Square is not configured yet" });
       }
 
+      const isAdminRequest = !!(req as any).session?.userId;
       const listing = await storage.getListingById(listingId);
-      if (!listing || !listing.isPublished || listing.status !== "AVAILABLE") {
+      if (!listing || listing.status !== "AVAILABLE") {
+        return res.status(404).json({ error: "Listing not found or not available" });
+      }
+      if (!isAdminRequest && !listing.isPublished) {
         return res.status(404).json({ error: "Listing not found or not available" });
       }
 
