@@ -1297,6 +1297,8 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
 
       if (shippingRate && shippingRate.price > 0) {
         const shippingCents = BigInt(Math.round(shippingRate.price * 100));
+        // askForShippingAddress is required by Square when shippingFee is set
+        checkoutOptions.askForShippingAddress = true;
         checkoutOptions.shippingFee = {
           name: shippingRate.service || "Shipping",
           charge: {
@@ -1304,10 +1306,6 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
             currency: "USD",
           },
         };
-        // Collect address via custom field — avoids Square's shipping method picker
-        checkoutOptions.customFields = [
-          { title: "Shipping Address (street, city, state, ZIP)" },
-        ];
       }
 
       const response = await squareClient.checkout.paymentLinks.create({
