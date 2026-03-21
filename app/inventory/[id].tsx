@@ -295,8 +295,15 @@ export default function ListingDetailScreen() {
         return;
       }
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      // Android 11+ blocks custom URL schemes without manifest <queries> declaration.
+      // Use explicit intent:// URL targeting Square's package name directly.
+      let urlToOpen = data.url;
+      if (Platform.OS === "android") {
+        const withoutScheme = data.url.replace("square-commerce-v1://", "");
+        urlToOpen = `intent://${withoutScheme}#Intent;scheme=square-commerce-v1;package=com.squareup;end`;
+      }
       try {
-        await Linking.openURL(data.url);
+        await Linking.openURL(urlToOpen);
       } catch {
         Alert.alert(
           "Square POS Not Installed",
