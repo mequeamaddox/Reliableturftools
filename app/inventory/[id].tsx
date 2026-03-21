@@ -296,18 +296,15 @@ export default function ListingDetailScreen() {
       const data = await res.json();
       if (!data.url) throw new Error("No URL returned");
 
-      if (Platform.OS === 'android') {
-        // Convert to Android Intent URL format — this is how Chrome successfully
-        // opens Square POS. The intent:// scheme with package=com.squareup targets
-        // Square POS explicitly, bypassing Android 11+ package visibility rules.
-        // square-commerce-v1://payment/create?data=BASE64
-        // → intent://payment/create?data=BASE64#Intent;scheme=square-commerce-v1;package=com.squareup;end;
-        const intentUrl = data.url.replace('square-commerce-v1://', 'intent://') +
-          '#Intent;scheme=square-commerce-v1;package=com.squareup;end;';
-        await Linking.openURL(intentUrl);
-      } else {
-        await Linking.openURL(data.url);
-      }
+      // Open the redirect page in Chrome — Chrome correctly parses the
+      // Android intent URL and routes to Square POS. Direct Linking.openURL
+      // and IntentLauncher both require <queries> in the native manifest.
+      const baseUrl = getApiUrl();
+      const redirectUrl = new URL(`/api/square-pos-redirect/${listing.id}`, baseUrl).toString();
+      await WebBrowser.openBrowserAsync(redirectUrl, {
+        dismissButtonStyle: "close",
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+      });
     } catch (e: any) {
       Alert.alert("Error", e?.message || "Could not open Square POS");
     } finally {
