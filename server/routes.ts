@@ -1046,6 +1046,30 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
     res.status(200).send(html);
   });
 
+  app.get("/square-pos-done", (_req: Request, res: Response) => {
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.status(200).send(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Complete</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, sans-serif; background: #0f172a; color: #f8fafc; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; text-align: center; }
+  .check { width: 64px; height: 64px; background: #22c55e; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+  h1 { font-size: 24px; margin-bottom: 12px; }
+  p { font-size: 16px; color: #94a3b8; }
+</style>
+</head>
+<body>
+  <div class="check"><svg width="32" height="32" fill="none" stroke="#fff" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
+  <h1>Payment Complete</h1>
+  <p>You can close this window and go back to the app.</p>
+</body>
+</html>`);
+  });
+
   app.get("/store/:id", async (req: Request, res: Response) => {
     try {
       const baseUrl = getBaseUrl(req);
@@ -1371,9 +1395,11 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
       const listing = await storage.getListingById(listingId);
       if (!listing || listing.status !== "AVAILABLE") return res.status(404).send("Listing not available");
       const amountCents = Math.round(parseFloat(listing.price) * 100);
+      const baseUrl = getBaseUrl(req);
       const payload = {
         amount_money: { amount: amountCents, currency_code: "USD" },
-        callback_url: "reliableturftools://square-callback",
+        // Use HTTPS callback so Square POS can return after payment (custom scheme not registered in browser context)
+        callback_url: `${baseUrl}/square-pos-done`,
         client_id: appId,
         notes: `${listing.title}${listing.sku ? ` (${listing.sku})` : ""}`,
         version: "1.3",
@@ -1382,10 +1408,10 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
           skip_receipt_screen: false,
         },
       };
-      const encoded = encodeURIComponent(Buffer.from(JSON.stringify(payload)).toString("base64"));
-      const squareUrl = `square-commerce-v1://payment/create?data=${encoded}`;
+      const encoded = Buffer.from(JSON.stringify(payload)).toString("base64");
+      const squareUrl = `square-commerce-v1://payment/create?data=${encodeURIComponent(encoded)}`;
       // Android Intent URL — Chrome on Android requires this format to open apps
-      const intentUrl = `intent://payment/create?data=${encoded}#Intent;scheme=square-commerce-v1;package=com.squareup;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.squareup;end`;
+      const intentUrl = `intent://payment/create?data=${encodeURIComponent(encoded)}#Intent;scheme=square-commerce-v1;package=com.squareup;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.squareup;end`;
       const price = `$${parseFloat(listing.price).toFixed(2)}`;
       res.setHeader("Content-Type", "text/html");
       return res.send(`<!DOCTYPE html>
