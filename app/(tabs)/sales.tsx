@@ -244,19 +244,31 @@ export default function SalesScreen() {
     <View style={[styles.container, { paddingTop: insets.top + webTopInset }]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Sales</Text>
-        <Pressable
-          onPress={() => {
-            setShowAnalytics(!showAnalytics);
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          }}
-          style={styles.analyticsToggle}
-        >
-          <Ionicons
-            name={showAnalytics ? "stats-chart" : "stats-chart-outline"}
-            size={20}
-            color={showAnalytics ? Colors.primary : Colors.textMuted}
-          />
-        </Pressable>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              router.push("/sales/quick" as any);
+            }}
+            style={styles.quickSaleBtn}
+          >
+            <Ionicons name="flash" size={16} color="#fff" />
+            <Text style={styles.quickSaleBtnText}>Quick Sale</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              setShowAnalytics(!showAnalytics);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            style={styles.analyticsToggle}
+          >
+            <Ionicons
+              name={showAnalytics ? "stats-chart" : "stats-chart-outline"}
+              size={20}
+              color={showAnalytics ? Colors.primary : Colors.textMuted}
+            />
+          </Pressable>
+        </View>
       </View>
 
       {isLoading ? (
@@ -443,6 +455,20 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.cardBg,
     alignItems: "center",
     justifyContent: "center",
+  },
+  quickSaleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: Colors.success,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  quickSaleBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+    color: "#fff",
   },
   analyticsSection: {
     paddingHorizontal: 16,
