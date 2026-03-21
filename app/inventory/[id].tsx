@@ -297,16 +297,14 @@ export default function ListingDetailScreen() {
       if (!data.url) throw new Error("No URL returned");
 
       if (Platform.OS === 'android') {
-        // Explicit Android intent targeting Square POS by package name.
-        // Explicit intents bypass Android 11+ package visibility rules —
-        // no <queries> manifest entry needed.
-        await IntentLauncher.startActivityAsync(
-          'android.intent.action.VIEW',
-          {
-            data: data.url,
-            packageName: 'com.squareup',
-          }
-        );
+        // Convert to Android Intent URL format — this is how Chrome successfully
+        // opens Square POS. The intent:// scheme with package=com.squareup targets
+        // Square POS explicitly, bypassing Android 11+ package visibility rules.
+        // square-commerce-v1://payment/create?data=BASE64
+        // → intent://payment/create?data=BASE64#Intent;scheme=square-commerce-v1;package=com.squareup;end;
+        const intentUrl = data.url.replace('square-commerce-v1://', 'intent://') +
+          '#Intent;scheme=square-commerce-v1;package=com.squareup;end;';
+        await Linking.openURL(intentUrl);
       } else {
         await Linking.openURL(data.url);
       }
