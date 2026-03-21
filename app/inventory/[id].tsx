@@ -295,22 +295,18 @@ export default function ListingDetailScreen() {
       const data = await res.json();
       if (!data.url) throw new Error("No URL returned");
 
-      if (Platform.OS === 'android') {
-        // On Android, skip canOpenURL (unreliable with package visibility rules)
-        // and attempt the deep link directly — Square POS handles the intent if installed
+      const canOpen = await Linking.canOpenURL('square-commerce-v1://');
+      if (canOpen) {
+        // Native build with manifest queries — open directly
         await Linking.openURL(data.url);
       } else {
-        const canOpen = await Linking.canOpenURL('square-commerce-v1://');
-        if (canOpen) {
-          await Linking.openURL(data.url);
-        } else {
-          const baseUrl = getApiUrl();
-          const redirectUrl = new URL(`/api/square-pos-redirect/${listing.id}`, baseUrl).toString();
-          await WebBrowser.openBrowserAsync(redirectUrl, {
-            dismissButtonStyle: "close",
-            presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
-          });
-        }
+        // Open via browser — Chrome can route to Square POS via Intent URL
+        const baseUrl = getApiUrl();
+        const redirectUrl = new URL(`/api/square-pos-redirect/${listing.id}`, baseUrl).toString();
+        await WebBrowser.openBrowserAsync(redirectUrl, {
+          dismissButtonStyle: "close",
+          presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+        });
       }
     } catch (e: any) {
       Alert.alert("Error", e?.message || "Could not open Square POS");
