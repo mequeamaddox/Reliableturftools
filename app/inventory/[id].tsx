@@ -118,6 +118,7 @@ export default function ListingDetailScreen() {
   const [payLinkLoading, setPayLinkLoading] = useState(false);
   const [payLinkUrl, setPayLinkUrl] = useState("");
   const [payLinkError, setPayLinkError] = useState("");
+  const [posLoading, setPosLoading] = useState(false);
 
   useEffect(() => {
     if (listing && !initializedRef.current) {
@@ -280,6 +281,25 @@ export default function ListingDetailScreen() {
       setPayLinkError(e?.message || "Failed to generate link");
     } finally {
       setPayLinkLoading(false);
+    }
+  }
+
+  async function openSquarePOS() {
+    if (!listing) return;
+    setPosLoading(true);
+    try {
+      const res = await apiRequest("GET", `/api/square-pos-link/${listing.id}`);
+      const data = await res.json();
+      if (data.url) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        await Linking.openURL(data.url);
+      } else {
+        Alert.alert("Error", data.error || "Could not open Square POS");
+      }
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Could not open Square POS");
+    } finally {
+      setPosLoading(false);
     }
   }
 
@@ -713,6 +733,17 @@ export default function ListingDetailScreen() {
             {!!payLinkError && (
               <Text style={styles.shipError}>{payLinkError}</Text>
             )}
+
+            <Pressable
+              style={[styles.posBtn, posLoading && { opacity: 0.6 }]}
+              onPress={openSquarePOS}
+              disabled={posLoading}
+            >
+              {posLoading
+                ? <ActivityIndicator size="small" color={Colors.primary} />
+                : <Text style={styles.posBtnText}>Take Card Payment (Square POS)</Text>
+              }
+            </Pressable>
 
             {!!payLinkUrl && (
               <View style={styles.payLinkBox}>
@@ -1403,6 +1434,21 @@ const styles = StyleSheet.create({
   payLinkBtnText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 13,
+    color: Colors.primary,
+  },
+  posBtn: {
+    marginTop: 10,
+    width: "100%",
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  posBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 15,
     color: Colors.primary,
   },
 });

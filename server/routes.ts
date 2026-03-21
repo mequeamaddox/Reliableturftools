@@ -1331,6 +1331,33 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
 
   app.post("/api/checkout", handleCheckout);
 
+  app.get("/api/square-pos-link/:listingId", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { listingId } = req.params;
+      const appId = process.env.SQUARE_APP_ID;
+      if (!appId) return res.status(500).json({ error: "SQUARE_APP_ID not configured" });
+      const listing = await storage.getListingById(listingId);
+      if (!listing || listing.status !== "AVAILABLE") return res.status(404).json({ error: "Listing not available" });
+      const amountCents = Math.round(parseFloat(listing.price) * 100);
+      const payload = {
+        amount_money: { amount: amountCents, currency_code: "USD" },
+        callback_url: "reliableturftools://square-callback",
+        client_id: appId,
+        notes: `${listing.title}${listing.sku ? ` (${listing.sku})` : ""}`,
+        version: "1.3",
+        options: {
+          supported_tender_types: ["CREDIT_CARD", "SQUARE_GIFT_CARD", "CASH", "OTHER", "GOOGLE_PAY", "APPLE_PAY"],
+          skip_receipt_screen: false,
+        },
+      };
+      const encoded = Buffer.from(JSON.stringify(payload)).toString("base64");
+      return res.json({ url: `square-commerce-v1://payment/create?data=${encoded}` });
+    } catch (err: any) {
+      console.error("Square POS link error:", err?.message || err);
+      return res.status(500).json({ error: "Failed to generate Square POS link" });
+    }
+  });
+
   app.get("/api/square-status", requireAuth, async (req: Request, res: Response) => {
     const accessToken = process.env.SQUARE_ACCESS_TOKEN;
     const locationId = process.env.SQUARE_LOCATION_ID;
