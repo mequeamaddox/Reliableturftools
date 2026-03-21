@@ -1358,6 +1358,58 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
     }
   });
 
+  // HTML redirect page — opens in browser which can relay to Square POS (no auth needed, only shows price/title)
+  app.get("/api/square-pos-redirect/:listingId", async (req: Request, res: Response) => {
+    try {
+      const { listingId } = req.params;
+      const appId = process.env.SQUARE_APP_ID;
+      if (!appId) return res.status(500).send("SQUARE_APP_ID not configured");
+      const listing = await storage.getListingById(listingId);
+      if (!listing || listing.status !== "AVAILABLE") return res.status(404).send("Listing not available");
+      const amountCents = Math.round(parseFloat(listing.price) * 100);
+      const payload = {
+        amount_money: { amount: amountCents, currency_code: "USD" },
+        callback_url: "reliableturftools://square-callback",
+        client_id: appId,
+        notes: `${listing.title}${listing.sku ? ` (${listing.sku})` : ""}`,
+        version: "1.3",
+        options: {
+          supported_tender_types: ["CREDIT_CARD", "SQUARE_GIFT_CARD", "CASH", "OTHER", "GOOGLE_PAY", "APPLE_PAY"],
+          skip_receipt_screen: false,
+        },
+      };
+      const encoded = Buffer.from(JSON.stringify(payload)).toString("base64");
+      const squareUrl = `square-commerce-v1://payment/create?data=${encoded}`;
+      const price = `$${parseFloat(listing.price).toFixed(2)}`;
+      res.setHeader("Content-Type", "text/html");
+      return res.send(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Opening Square POS...</title>
+<style>
+  body { font-family: sans-serif; background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 24px; box-sizing: border-box; text-align: center; }
+  h2 { margin-bottom: 8px; }
+  p { color: #94a3b8; margin-bottom: 32px; }
+  .amount { font-size: 48px; font-weight: bold; color: #22c55e; margin: 16px 0; }
+  a { color: #3b82f6; }
+</style>
+</head>
+<body>
+<h2>Opening Square POS</h2>
+<div class="amount">${price}</div>
+<p>${listing.title}</p>
+<p>If Square POS did not open automatically, <a href="${squareUrl}">tap here</a>.</p>
+<script>window.location.href = "${squareUrl}";</script>
+</body>
+</html>`);
+    } catch (err: any) {
+      console.error("Square POS redirect error:", err?.message || err);
+      return res.status(500).send("Failed to generate redirect");
+    }
+  });
+
   app.get("/api/square-status", requireAuth, async (req: Request, res: Response) => {
     const accessToken = process.env.SQUARE_ACCESS_TOKEN;
     const locationId = process.env.SQUARE_LOCATION_ID;

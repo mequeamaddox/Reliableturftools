@@ -25,6 +25,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { apiRequest, queryClient, getApiUrl } from "@/lib/query-client";
+import * as WebBrowser from "expo-web-browser";
 
 const FALLBACK_CONDITIONS = ["NEW_BOXED", "USED_UNBOXED", "USED", "DAMAGED"];
 const FALLBACK_POWER_TYPES = ["GAS", "ELECTRIC_18V", "ELECTRIC_40V", "OTHER"];
@@ -288,32 +289,15 @@ export default function ListingDetailScreen() {
     if (!listing) return;
     setPosLoading(true);
     try {
-      const res = await apiRequest("GET", `/api/square-pos-link/${listing.id}`);
-      const data = await res.json();
-      if (!data.url) {
-        Alert.alert("Error", data.error || "Could not open Square POS");
-        return;
-      }
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      try {
-        await Linking.openURL(data.url);
-      } catch {
-        Alert.alert(
-          "Square POS Not Installed",
-          "You need the Square Point of Sale app to take card payments in person. Download it from the app store?",
-          [
-            { text: "Cancel", style: "cancel" },
-            {
-              text: "Download",
-              onPress: () => Linking.openURL(
-                Platform.OS === "android"
-                  ? "https://play.google.com/store/apps/details?id=com.squareup"
-                  : "https://apps.apple.com/us/app/square-point-of-sale-pos/id335393788"
-              ),
-            },
-          ]
-        );
-      }
+      // Open an HTTPS redirect page in Chrome — Chrome can relay custom URL
+      // schemes (square-commerce-v1://) to Square POS without needing manifest queries.
+      const baseUrl = getApiUrl();
+      const redirectUrl = new URL(`/api/square-pos-redirect/${listing.id}`, baseUrl).toString();
+      await WebBrowser.openBrowserAsync(redirectUrl, {
+        dismissButtonStyle: "close",
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+      });
     } catch (e: any) {
       Alert.alert("Error", e?.message || "Could not open Square POS");
     } finally {
