@@ -290,14 +290,24 @@ export default function ListingDetailScreen() {
     setPosLoading(true);
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      // Open an HTTPS redirect page in Chrome — Chrome can relay custom URL
-      // schemes (square-commerce-v1://) to Square POS without needing manifest queries.
-      const baseUrl = getApiUrl();
-      const redirectUrl = new URL(`/api/square-pos-redirect/${listing.id}`, baseUrl).toString();
-      await WebBrowser.openBrowserAsync(redirectUrl, {
-        dismissButtonStyle: "close",
-        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
-      });
+      // Fetch the square-commerce-v1:// deep link URL from the backend
+      const res = await apiRequest("GET", `/api/square-pos-link/${listing.id}`);
+      const data = await res.json();
+      if (!data.url) throw new Error("No URL returned");
+
+      const canOpen = await Linking.canOpenURL(data.url);
+      if (canOpen) {
+        // Direct deep link — works on EAS builds with manifest queries declared
+        await Linking.openURL(data.url);
+      } else {
+        // Fallback: open the redirect page in the browser
+        const baseUrl = getApiUrl();
+        const redirectUrl = new URL(`/api/square-pos-redirect/${listing.id}`, baseUrl).toString();
+        await WebBrowser.openBrowserAsync(redirectUrl, {
+          dismissButtonStyle: "close",
+          presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+        });
+      }
     } catch (e: any) {
       Alert.alert("Error", e?.message || "Could not open Square POS");
     } finally {
