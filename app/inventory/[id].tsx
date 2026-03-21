@@ -687,9 +687,65 @@ export default function ListingDetailScreen() {
             </View>
 
             <View style={styles.sectionSeparator} />
-            <Text style={styles.sectionTitle}>Shipping Calculator</Text>
+            <Text style={styles.sectionTitle}>Payment Link</Text>
+            <Text style={styles.shippingHint}>
+              {selectedShipRate !== null && shipRates[selectedShipRate]
+                ? `Includes ${shipRates[selectedShipRate].service} shipping — tap the rate below to deselect.`
+                : "Generates a Square checkout link for the item price. For local/meetup sales, just tap below."}
+            </Text>
+
+            <Pressable
+              style={[styles.getRatesBtn, { marginTop: 8, width: "100%" }, payLinkLoading && { opacity: 0.6 }]}
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); generatePayLink(); }}
+              disabled={payLinkLoading}
+            >
+              {payLinkLoading
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={styles.getRatesBtnText}>
+                    {selectedShipRate !== null && shipRates[selectedShipRate]
+                      ? `Generate Link + ${shipRates[selectedShipRate].service}`
+                      : "Generate Payment Link"}
+                  </Text>
+              }
+            </Pressable>
+
+            {!!payLinkError && (
+              <Text style={styles.shipError}>{payLinkError}</Text>
+            )}
+
+            {!!payLinkUrl && (
+              <View style={styles.payLinkBox}>
+                <Text style={styles.payLinkUrl} numberOfLines={1} ellipsizeMode="middle">{payLinkUrl}</Text>
+                <View style={styles.payLinkActions}>
+                  <Pressable
+                    style={styles.payLinkBtn}
+                    onPress={() => {
+                      Clipboard.setStringAsync(payLinkUrl);
+                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                      Alert.alert("Copied!", "Payment link copied to clipboard.");
+                    }}
+                  >
+                    <Ionicons name="copy-outline" size={16} color={Colors.primary} />
+                    <Text style={styles.payLinkBtnText}>Copy</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.payLinkBtn}
+                    onPress={() => Linking.openURL(payLinkUrl)}
+                  >
+                    <Ionicons name="open-outline" size={16} color={Colors.info} />
+                    <Text style={[styles.payLinkBtnText, { color: Colors.info }]}>Open</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+
+            <View style={styles.sectionSeparator} />
+            <Text style={styles.sectionTitle}>Shipping Quote</Text>
+            <Text style={[styles.shippingHint, { marginBottom: 8 }]}>
+              For online sales — get rates and optionally add shipping to the payment link above.
+            </Text>
             {!weightLbs ? (
-              <Text style={[styles.shippingHint, { marginBottom: 8 }]}>Add weight above to use the shipping calculator.</Text>
+              <Text style={[styles.shippingHint, { color: Colors.warning }]}>Add weight above to use the shipping calculator.</Text>
             ) : (
               <>
                 <View style={[styles.row, { alignItems: "flex-end", gap: 8 }]}>
@@ -725,7 +781,7 @@ export default function ListingDetailScreen() {
 
                 {shipRates.length > 0 && (
                   <>
-                    <Text style={[styles.label, { marginTop: 12 }]}>Tap a rate to include it in a payment link:</Text>
+                    <Text style={[styles.label, { marginTop: 12 }]}>Tap a rate to add it to the payment link:</Text>
                     <View style={styles.ratesContainer}>
                       {shipRates.map((rate, i) => {
                         const isSelected = selectedShipRate === i;
@@ -756,56 +812,6 @@ export default function ListingDetailScreen() {
                   </>
                 )}
               </>
-            )}
-
-            <View style={styles.sectionSeparator} />
-            <Text style={styles.sectionTitle}>Payment Link</Text>
-            <Text style={styles.shippingHint}>
-              Generate a Square checkout link to send the buyer.
-              {selectedShipRate !== null && shipRates[selectedShipRate]
-                ? ` Includes ${shipRates[selectedShipRate].service} shipping.`
-                : " Item price only — select a shipping rate above to include it."}
-            </Text>
-
-            <Pressable
-              style={[styles.getRatesBtn, { marginTop: 8, width: "100%" }, payLinkLoading && { opacity: 0.6 }]}
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); generatePayLink(); }}
-              disabled={payLinkLoading}
-            >
-              {payLinkLoading
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <Text style={styles.getRatesBtnText}>Generate Payment Link</Text>
-              }
-            </Pressable>
-
-            {!!payLinkError && (
-              <Text style={styles.shipError}>{payLinkError}</Text>
-            )}
-
-            {!!payLinkUrl && (
-              <View style={styles.payLinkBox}>
-                <Text style={styles.payLinkUrl} numberOfLines={1} ellipsizeMode="middle">{payLinkUrl}</Text>
-                <View style={styles.payLinkActions}>
-                  <Pressable
-                    style={styles.payLinkBtn}
-                    onPress={() => {
-                      Clipboard.setStringAsync(payLinkUrl);
-                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                      Alert.alert("Copied!", "Payment link copied to clipboard.");
-                    }}
-                  >
-                    <Ionicons name="copy-outline" size={16} color={Colors.primary} />
-                    <Text style={styles.payLinkBtnText}>Copy</Text>
-                  </Pressable>
-                  <Pressable
-                    style={styles.payLinkBtn}
-                    onPress={() => Linking.openURL(payLinkUrl)}
-                  >
-                    <Ionicons name="open-outline" size={16} color={Colors.info} />
-                    <Text style={[styles.payLinkBtnText, { color: Colors.info }]}>Open</Text>
-                  </Pressable>
-                </View>
-              </View>
             )}
 
             <View style={styles.bottomActions}>
