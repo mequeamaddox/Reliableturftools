@@ -107,6 +107,10 @@ export default function ListingDetailScreen() {
   const [scannerVisible, setScannerVisible] = useState(false);
   const [scannerScanned, setScannerScanned] = useState(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [shipZip, setShipZip] = useState("");
+  const [shipRates, setShipRates] = useState<any[]>([]);
+  const [shipLoading, setShipLoading] = useState(false);
+  const [shipError, setShipError] = useState("");
 
   useEffect(() => {
     if (listing && !initializedRef.current) {
@@ -218,6 +222,31 @@ export default function ListingDetailScreen() {
       leadSource: leadSource || undefined,
       meetupSpot: meetupSpot || undefined,
     });
+  }
+
+  async function fetchShipRates() {
+    if (!shipZip.trim() || shipZip.trim().length < 5) {
+      setShipError("Enter a valid 5-digit ZIP code");
+      return;
+    }
+    setShipLoading(true);
+    setShipError("");
+    setShipRates([]);
+    try {
+      const res = await apiRequest("POST", "/api/shipping-rates", {
+        destinationZip: shipZip.trim(),
+        weightLbs: weightLbs || "1",
+        boxLengthIn: boxLengthIn || "12",
+        boxWidthIn: boxWidthIn || "10",
+        boxHeightIn: boxHeightIn || "8",
+      });
+      const rates = await res.json();
+      setShipRates(rates);
+    } catch (e: any) {
+      setShipError(e?.message || "Could not get rates. Check the ZIP and try again.");
+    } finally {
+      setShipLoading(false);
+    }
   }
 
   function handleDuplicate() {
@@ -623,6 +652,61 @@ export default function ListingDetailScreen() {
                 />
               </View>
             </View>
+
+            <View style={styles.sectionSeparator} />
+            <Text style={styles.sectionTitle}>Shipping Calculator</Text>
+            {!weightLbs ? (
+              <Text style={[styles.shippingHint, { marginBottom: 8 }]}>Add weight above to use the shipping calculator.</Text>
+            ) : (
+              <>
+                <View style={[styles.row, { alignItems: "flex-end", gap: 8 }]}>
+                  <View style={[styles.fieldGroup, { flex: 1, marginBottom: 0 }]}>
+                    <Text style={styles.label}>Buyer ZIP Code</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={shipZip}
+                      onChangeText={setShipZip}
+                      placeholder="e.g. 37201"
+                      placeholderTextColor={Colors.textMuted}
+                      keyboardType="number-pad"
+                      maxLength={5}
+                      returnKeyType="done"
+                      onSubmitEditing={fetchShipRates}
+                    />
+                  </View>
+                  <Pressable
+                    style={[styles.getRatesBtn, shipLoading && { opacity: 0.6 }]}
+                    onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); fetchShipRates(); }}
+                    disabled={shipLoading}
+                  >
+                    {shipLoading
+                      ? <ActivityIndicator size="small" color="#fff" />
+                      : <Text style={styles.getRatesBtnText}>Get Rates</Text>
+                    }
+                  </Pressable>
+                </View>
+
+                {!!shipError && (
+                  <Text style={styles.shipError}>{shipError}</Text>
+                )}
+
+                {shipRates.length > 0 && (
+                  <View style={styles.ratesContainer}>
+                    {shipRates.map((rate, i) => (
+                      <View key={i} style={styles.rateRow}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.rateService}>{rate.service}</Text>
+                          {!!rate.delivery && (
+                            <Text style={styles.rateDelivery}>{rate.delivery}</Text>
+                          )}
+                        </View>
+                        <Text style={styles.ratePrice}>${Number(rate.price).toFixed(2)}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </>
+            )}
 
             <View style={styles.bottomActions}>
               <Pressable style={styles.bottomBtn} onPress={handleDuplicate}>
@@ -1086,6 +1170,71 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+  },
+  sectionSeparator: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginVertical: 20,
+  },
+  sectionTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 15,
+    color: Colors.text,
+    marginBottom: 12,
+  },
+  getRatesBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 96,
+  },
+  getRatesBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    color: "#fff",
+  },
+  shipError: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: Colors.danger,
+    marginTop: 8,
+  },
+  ratesContainer: {
+    marginTop: 12,
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  rateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.cardBg,
+  },
+  rateService: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    color: Colors.text,
+  },
+  rateDelivery: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  ratePrice: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+    color: Colors.primary,
+    marginLeft: 12,
   },
 });
 
