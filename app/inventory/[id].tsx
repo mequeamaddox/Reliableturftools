@@ -1,3 +1,4 @@
+import * as IntentLauncher from "expo-intent-launcher";
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
@@ -295,15 +296,18 @@ export default function ListingDetailScreen() {
         return;
       }
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      // Android 11+ blocks custom URL schemes without manifest <queries> declaration.
-      // Use explicit intent:// URL targeting Square's package name directly.
-      let urlToOpen = data.url;
-      if (Platform.OS === "android") {
-        const withoutScheme = data.url.replace("square-commerce-v1://", "");
-        urlToOpen = `intent://${withoutScheme}#Intent;scheme=square-commerce-v1;package=com.squareup;end`;
-      }
       try {
-        await Linking.openURL(urlToOpen);
+        if (Platform.OS === "android") {
+          // Use IntentLauncher on Android to explicitly target Square's package,
+          // bypassing Android 11+ URL scheme visibility restrictions.
+          await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
+            data: data.url,
+            packageName: "com.squareup",
+            flags: 0x10000000, // FLAG_ACTIVITY_NEW_TASK
+          });
+        } else {
+          await Linking.openURL(data.url);
+        }
       } catch {
         Alert.alert(
           "Square POS Not Installed",
