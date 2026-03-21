@@ -1331,6 +1331,32 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
 
   app.post("/api/checkout", handleCheckout);
 
+  app.get("/api/square-status", requireAuth, async (req: Request, res: Response) => {
+    const accessToken = process.env.SQUARE_ACCESS_TOKEN;
+    const locationId = process.env.SQUARE_LOCATION_ID;
+    const environment = process.env.SQUARE_ENVIRONMENT;
+    if (!accessToken || !locationId) {
+      return res.json({ ok: false, reason: "Missing credentials", hasToken: !!accessToken, hasLocation: !!locationId });
+    }
+    try {
+      const squareClient = new SquareClient({
+        token: accessToken,
+        environment: environment === "sandbox" ? SquareEnvironment.Sandbox : SquareEnvironment.Production,
+      });
+      const result = await squareClient.locations.list();
+      const locations = (result as any)?.data?.locations || [];
+      return res.json({
+        ok: true,
+        environment,
+        tokenPrefix: accessToken.slice(0, 6) + "...",
+        locationIdConfigured: locationId,
+        locationsFound: locations.map((l: any) => ({ id: l.id, name: l.name })),
+      });
+    } catch (err: any) {
+      return res.json({ ok: false, environment, tokenPrefix: accessToken.slice(0, 6) + "...", error: err?.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
