@@ -1387,21 +1387,22 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Opening Square POS...</title>
+<title>Open Square POS</title>
 <style>
-  body { font-family: sans-serif; background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 24px; box-sizing: border-box; text-align: center; }
-  h2 { margin-bottom: 8px; }
-  p { color: #94a3b8; margin-bottom: 32px; }
-  .amount { font-size: 48px; font-weight: bold; color: #22c55e; margin: 16px 0; }
-  a { color: #3b82f6; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, sans-serif; background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 32px; text-align: center; }
+  h2 { font-size: 20px; color: #94a3b8; font-weight: 500; margin-bottom: 8px; }
+  .amount { font-size: 56px; font-weight: 700; color: #22c55e; margin: 12px 0; }
+  .title { font-size: 16px; color: #94a3b8; margin-bottom: 40px; }
+  .btn { display: block; background: #3b82f6; color: #fff; font-size: 20px; font-weight: 700; padding: 20px 40px; border-radius: 16px; text-decoration: none; -webkit-tap-highlight-color: rgba(59,130,246,0.3); }
+  .btn:active { background: #2563eb; }
 </style>
 </head>
 <body>
-<h2>Opening Square POS</h2>
+<h2>Charge Customer</h2>
 <div class="amount">${price}</div>
-<p>${listing.title}</p>
-<p>If Square POS did not open automatically, <a href="${squareUrl}">tap here</a>.</p>
-<script>window.location.href = "${squareUrl}";</script>
+<p class="title">${listing.title.replace(/</g, "&lt;")}</p>
+<a href="${squareUrl}" class="btn">Open Square POS</a>
 </body>
 </html>`);
     } catch (err: any) {
