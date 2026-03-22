@@ -217,12 +217,8 @@ export default function ListingDetailScreen() {
   }
 
   function handleSell() {
-    if (!buyerPhone.trim()) {
-      Alert.alert("Required", "Buyer phone number is required");
-      return;
-    }
     sellMutation.mutate({
-      buyerPhone: buyerPhone.trim(),
+      buyerPhone: buyerPhone.trim() || undefined,
       buyerName: buyerName.trim() || undefined,
       salePrice: salePrice || listing?.price,
       paymentType,
@@ -847,8 +843,8 @@ export default function ListingDetailScreen() {
             <Text style={styles.sellSubtitle}>Selling: {listing?.title}</Text>
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Buyer Phone *</Text>
-              <TextInput style={styles.input} value={buyerPhone} onChangeText={setBuyerPhone} placeholder="555-0100" placeholderTextColor={Colors.textMuted} keyboardType="phone-pad" />
+              <Text style={styles.label}>Buyer Phone</Text>
+              <TextInput style={styles.input} value={buyerPhone} onChangeText={setBuyerPhone} placeholder="Optional" placeholderTextColor={Colors.textMuted} keyboardType="phone-pad" />
             </View>
 
             <View style={styles.fieldGroup}>

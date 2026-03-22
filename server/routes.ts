@@ -320,15 +320,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { buyerPhone, buyerName, salePrice, paymentType, meetupSpot, leadSource, notes } = req.body;
 
-      let buyer = await storage.getBuyerByPhone(buyerPhone);
-      if (!buyer) {
-        buyer = await storage.createBuyer({ phone: buyerPhone, name: buyerName, leadSource });
-      } else if (leadSource && !buyer.leadSource) {
-        await storage.updateBuyer(buyer.id, { leadSource });
+      let buyerId: string | undefined;
+      if (buyerPhone) {
+        let buyer = await storage.getBuyerByPhone(buyerPhone);
+        if (!buyer) {
+          buyer = await storage.createBuyer({ phone: buyerPhone, name: buyerName, leadSource });
+        } else if (leadSource && !buyer.leadSource) {
+          await storage.updateBuyer(buyer.id, { leadSource });
+        }
+        buyerId = buyer.id;
       }
 
       const sale = await storage.createSale({
-        buyerId: buyer.id,
+        buyerId,
         listingId: listing.id,
         salePrice: salePrice || listing.price,
         paymentType: paymentType || "CASH",
