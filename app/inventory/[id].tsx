@@ -169,6 +169,15 @@ export default function ListingDetailScreen() {
       Alert.alert("Sold!", "Item marked as sold");
       router.back();
     },
+    onError: (err: any) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const msg = err?.message || "";
+      if (msg.includes("401")) {
+        Alert.alert("Session expired", "Please log out and log back in, then try again.");
+      } else {
+        Alert.alert("Error", "Could not record sale. Please try again.");
+      }
+    },
   });
 
   const deleteMutation = useMutation({

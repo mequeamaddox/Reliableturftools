@@ -36,14 +36,16 @@ export default function QuickSaleScreen() {
 
   const [salePrice, setSalePrice] = useState("");
   const [paymentType, setPaymentType] = useState("CASH");
-  const [buyerPhone, setBuyerPhone] = useState("");
-  const [buyerName, setBuyerName] = useState("");
   const [leadSource, setLeadSource] = useState("");
   const [meetupSpot, setMeetupSpot] = useState("");
+
+  const [buyerSearch, setBuyerSearch] = useState("");
+  const [selectedBuyer, setSelectedBuyer] = useState<any>(null);
 
   const { data: listings = [] } = useQuery<any[]>({ queryKey: ["/api/listings"] });
   const { data: meetupSpots = [] } = useQuery<any[]>({ queryKey: ["/api/meetup-spots"] });
   const { data: inventoryOptions } = useQuery<any>({ queryKey: ["/api/inventory-options"] });
+  const { data: allBuyers = [] } = useQuery<any[]>({ queryKey: ["/api/buyers"] });
 
   const payTypes = inventoryOptions?.paymentTypes ?? FALLBACK_PAYMENT_TYPES;
   const leadSources = inventoryOptions?.leadSources ?? FALLBACK_LEAD_SOURCES;
@@ -64,6 +66,13 @@ export default function QuickSaleScreen() {
       })
     : availableListings;
 
+  const filteredBuyers = buyerSearch.trim().length > 0
+    ? allBuyers.filter((b: any) => {
+        const q = buyerSearch.toLowerCase();
+        return (b.name || "").toLowerCase().includes(q) || (b.phone || "").includes(q);
+      }).slice(0, 6)
+    : [];
+
   const sellMutation = useMutation({
     mutationFn: (data: any) =>
       apiRequest("POST", `/api/listings/${selectedListing.id}/sell`, data),
@@ -71,7 +80,7 @@ export default function QuickSaleScreen() {
       queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith("/api/listings") });
       queryClient.invalidateQueries({ queryKey: ["/api/sales"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/sales/analytics"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/buyers"] });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert("Sale recorded!", `${selectedListing.title} marked as sold.`, [
         { text: "Done", onPress: () => router.back() },
@@ -82,15 +91,23 @@ export default function QuickSaleScreen() {
             setSearch("");
             setSalePrice("");
             setPaymentType("CASH");
-            setBuyerPhone("");
-            setBuyerName("");
+            setBuyerSearch("");
+            setSelectedBuyer(null);
             setLeadSource("");
             setMeetupSpot("");
           },
         },
       ]);
     },
-    onError: () => Alert.alert("Error", "Could not record sale. Please try again."),
+    onError: (err: any) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const msg = err?.message || "";
+      if (msg.includes("401")) {
+        Alert.alert("Session expired", "Please log out and log back in, then try again.");
+      } else {
+        Alert.alert("Error", "Could not record sale. Please try again.");
+      }
+    },
   });
 
   function selectListing(listing: any) {
@@ -137,11 +154,11 @@ export default function QuickSaleScreen() {
   }
 
   function handleConfirm() {
-    const phone = buyerPhone.trim() || `WALKIN-${Date.now()}`;
-    const name = buyerName.trim() || (!buyerPhone.trim() ? "Walk-in" : undefined);
+    const hasExistingBuyer = selectedBuyer?.id;
+    const newBuyerName = selectedBuyer && !selectedBuyer.id ? selectedBuyer.name : undefined;
     sellMutation.mutate({
-      buyerPhone: phone,
-      buyerName: name,
+      selectedBuyerId: hasExistingBuyer || undefined,
+      buyerName: newBuyerName,
       salePrice: salePrice || selectedListing?.price,
       paymentType,
       leadSource: leadSource || undefined,
@@ -263,26 +280,60 @@ export default function QuickSaleScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Buyer Phone <Text style={styles.labelHint}>(optional)</Text></Text>
-            <TextInput
-              style={styles.input}
-              value={buyerPhone}
-              onChangeText={setBuyerPhone}
-              placeholder="555-0100"
-              placeholderTextColor={Colors.textMuted}
-              keyboardType="phone-pad"
-            />
-          </View>
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Buyer Name <Text style={styles.labelHint}>(optional)</Text></Text>
-            <TextInput
-              style={styles.input}
-              value={buyerName}
-              onChangeText={setBuyerName}
-              placeholder="Optional"
-              placeholderTextColor={Colors.textMuted}
-            />
+            <Text style={styles.label}>Buyer <Text style={styles.labelHint}>(optional)</Text></Text>
+            {selectedBuyer ? (
+              <Pressable
+                style={styles.selectedBuyerChip}
+                onPress={() => { setSelectedBuyer(null); setBuyerSearch(""); }}
+              >
+                <Ionicons name="person-circle" size={18} color={Colors.primary} />
+                <Text style={styles.selectedBuyerText}>
+                  {selectedBuyer.name || selectedBuyer.phone || "Unknown"}
+                  {selectedBuyer.name && selectedBuyer.phone ? ` · ${selectedBuyer.phone}` : ""}
+                </Text>
+                <Ionicons name="close-circle" size={18} color={Colors.textMuted} />
+              </Pressable>
+            ) : (
+              <>
+                <TextInput
+                  style={styles.input}
+                  value={buyerSearch}
+                  onChangeText={setBuyerSearch}
+                  placeholder="Search name or phone, or type new"
+                  placeholderTextColor={Colors.textMuted}
+                  autoCorrect={false}
+                />
+                {buyerSearch.trim().length > 0 && (
+                  <View style={styles.buyerDropdown}>
+                    {filteredBuyers.map((b: any) => (
+                      <Pressable
+                        key={b.id}
+                        style={styles.buyerDropdownItem}
+                        onPress={() => { setSelectedBuyer(b); setBuyerSearch(""); Haptics.selectionAsync(); }}
+                      >
+                        <Ionicons name="person" size={14} color={Colors.textMuted} />
+                        <Text style={styles.buyerDropdownName}>{b.name || "Unnamed"}</Text>
+                        {b.phone ? <Text style={styles.buyerDropdownPhone}>{b.phone}</Text> : null}
+                      </Pressable>
+                    ))}
+                    <Pressable
+                      style={styles.buyerDropdownNew}
+                      onPress={() => { setSelectedBuyer({ id: null, name: buyerSearch.trim(), phone: "" }); setBuyerSearch(""); Haptics.selectionAsync(); }}
+                    >
+                      <Ionicons name="add-circle-outline" size={14} color={Colors.primary} />
+                      <Text style={styles.buyerDropdownNewText}>Add "{buyerSearch.trim()}" as new buyer</Text>
+                    </Pressable>
+                  </View>
+                )}
+                <Pressable
+                  style={styles.walkInBtn}
+                  onPress={() => { setSelectedBuyer({ id: null, name: "Walk-in", phone: "" }); Haptics.selectionAsync(); }}
+                >
+                  <Ionicons name="walk-outline" size={14} color={Colors.textMuted} />
+                  <Text style={styles.walkInText}>Record as Walk-in</Text>
+                </Pressable>
+              </>
+            )}
           </View>
 
           <View style={styles.fieldGroup}>
@@ -391,7 +442,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.cardBg,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -415,7 +466,7 @@ const styles = StyleSheet.create({
   listingRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.cardBg,
     borderRadius: 12,
     padding: 14,
     marginBottom: 8,
@@ -507,7 +558,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   input: {
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.cardBg,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -524,7 +575,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.cardBg,
     borderWidth: 1,
     borderColor: Colors.surface,
   },
@@ -539,6 +590,75 @@ const styles = StyleSheet.create({
   },
   chipTextActive: {
     color: "#fff",
+  },
+  selectedBuyerChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: `${Colors.primary}18`,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: `${Colors.primary}40`,
+  },
+  selectedBuyerText: {
+    flex: 1,
+    fontFamily: "Inter_500Medium",
+    fontSize: 15,
+    color: Colors.text,
+  },
+  buyerDropdown: {
+    marginTop: 4,
+    backgroundColor: Colors.cardBg,
+    borderRadius: 10,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Colors.surface,
+  },
+  buyerDropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.surface,
+  },
+  buyerDropdownName: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    color: Colors.text,
+    flex: 1,
+  },
+  buyerDropdownPhone: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  buyerDropdownNew: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+  },
+  buyerDropdownNewText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    color: Colors.primary,
+  },
+  walkInBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  walkInText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: Colors.textMuted,
   },
   confirmBtn: {
     flexDirection: "row",
