@@ -162,6 +162,7 @@ export default function ListingDetailScreen() {
     mutationFn: (data: any) => apiRequest("POST", `/api/listings/${id}/sell`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith("/api/listings") });
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith("/api/pallets") });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["/api/sales"] });
       queryClient.invalidateQueries({ queryKey: ["/api/buyers"] });

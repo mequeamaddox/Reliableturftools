@@ -100,6 +100,15 @@ export const storage = {
     return db.select().from(listings).orderBy(desc(listings.createdAt));
   },
 
+  async getPalletRevenue(palletName: string): Promise<number> {
+    const result = await db
+      .select({ total: sql<string>`COALESCE(SUM(${sales.salePrice}::numeric), 0)` })
+      .from(sales)
+      .innerJoin(listings, eq(sales.listingId, listings.id))
+      .where(ilike(listings.palletName, palletName));
+    return parseFloat(result[0]?.total || "0");
+  },
+
   async getDistinctPallets(): Promise<string[]> {
     const rows = await db
       .selectDistinct({ palletName: listings.palletName })

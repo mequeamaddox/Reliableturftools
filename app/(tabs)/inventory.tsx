@@ -134,14 +134,14 @@ function ListingCard({
   );
 }
 
-function PalletSummary({ listings, onDistributeCost, distributing, onSetPalletCost, settingCost }: { listings: any[]; onDistributeCost: () => void; distributing: boolean; onSetPalletCost: (cost: string) => void; settingCost: boolean }) {
+function PalletSummary({ listings, realRevenue, onDistributeCost, distributing, onSetPalletCost, settingCost }: { listings: any[]; realRevenue: number | null; onDistributeCost: () => void; distributing: boolean; onSetPalletCost: (cost: string) => void; settingCost: boolean }) {
   const [palletCostInput, setPalletCostInput] = React.useState("");
   const available = listings.filter((l) => l.status === "AVAILABLE").length;
   const sold = listings.filter((l) => l.status === "SOLD").length;
   const availableValue = listings
     .filter((l) => l.status === "AVAILABLE")
     .reduce((sum, l) => sum + parseFloat(l.price || "0") * Math.max(parseInt(l.quantity || "0"), 1), 0);
-  const soldRevenue = listings
+  const soldRevenue = realRevenue ?? listings
     .filter((l) => l.status === "SOLD")
     .reduce((sum, l) => sum + parseFloat(l.price || "0"), 0);
   const totalListedValue = availableValue + soldRevenue;
@@ -304,6 +304,13 @@ export default function InventoryScreen() {
     queryKey: [palletSummaryUrl as string],
     enabled: !!activePallet,
   });
+
+  // Real revenue from actual sales records (handles partial qty sales correctly)
+  const { data: palletRevenueData } = useQuery<{ revenue: number }>({
+    queryKey: [`/api/pallets/${encodeURIComponent(activePallet ?? "")}/revenue`],
+    enabled: !!activePallet,
+  });
+  const palletRealRevenue = palletRevenueData ? palletRevenueData.revenue : null;
 
   const archiveMutation = useMutation({
     mutationFn: (id: string) => apiRequest("PUT", `/api/listings/${id}`, { status: "ARCHIVED", isPublished: false }),
@@ -471,6 +478,7 @@ export default function InventoryScreen() {
       {activePallet && palletAllListings.length > 0 && !isLoading && (
         <PalletSummary
           listings={palletAllListings}
+          realRevenue={palletRealRevenue}
           onSetPalletCost={(cost) => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             setPalletCostMutation.mutate({ palletName: activePallet, cost });

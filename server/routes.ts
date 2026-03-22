@@ -160,6 +160,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auth/logout", (req: Request, res: Response) => {
     req.session.destroy(() => {
+      res.clearCookie("connect.sid", {
+        path: "/",
+        secure: isProduction,
+        sameSite: isProduction ? "none" : "lax",
+      });
       res.json({ success: true });
     });
   });
@@ -256,6 +261,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json({ updated, costPerItem: updated > 0 ? "distributed" : "no palletCost set" });
     } catch (err) {
       console.error("Distribute pallet cost error:", err);
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  app.get("/api/pallets/:name/revenue", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const revenue = await storage.getPalletRevenue(req.params.name);
+      return res.json({ revenue });
+    } catch (err) {
       return res.status(500).json({ error: "Server error" });
     }
   });
