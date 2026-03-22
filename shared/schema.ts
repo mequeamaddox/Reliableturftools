@@ -89,7 +89,7 @@ export const buyers = pgTable("buyers", {
     .primaryKey()
     .default(sql`gen_random_uuid()`),
   name: text("name"),
-  phone: text("phone").notNull().unique(),
+  phone: text("phone").unique(),
   notes: text("notes"),
   tags: text("tags")
     .array()
