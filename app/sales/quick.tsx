@@ -325,13 +325,6 @@ export default function QuickSaleScreen() {
                     </Pressable>
                   </View>
                 )}
-                <Pressable
-                  style={styles.walkInBtn}
-                  onPress={() => { setSelectedBuyer({ id: null, name: "Walk-in", phone: "" }); Haptics.selectionAsync(); }}
-                >
-                  <Ionicons name="walk-outline" size={14} color={Colors.textMuted} />
-                  <Text style={styles.walkInText}>Record as Walk-in</Text>
-                </Pressable>
               </>
             )}
           </View>
@@ -647,18 +640,6 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     fontSize: 14,
     color: Colors.primary,
-  },
-  walkInBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 8,
-    paddingHorizontal: 4,
-  },
-  walkInText: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
-    color: Colors.textMuted,
   },
   confirmBtn: {
     flexDirection: "row",
