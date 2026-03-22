@@ -296,6 +296,15 @@ export default function InventoryScreen() {
     queryKey: [listingsUrl],
   });
 
+  // Separate query for pallet summary — always fetches ALL statuses so net/revenue stays accurate
+  const palletSummaryUrl = activePallet
+    ? `/api/listings?pallet=${encodeURIComponent(activePallet)}&listingType=${listingType}`
+    : null;
+  const { data: palletAllListings = [] } = useQuery<any[]>({
+    queryKey: [palletSummaryUrl as string],
+    enabled: !!activePallet,
+  });
+
   const archiveMutation = useMutation({
     mutationFn: (id: string) => apiRequest("PUT", `/api/listings/${id}`, { status: "ARCHIVED", isPublished: false }),
     onSuccess: () => {
@@ -459,9 +468,9 @@ export default function InventoryScreen() {
       )}
 
       {/* Pallet Summary */}
-      {activePallet && listings.length > 0 && !isLoading && (
+      {activePallet && palletAllListings.length > 0 && !isLoading && (
         <PalletSummary
-          listings={listings}
+          listings={palletAllListings}
           onSetPalletCost={(cost) => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             setPalletCostMutation.mutate({ palletName: activePallet, cost });
