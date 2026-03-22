@@ -318,16 +318,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const listing = await storage.getListingById(req.params.id);
       if (!listing) return res.status(404).json({ error: "Listing not found" });
 
-      const { buyerPhone, buyerName, salePrice, paymentType, meetupSpot, leadSource, notes } = req.body;
+      const { selectedBuyerId, buyerPhone, buyerName, salePrice, paymentType, meetupSpot, leadSource, notes } = req.body;
 
       let buyerId: string | undefined;
-      if (buyerPhone) {
+      if (selectedBuyerId) {
+        // Existing buyer selected directly by ID
+        buyerId = selectedBuyerId;
+      } else if (buyerPhone) {
+        // Look up or create buyer by phone
         let buyer = await storage.getBuyerByPhone(buyerPhone);
         if (!buyer) {
           buyer = await storage.createBuyer({ phone: buyerPhone, name: buyerName, leadSource });
         } else if (leadSource && !buyer.leadSource) {
           await storage.updateBuyer(buyer.id, { leadSource });
         }
+        buyerId = buyer.id;
+      } else if (buyerName) {
+        // New buyer with just a name
+        const buyer = await storage.createBuyer({ name: buyerName, leadSource });
         buyerId = buyer.id;
       }
 

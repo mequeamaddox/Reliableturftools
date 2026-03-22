@@ -64,6 +64,7 @@ export default function ListingDetailScreen() {
     staleTime: Infinity,
   });
   const { data: meetupSpots = [] } = useQuery<any[]>({ queryKey: ["/api/meetup-spots"] });
+  const { data: allBuyers = [] } = useQuery<any[]>({ queryKey: ["/api/buyers"] });
   const { data: inventoryOptions } = useQuery<{
     conditions: string[];
     powerTypes: string[];
@@ -98,6 +99,8 @@ export default function ListingDetailScreen() {
   const [boxWidthIn, setBoxWidthIn] = useState("");
   const [boxHeightIn, setBoxHeightIn] = useState("");
   const [showSellModal, setShowSellModal] = useState(false);
+  const [buyerSearch, setBuyerSearch] = useState("");
+  const [selectedBuyer, setSelectedBuyer] = useState<any>(null);
   const [buyerPhone, setBuyerPhone] = useState("");
   const [buyerName, setBuyerName] = useState("");
   const [salePrice, setSalePrice] = useState("");
@@ -216,10 +219,25 @@ export default function ListingDetailScreen() {
     updateMutation.mutate({ status: "ARCHIVED", isPublished: false });
   }
 
+  function openSellModal() {
+    setBuyerSearch("");
+    setSelectedBuyer(null);
+    setBuyerPhone("");
+    setBuyerName("");
+    setSalePrice(listing?.price || "");
+    setPaymentType("CASH");
+    setLeadSource("");
+    setMeetupSpot("");
+    setShowSellModal(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }
+
   function handleSell() {
+    const hasExistingBuyer = selectedBuyer?.id;
+    const newBuyerName = selectedBuyer && !selectedBuyer.id ? selectedBuyer.name : undefined;
     sellMutation.mutate({
-      buyerPhone: buyerPhone.trim() || undefined,
-      buyerName: buyerName.trim() || undefined,
+      selectedBuyerId: hasExistingBuyer || undefined,
+      buyerName: newBuyerName,
       salePrice: salePrice || listing?.price,
       paymentType,
       leadSource: leadSource || undefined,
@@ -419,7 +437,7 @@ export default function ListingDetailScreen() {
                     <Ionicons name="time" size={18} color="#fff" />
                     <Text style={styles.actionBtnText}>Pending</Text>
                   </Pressable>
-                  <Pressable style={[styles.actionBtn, { backgroundColor: Colors.sold }]} onPress={() => setShowSellModal(true)}>
+                  <Pressable style={[styles.actionBtn, { backgroundColor: Colors.sold }]} onPress={openSellModal}>
                     <Ionicons name="cash" size={18} color="#fff" />
                     <Text style={styles.actionBtnText}>Sell</Text>
                   </Pressable>
@@ -431,7 +449,7 @@ export default function ListingDetailScreen() {
                     <Ionicons name="checkmark-circle" size={18} color="#fff" />
                     <Text style={styles.actionBtnText}>Available</Text>
                   </Pressable>
-                  <Pressable style={[styles.actionBtn, { backgroundColor: Colors.sold }]} onPress={() => setShowSellModal(true)}>
+                  <Pressable style={[styles.actionBtn, { backgroundColor: Colors.sold }]} onPress={openSellModal}>
                     <Ionicons name="cash" size={18} color="#fff" />
                     <Text style={styles.actionBtnText}>Sell</Text>
                   </Pressable>
@@ -843,13 +861,50 @@ export default function ListingDetailScreen() {
             <Text style={styles.sellSubtitle}>Selling: {listing?.title}</Text>
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Buyer Phone</Text>
-              <TextInput style={styles.input} value={buyerPhone} onChangeText={setBuyerPhone} placeholder="Optional" placeholderTextColor={Colors.textMuted} keyboardType="phone-pad" />
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Buyer Name</Text>
-              <TextInput style={styles.input} value={buyerName} onChangeText={setBuyerName} placeholder="Optional" placeholderTextColor={Colors.textMuted} />
+              <Text style={styles.label}>Buyer</Text>
+              {selectedBuyer ? (
+                <Pressable style={styles.selectedBuyerChip} onPress={() => { setSelectedBuyer(null); setBuyerSearch(""); }}>
+                  <Ionicons name="person-circle" size={18} color={Colors.primary} />
+                  <Text style={styles.selectedBuyerText}>
+                    {selectedBuyer.name || selectedBuyer.phone || "Unknown"}
+                    {selectedBuyer.name && selectedBuyer.phone ? ` · ${selectedBuyer.phone}` : ""}
+                  </Text>
+                  <Ionicons name="close-circle" size={18} color={Colors.textMuted} />
+                </Pressable>
+              ) : (
+                <>
+                  <TextInput
+                    style={styles.input}
+                    value={buyerSearch}
+                    onChangeText={setBuyerSearch}
+                    placeholder="Search name or phone, or type new"
+                    placeholderTextColor={Colors.textMuted}
+                    autoCorrect={false}
+                  />
+                  {buyerSearch.trim().length > 0 && (
+                    <View style={styles.buyerDropdown}>
+                      {allBuyers
+                        .filter((b: any) => {
+                          const q = buyerSearch.toLowerCase();
+                          return (b.name || "").toLowerCase().includes(q) || (b.phone || "").includes(q);
+                        })
+                        .slice(0, 6)
+                        .map((b: any) => (
+                          <Pressable key={b.id} style={styles.buyerDropdownItem} onPress={() => { setSelectedBuyer(b); setBuyerSearch(""); Haptics.selectionAsync(); }}>
+                            <Ionicons name="person" size={14} color={Colors.textMuted} />
+                            <Text style={styles.buyerDropdownName}>{b.name || "Unnamed"}</Text>
+                            {b.phone ? <Text style={styles.buyerDropdownPhone}>{b.phone}</Text> : null}
+                          </Pressable>
+                        ))
+                      }
+                      <Pressable style={styles.buyerDropdownNew} onPress={() => { setSelectedBuyer({ id: null, name: buyerSearch.trim(), phone: "" }); Haptics.selectionAsync(); }}>
+                        <Ionicons name="add-circle-outline" size={14} color={Colors.primary} />
+                        <Text style={styles.buyerDropdownNewText}>Add "{buyerSearch.trim()}" as new buyer</Text>
+                      </Pressable>
+                    </View>
+                  )}
+                </>
+              )}
             </View>
 
             <View style={styles.fieldGroup}>
@@ -1179,6 +1234,63 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textMuted,
     marginBottom: 20,
+  },
+  selectedBuyerChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: Colors.surface,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  selectedBuyerText: {
+    flex: 1,
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    color: Colors.text,
+  },
+  buyerDropdown: {
+    marginTop: 4,
+    backgroundColor: Colors.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    overflow: "hidden",
+  },
+  buyerDropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  buyerDropdownName: {
+    flex: 1,
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    color: Colors.text,
+  },
+  buyerDropdownPhone: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  buyerDropdownNew: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  buyerDropdownNewText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    color: Colors.primary,
   },
   sellActions: {
     flexDirection: "row",
