@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, desc, and, sql, ilike, or, gte } from "drizzle-orm";
+import { eq, ne, desc, and, sql, ilike, or, gte } from "drizzle-orm";
 import {
   users,
   listings,
@@ -61,6 +61,7 @@ export const storage = {
     search?: string;
     listingType?: string;
     pallet?: string;
+    includeArchived?: boolean;
   }): Promise<Listing[]> {
     const conditions: any[] = [];
 
@@ -69,6 +70,9 @@ export const storage = {
     }
     if (filters?.status) {
       conditions.push(eq(listings.status, filters.status as any));
+    } else if (!filters?.includeArchived) {
+      // Hide archived items by default — only show when explicitly filtering for ARCHIVED
+      conditions.push(ne(listings.status, "ARCHIVED" as any));
     }
     if (filters?.powerType) {
       conditions.push(eq(listings.powerType, filters.powerType as any));

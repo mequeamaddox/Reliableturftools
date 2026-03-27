@@ -62,7 +62,7 @@ async function sendPushNotifications(tokens: string[], title: string, body: stri
 
 async function generateSku(category: string): Promise<string> {
   const catPrefix = (category || "OTH").substring(0, 3).toUpperCase();
-  const allListings = await storage.getListings({});
+  const allListings = await storage.getListings({ includeArchived: true });
   const existingSkus = allListings
     .map((l: any) => l.sku)
     .filter((s: string) => s && s.startsWith(`RTT-${catPrefix}-`))
@@ -899,7 +899,7 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
     try {
       const { category } = req.body;
       const catPrefix = (category || "OTH").substring(0, 3).toUpperCase();
-      const allListings = await storage.getListings({});
+      const allListings = await storage.getListings({ includeArchived: true });
       const existingSkus = allListings
         .map((l: any) => l.sku)
         .filter((s: string) => s && s.startsWith(`RTT-${catPrefix}-`))
