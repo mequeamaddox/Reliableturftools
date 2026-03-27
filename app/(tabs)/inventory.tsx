@@ -75,7 +75,7 @@ function ListingCard({
     );
   }
 
-  const leftAction = item.status === "AVAILABLE" ? {
+  const leftAction = item.status === "SOLD" ? {
     icon: "archive" as const,
     color: Colors.warning,
     label: "Archive",
