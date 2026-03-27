@@ -332,7 +332,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const listing = await storage.getListingById(req.params.id);
       if (!listing) return res.status(404).json({ error: "Listing not found" });
 
-      const { selectedBuyerId, buyerPhone, buyerName, salePrice, paymentType, meetupSpot, leadSource, notes } = req.body;
+      const { selectedBuyerId, salePrice, paymentType, meetupSpot, leadSource, notes } = req.body;
+      const buyerPhone = typeof req.body.buyerPhone === "string" ? req.body.buyerPhone.trim() : undefined;
+      const buyerName = typeof req.body.buyerName === "string" ? req.body.buyerName.trim() : undefined;
 
       let buyerId: string | undefined;
       if (selectedBuyerId) {
@@ -342,16 +344,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Look up or create buyer by phone
         let buyer = await storage.getBuyerByPhone(buyerPhone);
         if (!buyer) {
-          buyer = await storage.createBuyer({ phone: buyerPhone, name: buyerName, leadSource });
+          buyer = await storage.createBuyer({ phone: buyerPhone, name: buyerName || null, leadSource });
         } else if (leadSource && !buyer.leadSource) {
           await storage.updateBuyer(buyer.id, { leadSource });
         }
         buyerId = buyer.id;
       } else if (buyerName) {
-        // New buyer with just a name
-        const buyer = await storage.createBuyer({ name: buyerName, leadSource });
+        // New buyer with just a name (no phone)
+        const buyer = await storage.createBuyer({ name: buyerName, phone: null, leadSource });
         buyerId = buyer.id;
       }
+      // No buyer info provided → walk-in sale, no buyer record created
 
       const sale = await storage.createSale({
         buyerId,

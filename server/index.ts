@@ -252,6 +252,9 @@ async function ensureAdminAndData() {
     try {
       await db.execute(rawSql.raw(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS retail_price DECIMAL(10,2)`));
     } catch (_) {}
+    try {
+      await db.execute(rawSql.raw(`ALTER TABLE buyers ALTER COLUMN phone DROP NOT NULL`));
+    } catch (_) {}
 
     const adminEmail = "mequeamaddox@gmail.com";
     const existingUsers = await db.select().from(users).limit(1);
