@@ -183,8 +183,7 @@ export const insertBuyerSchema = createInsertSchema(buyers).omit({
 });
 export const insertSaleSchema = createInsertSchema(sales).omit({
   id: true,
-  soldAt: true,
-});
+}).partial({ soldAt: true });
 export const insertFollowUpSchema = createInsertSchema(followUps).omit({
   id: true,
   createdAt: true,

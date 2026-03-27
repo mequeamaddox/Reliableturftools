@@ -107,6 +107,7 @@ export default function ListingDetailScreen() {
   const [paymentType, setPaymentType] = useState("CASH");
   const [leadSource, setLeadSource] = useState("");
   const [meetupSpot, setMeetupSpot] = useState("");
+  const [saleDate, setSaleDate] = useState<Date>(() => { const d = new Date(); d.setHours(12, 0, 0, 0); return d; });
   const [photos, setPhotos] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [scannerVisible, setScannerVisible] = useState(false);
@@ -238,6 +239,8 @@ export default function ListingDetailScreen() {
     setPaymentType("CASH");
     setLeadSource("");
     setMeetupSpot("");
+    const today = new Date(); today.setHours(12, 0, 0, 0);
+    setSaleDate(today);
     setShowSellModal(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   }
@@ -252,8 +255,26 @@ export default function ListingDetailScreen() {
       paymentType,
       leadSource: leadSource || undefined,
       meetupSpot: meetupSpot || undefined,
+      soldAt: saleDate.toISOString(),
     });
   }
+
+  function fmtSaleDate(d: Date) {
+    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  }
+
+  function shiftSaleDate(days: number) {
+    const d = new Date(saleDate);
+    d.setDate(d.getDate() + days);
+    d.setHours(12, 0, 0, 0);
+    const today = new Date(); today.setHours(12, 0, 0, 0);
+    if (d <= today) { setSaleDate(d); Haptics.selectionAsync(); }
+  }
+
+  const isSaleDateToday = (() => {
+    const today = new Date(); today.setHours(12, 0, 0, 0);
+    return saleDate.toDateString() === today.toDateString();
+  })();
 
   async function fetchShipRates() {
     if (!shipZip.trim() || shipZip.trim().length < 5) {
@@ -943,6 +964,26 @@ export default function ListingDetailScreen() {
               </View>
             </View>
 
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Sale Date</Text>
+              <View style={styles.datePicker}>
+                <Pressable onPress={() => shiftSaleDate(-1)} style={styles.dateArrow}>
+                  <Ionicons name="chevron-back" size={20} color={Colors.text} />
+                </Pressable>
+                <View style={{ flex: 1, alignItems: "center" }}>
+                  <Text style={styles.dateText}>{fmtSaleDate(saleDate)}</Text>
+                  {!isSaleDateToday && (
+                    <Pressable onPress={() => { const t = new Date(); t.setHours(12,0,0,0); setSaleDate(t); Haptics.selectionAsync(); }} style={styles.todayChip}>
+                      <Text style={styles.todayChipText}>Today</Text>
+                    </Pressable>
+                  )}
+                </View>
+                <Pressable onPress={() => shiftSaleDate(1)} style={[styles.dateArrow, isSaleDateToday && { opacity: 0.25 }]} disabled={isSaleDateToday}>
+                  <Ionicons name="chevron-forward" size={20} color={Colors.text} />
+                </Pressable>
+              </View>
+            </View>
+
             <View style={styles.sellActions}>
               <Pressable style={styles.cancelSellBtn} onPress={() => setShowSellModal(false)}>
                 <Text style={styles.cancelSellText}>Cancel</Text>
@@ -1333,6 +1374,37 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     fontSize: 15,
     color: "#fff",
+  },
+  datePicker: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+  },
+  dateArrow: {
+    padding: 10,
+  },
+  dateText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 15,
+    color: Colors.text,
+    textAlign: "center",
+  },
+  todayChip: {
+    marginTop: 4,
+    backgroundColor: Colors.primary + "22",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+  },
+  todayChipText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 12,
+    color: Colors.primary,
   },
   photoSection: {
     marginBottom: 20,

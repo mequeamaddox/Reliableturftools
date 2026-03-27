@@ -332,7 +332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const listing = await storage.getListingById(req.params.id);
       if (!listing) return res.status(404).json({ error: "Listing not found" });
 
-      const { selectedBuyerId, salePrice, paymentType, meetupSpot, leadSource, notes } = req.body;
+      const { selectedBuyerId, salePrice, paymentType, meetupSpot, leadSource, notes, soldAt } = req.body;
       const buyerPhone = typeof req.body.buyerPhone === "string" ? req.body.buyerPhone.trim() : undefined;
       const buyerName = typeof req.body.buyerName === "string" ? req.body.buyerName.trim() : undefined;
 
@@ -364,6 +364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         meetupSpot,
         leadSource,
         notes,
+        ...(soldAt ? { soldAt: new Date(soldAt) } : {}),
       });
 
       const newQty = Math.max(0, listing.quantity - 1);
