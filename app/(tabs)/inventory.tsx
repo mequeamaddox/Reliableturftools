@@ -134,12 +134,13 @@ function ListingCard({
   );
 }
 
-function PalletSummary({ listings, realRevenue, onDistributeCost, distributing, onSetPalletCost, settingCost }: { listings: any[]; realRevenue: number | null; onDistributeCost: () => void; distributing: boolean; onSetPalletCost: (cost: string) => void; settingCost: boolean }) {
+function PalletSummary({ listings, realRevenue, realSoldCount, realTotalOriginalUnits, onDistributeCost, distributing, onSetPalletCost, settingCost }: { listings: any[]; realRevenue: number | null; realSoldCount: number | null; realTotalOriginalUnits: number | null; onDistributeCost: () => void; distributing: boolean; onSetPalletCost: (cost: string) => void; settingCost: boolean }) {
   const [palletCostInput, setPalletCostInput] = React.useState("");
-  const available = listings.filter((l) => l.status === "AVAILABLE").length;
-  const sold = listings.filter((l) => l.status === "SOLD").length;
+  const available = listings.filter((l) => l.status === "AVAILABLE" || l.status === "PENDING").length;
+  // Use real sold count from sales records — catches partial qty sales (listing stays AVAILABLE)
+  const sold = realSoldCount ?? listings.filter((l) => l.status === "SOLD").length;
   const availableValue = listings
-    .filter((l) => l.status === "AVAILABLE")
+    .filter((l) => l.status === "AVAILABLE" || l.status === "PENDING")
     .reduce((sum, l) => sum + parseFloat(l.price || "0") * Math.max(parseInt(l.quantity || "0"), 1), 0);
   const soldRevenue = realRevenue ?? listings
     .filter((l) => l.status === "SOLD")
@@ -147,11 +148,11 @@ function PalletSummary({ listings, realRevenue, onDistributeCost, distributing, 
   const totalListedValue = availableValue + soldRevenue;
   const palletCostStr = listings.find((l) => l.palletCost != null)?.palletCost;
   const palletCost = palletCostStr ? parseFloat(palletCostStr) : null;
-  const totalUnits = listings.reduce((sum, l) => {
-    if (l.status === "SOLD") return sum + 1;
+  // Use original total units (current qty + units sold) so cost-per-unit never changes when items sell
+  const totalOriginalUnits = realTotalOriginalUnits ?? listings.reduce((sum, l) => {
     return sum + Math.max(parseInt(l.quantity || "0"), 1);
   }, 0);
-  const costPerItem = palletCost != null && totalUnits > 0 ? palletCost / totalUnits : null;
+  const costPerItem = palletCost != null && totalOriginalUnits > 0 ? palletCost / totalOriginalUnits : null;
   const profit = palletCost != null ? soldRevenue - palletCost : null;
   const costAlreadySet = listings.every((l) => l.cost != null && l.cost !== "");
 
@@ -305,12 +306,14 @@ export default function InventoryScreen() {
     enabled: !!activePallet,
   });
 
-  // Real revenue from actual sales records (handles partial qty sales correctly)
-  const { data: palletRevenueData } = useQuery<{ revenue: number }>({
+  // Real stats from actual sales records (handles partial qty sales correctly)
+  const { data: palletStatsData } = useQuery<{ revenue: number; soldCount: number; totalOriginalUnits: number }>({
     queryKey: [`/api/pallets/${encodeURIComponent(activePallet ?? "")}/revenue`],
     enabled: !!activePallet,
   });
-  const palletRealRevenue = palletRevenueData ? palletRevenueData.revenue : null;
+  const palletRealRevenue = palletStatsData ? palletStatsData.revenue : null;
+  const palletSoldCount = palletStatsData ? palletStatsData.soldCount : null;
+  const palletTotalOriginalUnits = palletStatsData ? palletStatsData.totalOriginalUnits : null;
 
   const archiveMutation = useMutation({
     mutationFn: (id: string) => apiRequest("PUT", `/api/listings/${id}`, { status: "ARCHIVED", isPublished: false }),
@@ -479,6 +482,8 @@ export default function InventoryScreen() {
         <PalletSummary
           listings={palletAllListings}
           realRevenue={palletRealRevenue}
+          realSoldCount={palletSoldCount}
+          realTotalOriginalUnits={palletTotalOriginalUnits}
           onSetPalletCost={(cost) => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             setPalletCostMutation.mutate({ palletName: activePallet, cost });

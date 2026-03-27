@@ -267,8 +267,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/pallets/:name/revenue", requireAuth, async (req: Request, res: Response) => {
     try {
-      const revenue = await storage.getPalletRevenue(req.params.name);
-      return res.json({ revenue });
+      const stats = await storage.getPalletStats(req.params.name);
+      return res.json(stats);
     } catch (err) {
       return res.status(500).json({ error: "Server error" });
     }

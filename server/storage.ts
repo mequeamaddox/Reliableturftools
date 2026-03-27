@@ -100,13 +100,25 @@ export const storage = {
     return db.select().from(listings).orderBy(desc(listings.createdAt));
   },
 
-  async getPalletRevenue(palletName: string): Promise<number> {
-    const result = await db
-      .select({ total: sql<string>`COALESCE(SUM(${sales.salePrice}::numeric), 0)` })
+  async getPalletStats(palletName: string): Promise<{ revenue: number; soldCount: number; totalOriginalUnits: number }> {
+    const salesResult = await db
+      .select({
+        revenue: sql<string>`COALESCE(SUM(${sales.salePrice}::numeric), 0)`,
+        soldCount: sql<string>`COUNT(${sales.id})`,
+      })
       .from(sales)
       .innerJoin(listings, eq(sales.listingId, listings.id))
       .where(ilike(listings.palletName, palletName));
-    return parseFloat(result[0]?.total || "0");
+
+    const qtyResult = await db
+      .select({ currentUnits: sql<string>`COALESCE(SUM(${listings.quantity}), 0)` })
+      .from(listings)
+      .where(ilike(listings.palletName, palletName));
+
+    const revenue = parseFloat(salesResult[0]?.revenue || "0");
+    const soldCount = parseInt(salesResult[0]?.soldCount || "0");
+    const currentUnits = parseInt(qtyResult[0]?.currentUnits || "0");
+    return { revenue, soldCount, totalOriginalUnits: currentUnits + soldCount };
   },
 
   async getDistinctPallets(): Promise<string[]> {
