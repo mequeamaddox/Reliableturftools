@@ -373,7 +373,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: newQty === 0 ? "SOLD" : listing.status,
       });
 
-      return res.json({ sale, buyer });
+      return res.json({ sale });
     } catch (err) {
       console.error("Sell error:", err);
       return res.status(500).json({ error: "Server error" });
