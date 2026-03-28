@@ -104,6 +104,22 @@ export const storage = {
     return db.select().from(listings).orderBy(desc(listings.createdAt));
   },
 
+  async getInventoryRevenue(listingType: string): Promise<{ revenue: number; soldCount: number }> {
+    const result = await db
+      .select({
+        revenue: sql<string>`COALESCE(SUM(${sales.salePrice}::numeric), 0)`,
+        soldCount: sql<string>`COUNT(${sales.id})`,
+      })
+      .from(sales)
+      .innerJoin(listings, eq(sales.listingId, listings.id))
+      .where(eq(listings.listingType, listingType as any));
+
+    return {
+      revenue: parseFloat(result[0]?.revenue || "0"),
+      soldCount: parseInt(result[0]?.soldCount || "0"),
+    };
+  },
+
   async getPalletStats(palletName: string): Promise<{ revenue: number; soldCount: number; totalOriginalUnits: number }> {
     const salesResult = await db
       .select({

@@ -134,18 +134,17 @@ function ListingCard({
   );
 }
 
-function InventorySummary({ listings }: { listings: any[] }) {
+function InventorySummary({ listings, realRevenue }: { listings: any[]; realRevenue: number | null }) {
   const available = listings.filter((l) => l.status === "AVAILABLE").length;
   const pending = listings.filter((l) => l.status === "PENDING").length;
   const sold = listings.filter((l) => l.status === "SOLD").length;
   const total = listings.length;
-  // Available+Pending inventory value (what you still have to sell)
+  // Unsold stock value (available + pending at listing price)
   const stockValue = listings
     .filter((l) => l.status === "AVAILABLE" || l.status === "PENDING")
     .reduce((sum, l) => sum + parseFloat(l.price || "0") * Math.max(parseInt(l.quantity || "1"), 1), 0);
-  // Total listed value including sold (matches pallet "Listed" logic)
-  const totalListedValue = listings
-    .reduce((sum, l) => sum + parseFloat(l.price || "0") * Math.max(parseInt(l.quantity || "1"), 1), 0);
+  // Listed = unsold stock + actual revenue from sales (same logic as pallet "Listed")
+  const listedValue = stockValue + (realRevenue ?? 0);
 
   return (
     <View style={styles.inventorySummary}>
@@ -171,12 +170,7 @@ function InventorySummary({ listings }: { listings: any[] }) {
         </View>
         <View style={styles.palletDivider} />
         <View style={styles.palletStat}>
-          <Text style={[styles.palletStatValue, { color: Colors.textSecondary }]}>${stockValue.toFixed(0)}</Text>
-          <Text style={styles.palletStatLabel}>Stock</Text>
-        </View>
-        <View style={styles.palletDivider} />
-        <View style={styles.palletStat}>
-          <Text style={[styles.palletStatValue, { color: Colors.primary }]}>${totalListedValue.toFixed(0)}</Text>
+          <Text style={[styles.palletStatValue, { color: Colors.primary }]}>${listedValue.toFixed(0)}</Text>
           <Text style={styles.palletStatLabel}>Listed</Text>
         </View>
       </View>
@@ -351,6 +345,13 @@ export default function InventoryScreen() {
   const inventoryStatsUrl = `/api/listings?listingType=${listingType}`;
   const { data: inventoryStatsListings = [] } = useQuery<any[]>({
     queryKey: [inventoryStatsUrl],
+    enabled: !activePallet,
+  });
+
+  // Real revenue from actual sales (same approach as pallet stats)
+  const inventoryRevenueUrl = `/api/inventory/revenue?listingType=${listingType}`;
+  const { data: inventoryRevenueData } = useQuery<{ revenue: number; soldCount: number }>({
+    queryKey: [inventoryRevenueUrl],
     enabled: !activePallet,
   });
 
@@ -536,7 +537,10 @@ export default function InventoryScreen() {
 
       {/* Inventory Summary */}
       {!activePallet && inventoryStatsListings.length > 0 && !isLoading && (
-        <InventorySummary listings={inventoryStatsListings} />
+        <InventorySummary
+          listings={inventoryStatsListings}
+          realRevenue={inventoryRevenueData?.revenue ?? null}
+        />
       )}
 
       {/* Pallet Summary */}

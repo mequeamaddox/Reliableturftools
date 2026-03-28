@@ -265,6 +265,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/inventory/revenue", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const listingType = (req.query.listingType as string) || "ITEM";
+      const stats = await storage.getInventoryRevenue(listingType);
+      return res.json(stats);
+    } catch (err) {
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
   app.get("/api/pallets/:name/revenue", requireAuth, async (req: Request, res: Response) => {
     try {
       const stats = await storage.getPalletStats(req.params.name);
