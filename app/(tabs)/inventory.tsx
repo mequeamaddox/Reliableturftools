@@ -222,7 +222,7 @@ function PalletSummary({ listings, realRevenue, realSoldCount, realTotalOriginal
           <View style={styles.palletCostInfo}>
             <Ionicons name="calculator-outline" size={14} color={Colors.textMuted} />
             <Text style={styles.palletCostText}>
-              ${palletCost.toFixed(0)} ÷ {totalUnits} units = <Text style={{ color: Colors.text, fontFamily: "Inter_600SemiBold" }}>${costPerItem!.toFixed(2)}/unit</Text>
+              ${palletCost.toFixed(0)} ÷ {totalOriginalUnits} units = <Text style={{ color: Colors.text, fontFamily: "Inter_600SemiBold" }}>${costPerItem!.toFixed(2)}/unit</Text>
             </Text>
           </View>
           <Pressable
