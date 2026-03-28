@@ -17,6 +17,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as MediaLibrary from "expo-media-library";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 import { captureRef } from "react-native-view-shot";
 import Colors from "@/constants/colors";
 
@@ -115,7 +117,8 @@ export default function LabelScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const webTopInset = Platform.OS === "web" ? 67 : 0;
-  const [sharing, setSharing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [format, setFormat] = useState<"pdf" | "png">("pdf");
   const labelRef = useRef<View>(null);
 
   const { data: listing, isLoading } = useQuery<any>({
@@ -125,6 +128,8 @@ export default function LabelScreen() {
 
   async function handleSave() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    // Web always uses print dialog regardless of format toggle
     if (Platform.OS === "web") {
       const html = generatePrintHtml(listing);
       const iframe = document.createElement("iframe");
@@ -149,26 +154,36 @@ export default function LabelScreen() {
     }
 
     try {
-      setSharing(true);
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permission needed", "Allow photo library access to save the label image.");
-        return;
+      setSaving(true);
+      if (format === "pdf") {
+        const { uri } = await Print.printToFileAsync({ html: generatePrintHtml(listing) });
+        await Sharing.shareAsync(uri, {
+          mimeType: "application/pdf",
+          UTI: ".pdf",
+          dialogTitle: "Save or Print Label PDF",
+        });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        const { status } = await MediaLibrary.requestPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Permission needed", "Allow photo library access to save the label image.");
+          return;
+        }
+        const uri = await captureRef(labelRef, {
+          format: "png",
+          quality: 1,
+          result: "tmpfile",
+          width: 720,
+          height: 288,
+        });
+        await MediaLibrary.saveToLibraryAsync(uri);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert("Saved!", "Label saved to your Photos. Open your printer app and print from there.");
       }
-      const uri = await captureRef(labelRef, {
-        format: "png",
-        quality: 1,
-        result: "tmpfile",
-        width: 720,
-        height: 288,
-      });
-      await MediaLibrary.saveToLibraryAsync(uri);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("Saved!", "Label saved to your Photos. Open your printer app and print from there.");
     } catch (err) {
-      Alert.alert("Error", "Could not save the label image. Please try again.");
+      Alert.alert("Error", "Could not save the label. Please try again.");
     } finally {
-      setSharing(false);
+      setSaving(false);
     }
   }
 
@@ -223,17 +238,40 @@ export default function LabelScreen() {
           </View>
         )}
 
-        <Pressable style={[styles.shareBigBtn, sharing && { opacity: 0.6 }]} onPress={handleSave} disabled={sharing}>
-          {sharing ? (
+        {Platform.OS !== "web" && (
+          <View style={styles.formatToggleRow}>
+            <Pressable
+              style={[styles.formatBtn, format === "pdf" && styles.formatBtnActive]}
+              onPress={() => { setFormat("pdf"); Haptics.selectionAsync(); }}
+            >
+              <Ionicons name="document-outline" size={16} color={format === "pdf" ? "#fff" : Colors.textSecondary} />
+              <Text style={[styles.formatBtnText, format === "pdf" && styles.formatBtnTextActive]}>PDF</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.formatBtn, format === "png" && styles.formatBtnActive]}
+              onPress={() => { setFormat("png"); Haptics.selectionAsync(); }}
+            >
+              <Ionicons name="image-outline" size={16} color={format === "png" ? "#fff" : Colors.textSecondary} />
+              <Text style={[styles.formatBtnText, format === "png" && styles.formatBtnTextActive]}>PNG</Text>
+            </Pressable>
+          </View>
+        )}
+
+        <Pressable style={[styles.shareBigBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
+          {saving ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <Ionicons name="download-outline" size={24} color="#fff" />
           )}
-          <Text style={styles.shareBigText}>{sharing ? "Saving..." : "Save to Photos"}</Text>
+          <Text style={styles.shareBigText}>
+            {saving ? "Saving..." : format === "pdf" ? "Save as PDF" : "Save as PNG"}
+          </Text>
         </Pressable>
 
         <Text style={styles.shareHint}>
-          Saves the label as a PNG — open your SVANTTO printer app and print from Photos
+          {format === "pdf"
+            ? "Generates a PDF — share directly to your printer app"
+            : "Saves PNG to Photos — open your printer app and print from there"}
         </Text>
       </ScrollView>
     </View>
@@ -380,6 +418,37 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: "center",
     maxWidth: 300,
+  },
+  formatToggleRow: {
+    flexDirection: "row",
+    marginTop: 20,
+    gap: 10,
+    width: "100%",
+    maxWidth: 380,
+  },
+  formatBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: Colors.cardBg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  formatBtnActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  formatBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 15,
+    color: Colors.textSecondary,
+  },
+  formatBtnTextActive: {
+    color: "#fff",
   },
   captureArea: {
     position: "absolute",

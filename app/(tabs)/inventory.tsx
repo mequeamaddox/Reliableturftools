@@ -134,6 +134,47 @@ function ListingCard({
   );
 }
 
+function InventorySummary({ listings }: { listings: any[] }) {
+  const available = listings.filter((l) => l.status === "AVAILABLE").length;
+  const pending = listings.filter((l) => l.status === "PENDING").length;
+  const sold = listings.filter((l) => l.status === "SOLD").length;
+  const total = listings.length;
+  const listedValue = listings
+    .filter((l) => l.status === "AVAILABLE" || l.status === "PENDING")
+    .reduce((sum, l) => sum + parseFloat(l.price || "0") * Math.max(parseInt(l.quantity || "1"), 1), 0);
+
+  return (
+    <View style={styles.inventorySummary}>
+      <View style={styles.palletSummaryRow}>
+        <View style={styles.palletStat}>
+          <Text style={styles.palletStatValue}>{total}</Text>
+          <Text style={styles.palletStatLabel}>Items</Text>
+        </View>
+        <View style={styles.palletDivider} />
+        <View style={styles.palletStat}>
+          <Text style={[styles.palletStatValue, { color: Colors.available }]}>{available}</Text>
+          <Text style={styles.palletStatLabel}>Available</Text>
+        </View>
+        <View style={styles.palletDivider} />
+        <View style={styles.palletStat}>
+          <Text style={[styles.palletStatValue, { color: Colors.pending }]}>{pending}</Text>
+          <Text style={styles.palletStatLabel}>Pending</Text>
+        </View>
+        <View style={styles.palletDivider} />
+        <View style={styles.palletStat}>
+          <Text style={[styles.palletStatValue, { color: Colors.sold }]}>{sold}</Text>
+          <Text style={styles.palletStatLabel}>Sold</Text>
+        </View>
+        <View style={styles.palletDivider} />
+        <View style={styles.palletStat}>
+          <Text style={[styles.palletStatValue, { color: Colors.primary }]}>${listedValue.toFixed(0)}</Text>
+          <Text style={styles.palletStatLabel}>Value</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 function PalletSummary({ listings, realRevenue, realSoldCount, realTotalOriginalUnits, onDistributeCost, distributing, onSetPalletCost, settingCost }: { listings: any[]; realRevenue: number | null; realSoldCount: number | null; realTotalOriginalUnits: number | null; onDistributeCost: () => void; distributing: boolean; onSetPalletCost: (cost: string) => void; settingCost: boolean }) {
   const [palletCostInput, setPalletCostInput] = React.useState("");
   const available = listings.filter((l) => l.status === "AVAILABLE" || l.status === "PENDING").length;
@@ -295,6 +336,13 @@ export default function InventoryScreen() {
   const listingsUrl = "/api/listings" + (queryString ? `?${queryString}` : "");
   const { data: listings = [], isLoading, refetch, isRefetching } = useQuery<any[]>({
     queryKey: [listingsUrl],
+  });
+
+  // Inventory summary stats — always ALL statuses for the current listing type, no pallet filter
+  const inventoryStatsUrl = `/api/listings?listingType=${listingType}`;
+  const { data: inventoryStatsListings = [] } = useQuery<any[]>({
+    queryKey: [inventoryStatsUrl],
+    enabled: !activePallet,
   });
 
   // Separate query for pallet summary — always fetches ALL statuses so net/revenue stays accurate
@@ -475,6 +523,11 @@ export default function InventoryScreen() {
             </Pressable>
           </View>
         </>
+      )}
+
+      {/* Inventory Summary */}
+      {!activePallet && inventoryStatsListings.length > 0 && !isLoading && (
+        <InventorySummary listings={inventoryStatsListings} />
       )}
 
       {/* Pallet Summary */}
@@ -717,6 +770,15 @@ const styles = StyleSheet.create({
   },
   palletChipText: {
     color: Colors.primary,
+  },
+  inventorySummary: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    backgroundColor: Colors.cardBg,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   palletSummary: {
     marginHorizontal: 16,
