@@ -139,8 +139,12 @@ function InventorySummary({ listings }: { listings: any[] }) {
   const pending = listings.filter((l) => l.status === "PENDING").length;
   const sold = listings.filter((l) => l.status === "SOLD").length;
   const total = listings.length;
-  const listedValue = listings
+  // Available+Pending inventory value (what you still have to sell)
+  const stockValue = listings
     .filter((l) => l.status === "AVAILABLE" || l.status === "PENDING")
+    .reduce((sum, l) => sum + parseFloat(l.price || "0") * Math.max(parseInt(l.quantity || "1"), 1), 0);
+  // Total listed value including sold (matches pallet "Listed" logic)
+  const totalListedValue = listings
     .reduce((sum, l) => sum + parseFloat(l.price || "0") * Math.max(parseInt(l.quantity || "1"), 1), 0);
 
   return (
@@ -167,8 +171,13 @@ function InventorySummary({ listings }: { listings: any[] }) {
         </View>
         <View style={styles.palletDivider} />
         <View style={styles.palletStat}>
-          <Text style={[styles.palletStatValue, { color: Colors.primary }]}>${listedValue.toFixed(0)}</Text>
-          <Text style={styles.palletStatLabel}>Value</Text>
+          <Text style={[styles.palletStatValue, { color: Colors.textSecondary }]}>${stockValue.toFixed(0)}</Text>
+          <Text style={styles.palletStatLabel}>Stock</Text>
+        </View>
+        <View style={styles.palletDivider} />
+        <View style={styles.palletStat}>
+          <Text style={[styles.palletStatValue, { color: Colors.primary }]}>${totalListedValue.toFixed(0)}</Text>
+          <Text style={styles.palletStatLabel}>Listed</Text>
         </View>
       </View>
     </View>
