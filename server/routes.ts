@@ -1028,11 +1028,14 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
       const items = await storage.getPublishedListings("ITEM");
       const partsList = await storage.getPublishedListings("PART");
       const accsList = await storage.getPublishedListings("ACCESSORY");
+      const allListings = [...items, ...partsList, ...accsList];
       const template = fs.readFileSync(storeListingTemplatePath, "utf-8");
 
-      function buildCardsHtml(listingsList: typeof items): string {
-        let html = "";
-        for (const listing of listingsList) {
+      let cardsHtml = "";
+      if (allListings.length === 0) {
+        cardsHtml = '<div class="empty-state"><p>No equipment available right now.</p><span>Check back soon!</span></div>';
+      } else {
+        for (const listing of allListings) {
           const photoUrl = listing.photos && listing.photos.length > 0
             ? `${baseUrl}${listing.photos[0]}`
             : "";
@@ -1048,11 +1051,13 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
             : listing.listingType === "ACCESSORY"
             ? '<span class="card-type-badge">Accessory</span>'
             : "";
+          const categoryLabel = escapeHtml(formatCategory(listing.category));
+          const listingType = listing.listingType || "ITEM";
 
-          html += `<a href="/store/${listing.id}" class="card">
+          cardsHtml += `<a href="/store/${listing.id}" class="card" data-type="${escapeHtml(listingType)}" data-category="${categoryLabel}">
             ${imgHtml}
             <div class="card-body">
-              <div class="card-category">${escapeHtml(formatCategory(listing.category))}</div>
+              <div class="card-category">${categoryLabel}</div>
               <div class="card-title">${escapeHtml(listing.title)}</div>
               <div class="card-meta">
                 <span class="card-condition">${escapeHtml(formatCondition(listing.condition))}</span>
@@ -1062,32 +1067,21 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
             </div>
           </a>`;
         }
-        return html;
       }
 
-      let cardsHtml = "";
-      if (items.length === 0 && partsList.length === 0 && accsList.length === 0) {
-        cardsHtml = '<div class="empty-state">No equipment available right now. Check back soon!</div>';
-      } else {
-        if (items.length > 0) {
-          cardsHtml += buildCardsHtml(items);
-        }
-        if (partsList.length > 0) {
-          cardsHtml += `</div><h2 class="section-title" style="margin-top:32px">Parts For Sale</h2><div class="grid">`;
-          cardsHtml += buildCardsHtml(partsList);
-        }
-        if (accsList.length > 0) {
-          cardsHtml += `</div><h2 class="section-title" style="margin-top:32px">Accessories</h2><div class="grid">`;
-          cardsHtml += buildCardsHtml(accsList);
-        }
-      }
+      // Build minimal JSON for filter JS (type + category only)
+      const listingsJson = JSON.stringify(allListings.map(l => ({
+        type: l.listingType || "ITEM",
+        category: formatCategory(l.category),
+      })));
 
-      const totalCount = items.length + partsList.length + accsList.length;
+      const totalCount = allListings.length;
       const countText = totalCount === 1 ? "1 item" : `${totalCount} items`;
       const html = template
         .replace(/BASE_URL_PLACEHOLDER/g, baseUrl)
         .replace("LISTINGS_COUNT_PLACEHOLDER", countText)
-        .replace("LISTINGS_HTML_PLACEHOLDER", cardsHtml);
+        .replace("LISTINGS_HTML_PLACEHOLDER", cardsHtml)
+        .replace("LISTINGS_DATA_JSON_PLACEHOLDER", listingsJson);
 
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.status(200).send(html);
