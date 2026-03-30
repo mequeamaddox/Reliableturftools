@@ -448,9 +448,9 @@ export default function ListingDetailScreen() {
         <View style={styles.headerCenter}>
           <View style={[styles.statusDot, { backgroundColor: STATUS_COLORS[listing?.status] || Colors.textMuted }]} />
           <Text style={styles.headerStatus}>{listing?.status}</Text>
-          {listing?.listingType === "PART" && (
+          {(listing?.listingType === "PART" || listing?.listingType === "ACCESSORY") && (
             <View style={styles.typeBadge}>
-              <Text style={styles.typeBadgeText}>PART</Text>
+              <Text style={styles.typeBadgeText}>{listing?.listingType === "PART" ? "PART" : "ACCS"}</Text>
             </View>
           )}
         </View>

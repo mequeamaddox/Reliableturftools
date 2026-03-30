@@ -991,6 +991,7 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
       const baseUrl = getBaseUrl(req);
       const items = await storage.getPublishedListings("ITEM");
       const partsList = await storage.getPublishedListings("PART");
+      const accsList = await storage.getPublishedListings("ACCESSORY");
       const template = fs.readFileSync(storeListingTemplatePath, "utf-8");
 
       function buildCardsHtml(listingsList: typeof items): string {
@@ -1008,6 +1009,8 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
             : `<div class="card-img-wrap"><div class="card-img-placeholder">No Photo</div>${fulfillmentBadge}</div>`;
           const typeBadge = listing.listingType === "PART"
             ? '<span class="card-type-badge">Part</span>'
+            : listing.listingType === "ACCESSORY"
+            ? '<span class="card-type-badge">Accessory</span>'
             : "";
 
           html += `<a href="/store/${listing.id}" class="card">
@@ -1027,7 +1030,7 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
       }
 
       let cardsHtml = "";
-      if (items.length === 0 && partsList.length === 0) {
+      if (items.length === 0 && partsList.length === 0 && accsList.length === 0) {
         cardsHtml = '<div class="empty-state">No equipment available right now. Check back soon!</div>';
       } else {
         if (items.length > 0) {
@@ -1037,9 +1040,13 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
           cardsHtml += `</div><h2 class="section-title" style="margin-top:32px">Parts For Sale</h2><div class="grid">`;
           cardsHtml += buildCardsHtml(partsList);
         }
+        if (accsList.length > 0) {
+          cardsHtml += `</div><h2 class="section-title" style="margin-top:32px">Accessories</h2><div class="grid">`;
+          cardsHtml += buildCardsHtml(accsList);
+        }
       }
 
-      const totalCount = items.length + partsList.length;
+      const totalCount = items.length + partsList.length + accsList.length;
       const countText = totalCount === 1 ? "1 item" : `${totalCount} items`;
       const html = template
         .replace(/BASE_URL_PLACEHOLDER/g, baseUrl)

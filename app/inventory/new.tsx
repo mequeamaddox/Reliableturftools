@@ -63,7 +63,7 @@ export default function NewListingScreen() {
   const [palletAddedCount, setPalletAddedCount] = useState(0);
 
   // Item-level fields (reset between items in pallet mode)
-  const [listingType, setListingType] = useState<"ITEM" | "PART">(isPartOut ? "PART" : "ITEM");
+  const [listingType, setListingType] = useState<"ITEM" | "PART" | "ACCESSORY">(isPartOut ? "PART" : "ITEM");
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [cost, setCost] = useState("");
@@ -411,6 +411,13 @@ export default function NewListingScreen() {
                 >
                   <Ionicons name="cog-outline" size={18} color={listingType === "PART" ? "#fff" : Colors.textSecondary} />
                   <Text style={[styles.typeBtnText, listingType === "PART" && styles.typeBtnTextActive]}>Part</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.typeBtn, listingType === "ACCESSORY" && styles.typeBtnActive]}
+                  onPress={() => { setListingType("ACCESSORY"); Haptics.selectionAsync(); }}
+                >
+                  <Ionicons name="flash-outline" size={18} color={listingType === "ACCESSORY" ? "#fff" : Colors.textSecondary} />
+                  <Text style={[styles.typeBtnText, listingType === "ACCESSORY" && styles.typeBtnTextActive]}>Accessory</Text>
                 </Pressable>
               </View>
             </View>
