@@ -1053,8 +1053,9 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
             : "";
           const categoryLabel = escapeHtml(formatCategory(listing.category));
           const listingType = listing.listingType || "ITEM";
+          const ships = (listing.weightLbs && parseFloat(listing.weightLbs) > 0) ? "1" : "0";
 
-          cardsHtml += `<a href="/store/${listing.id}" class="card" data-type="${escapeHtml(listingType)}" data-category="${categoryLabel}">
+          cardsHtml += `<a href="/store/${listing.id}" class="card" data-type="${escapeHtml(listingType)}" data-category="${categoryLabel}" data-ships="${ships}">
             ${imgHtml}
             <div class="card-body">
               <div class="card-category">${categoryLabel}</div>
@@ -1069,10 +1070,11 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
         }
       }
 
-      // Build minimal JSON for filter JS (type + category only)
+      // Build minimal JSON for filter JS
       const listingsJson = JSON.stringify(allListings.map(l => ({
         type: l.listingType || "ITEM",
         category: formatCategory(l.category),
+        ships: (l.weightLbs && parseFloat(l.weightLbs) > 0) ? 1 : 0,
       })));
 
       const totalCount = allListings.length;

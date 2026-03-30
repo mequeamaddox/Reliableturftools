@@ -311,19 +311,15 @@
 
     var activeType = "all";
     var activeCategory = "all";
+    var activeShipping = "all";
 
     function buildFilters() {
       var row = document.getElementById("filter-row");
       if (!row) return;
 
-      // Collect type counts
       var typeCounts = { all: 0, ITEM: 0, PART: 0, ACCESSORY: 0 };
-      // Category counts per type
-      var catCountsByType = {}; // { "all": {cat: count}, "ITEM": {cat: count}, ... }
-      catCountsByType["all"] = {};
-      catCountsByType["ITEM"] = {};
-      catCountsByType["PART"] = {};
-      catCountsByType["ACCESSORY"] = {};
+      var catCountsByType = { all: {}, ITEM: {}, PART: {}, ACCESSORY: {} };
+      var shipCount = 0, pickupCount = 0;
 
       ALL_LISTINGS_DATA.forEach(function(l) {
         typeCounts.all++;
@@ -332,25 +328,30 @@
         catCountsByType["all"][cat] = (catCountsByType["all"][cat] || 0) + 1;
         if (!catCountsByType[l.type]) catCountsByType[l.type] = {};
         catCountsByType[l.type][cat] = (catCountsByType[l.type][cat] || 0) + 1;
+        if (l.ships) shipCount++; else pickupCount++;
       });
 
-      function makePill(label, value, count, isType) {
+      function makePill(label, value, count, kind) {
+        var isActive = kind === "type" ? value === activeType
+                     : kind === "cat"  ? value === activeCategory
+                     :                   value === activeShipping;
         var pill = document.createElement("button");
-        pill.className = "filter-pill" + ((isType ? value === activeType : value === activeCategory) ? " active" : "");
-        pill.dataset.value = value;
-        pill.dataset.isType = isType ? "1" : "0";
+        pill.className = "filter-pill" + (isActive ? " active" : "");
         pill.innerHTML = label + (count !== null ? ' <span class="pill-count">' + count + "</span>" : "");
         pill.addEventListener("click", function() {
-          if (isType) {
-            activeType = value;
-            activeCategory = "all";
-          } else {
-            activeCategory = value;
-          }
+          if (kind === "type") { activeType = value; activeCategory = "all"; }
+          else if (kind === "cat") { activeCategory = value; }
+          else { activeShipping = value; }
           applyFilter();
           buildFilters();
         });
         return pill;
+      }
+
+      function addDivider() {
+        var d = document.createElement("div");
+        d.className = "filter-divider";
+        row.appendChild(d);
       }
 
       row.innerHTML = "";
@@ -363,26 +364,29 @@
         { label: "Accessories", value: "ACCESSORY" },
       ];
       types.forEach(function(t) {
-        if (typeCounts[t.value] > 0 || t.value === "all") {
-          row.appendChild(makePill(t.label, t.value, t.value === "all" ? typeCounts.all : (typeCounts[t.value] || 0), true));
+        var cnt = t.value === "all" ? typeCounts.all : (typeCounts[t.value] || 0);
+        if (cnt > 0 || t.value === "all") {
+          row.appendChild(makePill(t.label, t.value, cnt, "type"));
         }
       });
 
-      // Build category pills for active type
+      // Category pills for active type
       var relevantCats = catCountsByType[activeType] || {};
       var catKeys = Object.keys(relevantCats).sort();
-
       if (catKeys.length > 1) {
-        var div = document.createElement("div");
-        div.className = "filter-divider";
-        row.appendChild(div);
-
-        var allCatPill = makePill("All " + (activeType === "ITEM" ? "Equipment" : activeType === "PART" ? "Parts" : activeType === "ACCESSORY" ? "Accessories" : ""), "all", null, false);
-        row.appendChild(allCatPill);
-
+        addDivider();
+        var typeLabel = activeType === "ITEM" ? "Equipment" : activeType === "PART" ? "Parts" : activeType === "ACCESSORY" ? "Accessories" : "";
+        row.appendChild(makePill("All" + (typeLabel ? " " + typeLabel : ""), "all", null, "cat"));
         catKeys.forEach(function(cat) {
-          row.appendChild(makePill(cat, cat, relevantCats[cat], false));
+          row.appendChild(makePill(cat, cat, relevantCats[cat], "cat"));
         });
+      }
+
+      // Shipping pills (only if both options exist)
+      if (shipCount > 0 && pickupCount > 0) {
+        addDivider();
+        row.appendChild(makePill("🚚 Ships", "ships", shipCount, "ship"));
+        row.appendChild(makePill("📍 Local Pickup", "pickup", pickupCount, "ship"));
       }
     }
 
@@ -391,8 +395,11 @@
       var visible = 0;
       cards.forEach(function(card) {
         var matchType = activeType === "all" || card.dataset.type === activeType;
-        var matchCat = activeCategory === "all" || card.dataset.category === activeCategory;
-        if (matchType && matchCat) {
+        var matchCat  = activeCategory === "all" || card.dataset.category === activeCategory;
+        var matchShip = activeShipping === "all"
+          || (activeShipping === "ships"  && card.dataset.ships === "1")
+          || (activeShipping === "pickup" && card.dataset.ships === "0");
+        if (matchType && matchCat && matchShip) {
           card.classList.remove("hidden");
           visible++;
         } else {
