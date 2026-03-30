@@ -116,9 +116,9 @@ function ListingCard({
           <View style={styles.cardRight}>
             <Text style={styles.cardPrice}>${parseFloat(item.price).toFixed(0)}</Text>
             <View style={{ flexDirection: "row", gap: 4 }}>
-              {item.listingType === "PART" && (
+              {(item.listingType === "PART" || item.listingType === "ACCESSORY") && (
                 <View style={styles.partBadge}>
-                  <Text style={styles.partText}>PART</Text>
+                  <Text style={styles.partText}>{item.listingType === "PART" ? "PART" : "ACCS"}</Text>
                 </View>
               )}
               {item.isPublished && (
@@ -291,7 +291,7 @@ export default function InventoryScreen() {
   const webTopInset = Platform.OS === "web" ? 67 : 0;
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("ALL");
-  const [listingType, setListingType] = useState<"ITEM" | "PART">("ITEM");
+  const [listingType, setListingType] = useState<"ITEM" | "PART" | "ACCESSORY">("ITEM");
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activePallet, setActivePallet] = useState<string | null>(null);
@@ -501,6 +501,13 @@ export default function InventoryScreen() {
             >
               <Ionicons name="cog-outline" size={16} color={listingType === "PART" ? "#fff" : Colors.textSecondary} />
               <Text style={[styles.typeToggleText, listingType === "PART" && styles.typeToggleTextActive]}>Parts</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.typeToggle, listingType === "ACCESSORY" && styles.typeToggleActive]}
+              onPress={() => { setListingType("ACCESSORY"); Haptics.selectionAsync(); }}
+            >
+              <Ionicons name="flash-outline" size={16} color={listingType === "ACCESSORY" ? "#fff" : Colors.textSecondary} />
+              <Text style={[styles.typeToggleText, listingType === "ACCESSORY" && styles.typeToggleTextActive]}>Accs</Text>
             </Pressable>
           </View>
 
