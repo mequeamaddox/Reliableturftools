@@ -463,32 +463,31 @@
       margin-bottom: 6px;
       color: rgba(255,255,255,0.6);
     }
-    .radio-group {
+    .fulfillment-tabs {
       display: flex;
-      flex-direction: column;
       gap: 10px;
+      margin-bottom: 20px;
     }
-    .radio-option {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 14px;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px;
+    .fulfillment-tab {
+      flex: 1;
+      padding: 14px 10px;
+      border: 2px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      color: rgba(255,255,255,0.55);
+      font-size: 15px;
+      font-weight: 600;
       cursor: pointer;
-      color: #fff;
-      font-size: 14px;
-      font-weight: 400;
-      transition: border-color 0.15s, background 0.15s;
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
     }
-    .radio-option input[type="radio"] {
-      width: auto;
-      accent-color: #4ade80;
-      margin: 0;
-    }
-    .radio-option:has(input:checked) {
+    .fulfillment-tab.active {
       border-color: #4ade80;
-      background: rgba(74,222,128,0.08);
+      background: rgba(74,222,128,0.1);
+      color: #fff;
+    }
+    .fulfillment-tab:hover:not(.active) {
+      border-color: rgba(255,255,255,0.3);
+      color: #fff;
     }
     .form-group input,
     .form-group textarea {
@@ -606,59 +605,42 @@
       </div>
 
       <div>
-        LISTING_SHIPPING_SECTION_PLACEHOLDER
-
-        <div class="buy-section" id="buy-section" style="display:none;">
-          <h3>Order Summary</h3>
-          <div class="price-breakdown">
-            <div class="price-row">
-              <span>Item Price</span>
-              <span id="summary-item-price">LISTING_PRICE_PLACEHOLDER</span>
-            </div>
-            <div class="price-row" id="summary-shipping-row" style="display:none;">
-              <span id="summary-shipping-label">Shipping</span>
-              <span id="summary-shipping-price">&mdash;</span>
-            </div>
-            <div class="price-row total">
-              <span>Total</span>
-              <span id="summary-total">LISTING_PRICE_PLACEHOLDER</span>
-            </div>
+        <div id="fulfillment-toggle" style="display:none">
+          <div class="fulfillment-tabs">
+            <button class="fulfillment-tab active" id="tab-ship" onclick="setFulfillment('ship')">🚚 Ship to Me</button>
+            <button class="fulfillment-tab" id="tab-pickup" onclick="setFulfillment('pickup')">📍 Local Pickup</button>
           </div>
-          <button class="btn-buy" id="btn-buy" disabled>Select a shipping option first</button>
-          <div class="buy-note">Secure checkout via Square</div>
         </div>
 
-        <div class="buy-section" id="buy-local-section">
-          <h3>Buy This Item</h3>
-          <div class="price-breakdown">
-            <div class="price-row total">
-              <span>Price</span>
-              <span>LISTING_PRICE_PLACEHOLDER</span>
+        <div id="ship-section-wrapper">
+          LISTING_SHIPPING_SECTION_PLACEHOLDER
+
+          <div class="buy-section" id="buy-section" style="display:none;">
+            <h3>Order Summary</h3>
+            <div class="price-breakdown">
+              <div class="price-row">
+                <span>Item Price</span>
+                <span id="summary-item-price">LISTING_PRICE_PLACEHOLDER</span>
+              </div>
+              <div class="price-row" id="summary-shipping-row" style="display:none;">
+                <span id="summary-shipping-label">Shipping</span>
+                <span id="summary-shipping-price">&mdash;</span>
+              </div>
+              <div class="price-row total">
+                <span>Total</span>
+                <span id="summary-total">LISTING_PRICE_PLACEHOLDER</span>
+              </div>
             </div>
+            <button class="btn-buy" id="btn-buy" disabled>Select a shipping option first</button>
+            <div class="buy-note">Secure checkout via Square</div>
           </div>
-          <button class="btn-buy" id="btn-buy-local" onclick="startCheckout(null)">Buy Now &mdash; Local Pickup</button>
-          <div class="buy-note">Secure checkout via Square. Meetup arranged after purchase.</div>
         </div>
 
-        <div class="or-divider">or</div>
-
-        <div class="inquiry-section">
+        <div class="inquiry-section" id="inquiry-section">
           <h3 id="inquiry-heading">Reserve / Ask About This</h3>
           <form id="inquiry-form">
             <input type="hidden" name="listingId" value="LISTING_ID_PLACEHOLDER" />
-            <div class="form-group" id="fulfillment-group" style="display:none">
-              <label>How would you like to receive this item?</label>
-              <div class="radio-group">
-                <label class="radio-option">
-                  <input type="radio" name="fulfillment" value="shipping" checked />
-                  <span>Ship to my address</span>
-                </label>
-                <label class="radio-option">
-                  <input type="radio" name="fulfillment" value="pickup" />
-                  <span>Local pickup — Columbia, SC</span>
-                </label>
-              </div>
-            </div>
+            <input type="hidden" name="fulfillment" id="fulfillment-hidden" value="" />
             <div class="form-group">
               <label for="inq-name">Your Name *</label>
               <input type="text" id="inq-name" name="name" required />
@@ -859,19 +841,37 @@
     var w = parseFloat(WEIGHT_LBS);
     var isShippable = w && w > 0;
 
-    var buyLocalEl = document.getElementById('buy-local-section');
-    if (buyLocalEl) buyLocalEl.style.display = 'none';
-    var orEl = document.querySelector('.or-divider');
-    if (orEl) orEl.style.display = 'none';
+    function setFulfillment(mode) {
+      var shipWrapper = document.getElementById('ship-section-wrapper');
+      var inquirySection = document.getElementById('inquiry-section');
+      var tabShip = document.getElementById('tab-ship');
+      var tabPickup = document.getElementById('tab-pickup');
+      var hiddenInput = document.getElementById('fulfillment-hidden');
+      var heading = document.getElementById('inquiry-heading');
+      if (mode === 'ship') {
+        if (shipWrapper) shipWrapper.style.display = 'block';
+        if (inquirySection) inquirySection.style.display = 'none';
+        if (tabShip) tabShip.classList.add('active');
+        if (tabPickup) tabPickup.classList.remove('active');
+        if (hiddenInput) hiddenInput.value = 'shipping';
+      } else {
+        if (shipWrapper) shipWrapper.style.display = 'none';
+        if (inquirySection) inquirySection.style.display = 'block';
+        if (tabShip) tabShip.classList.remove('active');
+        if (tabPickup) tabPickup.classList.add('active');
+        if (hiddenInput) hiddenInput.value = 'pickup';
+        if (heading) heading.textContent = 'Reserve for Local Pickup';
+      }
+    }
 
     if (isShippable) {
-      var fulfillmentGroup = document.getElementById('fulfillment-group');
-      if (fulfillmentGroup) fulfillmentGroup.style.display = 'block';
-      var inquiryHeading = document.getElementById('inquiry-heading');
-      if (inquiryHeading) inquiryHeading.textContent = 'Reserve / Ask About This';
+      document.getElementById('fulfillment-toggle').style.display = 'block';
+      document.getElementById('inquiry-section').style.display = 'none';
+      document.getElementById('fulfillment-hidden').value = 'shipping';
     } else {
-      var inquiryHeading2 = document.getElementById('inquiry-heading');
-      if (inquiryHeading2) inquiryHeading2.textContent = "I'm Interested";
+      document.getElementById('ship-section-wrapper').style.display = 'none';
+      var heading2 = document.getElementById('inquiry-heading');
+      if (heading2) heading2.textContent = "I'm Interested";
     }
 
     document.getElementById('inquiry-form').addEventListener('submit', function(e) {
@@ -891,8 +891,7 @@
           phone: document.getElementById('inq-phone').value,
           email: document.getElementById('inq-email').value,
           message: (function() {
-            var fulfillmentEl = document.querySelector('[name="fulfillment"]:checked');
-            var pref = fulfillmentEl ? fulfillmentEl.value : null;
+            var pref = document.getElementById('fulfillment-hidden').value;
             var msg = document.getElementById('inq-message').value;
             if (pref === 'pickup') return '[Prefers local pickup — Columbia, SC]\n' + msg;
             if (pref === 'shipping') return '[Prefers shipping]\n' + msg;
