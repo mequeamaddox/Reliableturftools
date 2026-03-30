@@ -201,17 +201,11 @@ function configureExpoAndLanding(app: express.Application) {
       return res.redirect("/store");
     }
 
-    if (req.path === "/admin") {
-      if (fs.existsSync(path.resolve(process.cwd(), "static-build", "index.html"))) {
-        return res.sendFile(path.resolve(process.cwd(), "static-build", "index.html"));
-      }
-    }
-
     next();
   });
 
   app.use("/assets", express.static(path.resolve(process.cwd(), "assets")));
-  app.use(express.static(path.resolve(process.cwd(), "static-build")));
+  app.use("/admin", express.static(path.resolve(process.cwd(), "static-build")));
 
   const staticIndex = path.resolve(process.cwd(), "static-build", "index.html");
   app.use((req: Request, res: Response, next: NextFunction) => {
