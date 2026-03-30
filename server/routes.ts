@@ -1,3 +1,4 @@
+import express from "express";
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "node:http";
 import session from "express-session";
@@ -9,22 +10,12 @@ import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 import { storage } from "./storage";
+import { uploadBuffer, getFileStream } from "./objectStorage";
 import { DEFAULT_CONDITIONS, DEFAULT_POWER_TYPES, DEFAULT_CATEGORIES, DEFAULT_PAYMENT_TYPES, DEFAULT_LEAD_SOURCES } from "@shared/schema";
 import { SquareClient, SquareEnvironment } from "square";
 
-const uploadDir = path.resolve(process.cwd(), "public", "uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, uploadDir),
-    filename: (_req, file, cb) => {
-      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-      cb(null, uniqueSuffix + path.extname(file.originalname));
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
@@ -106,10 +97,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }),
   );
 
-  app.use("/uploads", (req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    next();
-  }, express_static_uploads());
+  app.get("/uploads/:filename", async (req, res) => {
+    try {
+      const stream = await getFileStream(req.params.filename);
+      if (!stream) {
+        return res.status(404).send("Not found");
+      }
+      const ext = path.extname(req.params.filename).toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+        ".png": "image/png", ".gif": "image/gif",
+        ".webp": "image/webp", ".heic": "image/heic",
+      };
+      res.setHeader("Content-Type", mimeTypes[ext] || "application/octet-stream");
+      res.setHeader("Cache-Control", "public, max-age=31536000");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      stream.pipe(res);
+    } catch {
+      res.status(500).send("Error");
+    }
+  });
 
   app.use("/public", express.static(path.resolve(process.cwd(), "public")));
 
@@ -415,9 +422,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/upload", requireAuth, upload.array("photos", 10), async (req: Request, res: Response) => {
     try {
       const files = req.files as Express.Multer.File[];
-      const urls = files.map((f) => `/uploads/${f.filename}`);
+      const urls: string[] = [];
+      for (const f of files) {
+        const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+        const filename = uniqueSuffix + path.extname(f.originalname);
+        const url = await uploadBuffer(f.buffer, filename, f.mimetype);
+        urls.push(url);
+      }
       return res.json({ urls });
     } catch (err) {
+      console.error("Upload error:", err);
       return res.status(500).json({ error: "Upload error" });
     }
   });
@@ -1578,7 +1592,4 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
   return httpServer;
 }
 
-import express from "express";
-function express_static_uploads() {
-  return express.static(uploadDir);
-}
+

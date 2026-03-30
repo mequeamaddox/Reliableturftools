@@ -41,7 +41,7 @@ Preferred communication style: Simple, everyday language.
 - **Entry Point**: `server/index.ts`
 - **Routes**: `server/routes.ts` — Registers all API routes including auth, CRUD for listings/buyers/sales/follow-ups, dashboard stats, storefront endpoints, file uploads
 - **Authentication**: Session-based auth using `express-session` with `connect-pg-simple` for PostgreSQL session storage. Passwords hashed with bcryptjs.
-- **File Uploads**: Multer saves files to `public/uploads/` directory, paths stored in DB
+- **File Uploads**: Multer (memory storage) receives files, uploads them to Replit Object Storage (Google Cloud Storage bucket). Paths stored in DB as `/uploads/{filename}`. The `/uploads/:filename` route proxies from cloud storage. Files persist across deployments.
 - **CORS**: Dynamic origin allowlist based on Replit environment variables, plus localhost support for dev
 - **Storage Layer**: `server/storage.ts` — Data access layer wrapping Drizzle ORM queries
 
