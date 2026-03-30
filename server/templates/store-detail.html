@@ -431,6 +431,17 @@
     .or-divider::before { left: 0; }
     .or-divider::after { right: 0; }
 
+    .linked-accessories { margin-top: 40px; padding: 0 0 8px; }
+    .linked-accessories h3 { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 16px; }
+    .acc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+    .acc-card { display: block; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow: hidden; text-decoration: none; transition: transform 0.2s; }
+    .acc-card:hover { transform: translateY(-2px); }
+    .acc-img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+    .acc-img-placeholder { width: 100%; aspect-ratio: 1; background: rgba(255,255,255,0.05); }
+    .acc-body { padding: 8px 10px 10px; }
+    .acc-title { font-size: 13px; font-weight: 600; color: #f8fafc; line-height: 1.3; margin-bottom: 4px; }
+    .acc-price { font-size: 13px; font-weight: 700; color: #22c55e; }
+
     .inquiry-section {
       background: rgba(255,255,255,0.03);
       border: 1px solid rgba(255,255,255,0.06);
@@ -629,6 +640,9 @@
         </div>
       </div>
     </div>
+
+    LISTING_LINKED_ACCESSORIES_PLACEHOLDER
+
   </main>
 
   <footer class="site-footer">

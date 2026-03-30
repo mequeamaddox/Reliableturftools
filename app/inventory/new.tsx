@@ -328,6 +328,24 @@ export default function NewListingScreen() {
                 />
               </View>
 
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Type</Text>
+                <View style={styles.typeRow}>
+                  <Pressable style={[styles.typeBtn, listingType === "ITEM" && styles.typeBtnActive]} onPress={() => { setListingType("ITEM"); Haptics.selectionAsync(); }}>
+                    <Ionicons name="build-outline" size={16} color={listingType === "ITEM" ? "#fff" : Colors.textSecondary} />
+                    <Text style={[styles.typeBtnText, listingType === "ITEM" && styles.typeBtnTextActive]}>Item</Text>
+                  </Pressable>
+                  <Pressable style={[styles.typeBtn, listingType === "PART" && styles.typeBtnActive]} onPress={() => { setListingType("PART"); Haptics.selectionAsync(); }}>
+                    <Ionicons name="cog-outline" size={16} color={listingType === "PART" ? "#fff" : Colors.textSecondary} />
+                    <Text style={[styles.typeBtnText, listingType === "PART" && styles.typeBtnTextActive]}>Part</Text>
+                  </Pressable>
+                  <Pressable style={[styles.typeBtn, listingType === "ACCESSORY" && styles.typeBtnActive]} onPress={() => { setListingType("ACCESSORY"); Haptics.selectionAsync(); }}>
+                    <Ionicons name="flash-outline" size={16} color={listingType === "ACCESSORY" ? "#fff" : Colors.textSecondary} />
+                    <Text style={[styles.typeBtnText, listingType === "ACCESSORY" && styles.typeBtnTextActive]}>Accessory</Text>
+                  </Pressable>
+                </View>
+              </View>
+
               <ChipSelect options={POWER_TYPES} value={powerType} onChange={setPowerType} label="Power Type (sticky)" />
               <ChipSelect options={CATEGORIES} value={category} onChange={setCategory} label="Category (sticky)" />
               <ChipSelect options={CONDITIONS} value={condition} onChange={setCondition} label="Condition (sticky)" />

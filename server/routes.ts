@@ -1202,6 +1202,24 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
         },
       });
 
+      let linkedAccessoriesHtml = "";
+      const linkedIds: string[] = (listing as any).linkedAccessoryIds || [];
+      if (linkedIds.length > 0) {
+        const linkedAccs = await Promise.all(linkedIds.map((aid: string) => storage.getListingById(aid)));
+        const validAccs = linkedAccs.filter((a): a is NonNullable<typeof a> => !!a && a.isPublished && a.status === "AVAILABLE");
+        if (validAccs.length > 0) {
+          linkedAccessoriesHtml = `<div class="linked-accessories"><h3>Pair It With</h3><div class="acc-grid">`;
+          for (const acc of validAccs) {
+            const accPhoto = acc.photos && acc.photos.length > 0 ? `${baseUrl}${acc.photos[0]}` : "";
+            const accImg = accPhoto
+              ? `<img class="acc-img" src="${escapeHtml(accPhoto)}" alt="${escapeHtml(acc.title)}" />`
+              : `<div class="acc-img-placeholder"></div>`;
+            linkedAccessoriesHtml += `<a href="/store/${acc.id}" class="acc-card">${accImg}<div class="acc-body"><div class="acc-title">${escapeHtml(acc.title)}</div><div class="acc-price">${formatPrice(acc.price)}</div></div></a>`;
+          }
+          linkedAccessoriesHtml += `</div></div>`;
+        }
+      }
+
       const hasShipping = listing.weightLbs && parseFloat(listing.weightLbs) > 0;
       let shippingSectionHtml = "";
       if (hasShipping) {
@@ -1243,7 +1261,8 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
         .replace("LISTING_WEIGHT_PLACEHOLDER", listing.weightLbs || "0")
         .replace("LISTING_BOX_LENGTH_PLACEHOLDER", listing.boxLengthIn || "12")
         .replace("LISTING_BOX_WIDTH_PLACEHOLDER", listing.boxWidthIn || "10")
-        .replace("LISTING_BOX_HEIGHT_PLACEHOLDER", listing.boxHeightIn || "8");
+        .replace("LISTING_BOX_HEIGHT_PLACEHOLDER", listing.boxHeightIn || "8")
+        .replace("LISTING_LINKED_ACCESSORIES_PLACEHOLDER", linkedAccessoriesHtml);
 
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.status(200).send(html);

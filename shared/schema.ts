@@ -80,6 +80,10 @@ export const listings = pgTable("listings", {
     .array()
     .notNull()
     .default(sql`ARRAY[]::text[]`),
+  linkedAccessoryIds: text("linked_accessory_ids")
+    .array()
+    .notNull()
+    .default(sql`ARRAY[]::text[]`),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

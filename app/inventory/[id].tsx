@@ -65,6 +65,10 @@ export default function ListingDetailScreen() {
   });
   const { data: meetupSpots = [] } = useQuery<any[]>({ queryKey: ["/api/meetup-spots"] });
   const { data: allBuyers = [] } = useQuery<any[]>({ queryKey: ["/api/buyers"] });
+  const { data: allAccessories = [] } = useQuery<any[]>({
+    queryKey: ["/api/listings?listingType=ACCESSORY&status=AVAILABLE"],
+  });
+
   const { data: inventoryOptions } = useQuery<{
     conditions: string[];
     powerTypes: string[];
@@ -122,6 +126,9 @@ export default function ListingDetailScreen() {
   const [payLinkLoading, setPayLinkLoading] = useState(false);
   const [payLinkUrl, setPayLinkUrl] = useState("");
   const [payLinkError, setPayLinkError] = useState("");
+  const [linkedAccessoryIds, setLinkedAccessoryIds] = useState<string[]>([]);
+  const [showAccessoryPicker, setShowAccessoryPicker] = useState(false);
+  const [accessorySearch, setAccessorySearch] = useState("");
 
   useEffect(() => {
     if (listing && !initializedRef.current) {
@@ -146,6 +153,7 @@ export default function ListingDetailScreen() {
       setBoxHeightIn(listing.boxHeightIn || "");
       setSalePrice(listing.price || "");
       setPhotos(listing.photos || []);
+      setLinkedAccessoryIds(listing.linkedAccessoryIds || []);
     }
   }, [listing]);
 
@@ -212,6 +220,7 @@ export default function ListingDetailScreen() {
       boxLengthIn: boxLengthIn || null,
       boxWidthIn: boxWidthIn || null,
       boxHeightIn: boxHeightIn || null,
+      linkedAccessoryIds,
     });
   }
 
@@ -364,26 +373,6 @@ export default function ListingDetailScreen() {
     }
   }
 
-
-  function handleDuplicate() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    apiRequest("POST", "/api/listings", {
-      title: title + " (Copy)",
-      price,
-      cost: cost || undefined,
-      brand: brand || undefined,
-      quantity: parseInt(quantity) || 1,
-      condition,
-      powerType,
-      category,
-      notes: notes || undefined,
-      description: description || undefined,
-      listingType: listing?.listingType || "ITEM",
-    }).then(() => {
-      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith("/api/listings") });
-      Alert.alert("Duplicated", "Listing has been duplicated");
-    });
-  }
 
   function handleDelete() {
     Alert.alert("Delete Listing", "Are you sure?", [
@@ -709,6 +698,41 @@ export default function ListingDetailScreen() {
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Internal Notes <Text style={styles.labelHint}>(admin only)</Text></Text>
               <TextInput style={[styles.input, styles.textarea]} value={notes} onChangeText={setNotes} multiline numberOfLines={3} placeholderTextColor={Colors.textMuted} placeholder="Missing battery, damage, etc..." />
+            </View>
+
+            <View style={styles.sectionHeader}>
+              <Ionicons name="flash-outline" size={18} color={Colors.warning || "#f59e0b"} />
+              <Text style={styles.sectionHeaderText}>Linked Accessories <Text style={styles.labelHint}>(upsells on store page)</Text></Text>
+            </View>
+            <View style={styles.fieldGroup}>
+              {linkedAccessoryIds.length === 0 && (
+                <Text style={[styles.labelHint, { marginBottom: 8 }]}>No accessories linked yet.</Text>
+              )}
+              {linkedAccessoryIds.map((accId) => {
+                const acc = allAccessories.find((a: any) => a.id === accId);
+                if (!acc) return null;
+                return (
+                  <View key={accId} style={styles.linkedAccRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.linkedAccTitle}>{acc.title}</Text>
+                      <Text style={styles.linkedAccPrice}>${parseFloat(acc.price).toFixed(0)}</Text>
+                    </View>
+                    <Pressable
+                      onPress={() => { setLinkedAccessoryIds((prev) => prev.filter((i) => i !== accId)); Haptics.selectionAsync(); }}
+                      hitSlop={8}
+                    >
+                      <Ionicons name="close-circle" size={22} color={Colors.textMuted} />
+                    </Pressable>
+                  </View>
+                );
+              })}
+              <Pressable
+                style={styles.addAccBtn}
+                onPress={() => { setAccessorySearch(""); setShowAccessoryPicker(true); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+              >
+                <Ionicons name="add" size={18} color={Colors.primary} />
+                <Text style={styles.addAccBtnText}>Link an Accessory</Text>
+              </Pressable>
             </View>
 
             <View style={styles.sectionHeader}>
@@ -1065,6 +1089,53 @@ export default function ListingDetailScreen() {
         )}
       </ScrollView>
 
+      {/* Accessory Picker Modal */}
+      <Modal visible={showAccessoryPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowAccessoryPicker(false)}>
+        <View style={{ flex: 1, backgroundColor: Colors.background }}>
+          <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+            <Pressable onPress={() => setShowAccessoryPicker(false)}>
+              <Ionicons name="close" size={28} color={Colors.text} />
+            </Pressable>
+            <Text style={styles.headerTitle}>Link Accessory</Text>
+            <View style={{ width: 28 }} />
+          </View>
+          <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+            <TextInput
+              style={styles.input}
+              value={accessorySearch}
+              onChangeText={setAccessorySearch}
+              placeholder="Search accessories..."
+              placeholderTextColor={Colors.textMuted}
+              autoFocus
+            />
+          </View>
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}>
+            {allAccessories
+              .filter((a: any) => !linkedAccessoryIds.includes(a.id) && a.title.toLowerCase().includes(accessorySearch.toLowerCase()))
+              .map((a: any) => (
+                <Pressable
+                  key={a.id}
+                  style={styles.linkedAccRow}
+                  onPress={() => {
+                    setLinkedAccessoryIds((prev) => [...prev, a.id]);
+                    setShowAccessoryPicker(false);
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.linkedAccTitle}>{a.title}</Text>
+                    <Text style={styles.linkedAccPrice}>${parseFloat(a.price).toFixed(0)} · {a.sku || "No SKU"}</Text>
+                  </View>
+                  <Ionicons name="add-circle" size={24} color={Colors.primary} />
+                </Pressable>
+              ))}
+            {allAccessories.filter((a: any) => !linkedAccessoryIds.includes(a.id) && a.title.toLowerCase().includes(accessorySearch.toLowerCase())).length === 0 && (
+              <Text style={[styles.labelHint, { textAlign: "center", marginTop: 32 }]}>No accessories found. Add items as Accessory type first.</Text>
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
+
       {/* Barcode Scanner Modal */}
       <Modal visible={scannerVisible} animationType="slide" onRequestClose={() => setScannerVisible(false)}>
         {!cameraPermission?.granted ? (
@@ -1202,6 +1273,43 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     marginTop: 4,
     marginLeft: 4,
+  },
+  linkedAccRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.inputBg,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  linkedAccTitle: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    color: Colors.text,
+  },
+  linkedAccPrice: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  addAccBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderStyle: "dashed",
+    marginTop: 4,
+  },
+  addAccBtnText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    color: Colors.primary,
   },
   input: {
     backgroundColor: Colors.inputBg,
