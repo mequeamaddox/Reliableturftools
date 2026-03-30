@@ -245,6 +245,26 @@ export default function ListingDetailScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   }
 
+  function handleDuplicate() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert("Duplicate Listing?", "A copy will be created as Available with a new SKU. Photos won't be copied.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Duplicate",
+        onPress: async () => {
+          try {
+            const res = await apiRequest("POST", `/api/listings/${id}/duplicate`);
+            const newListing = await res.json();
+            queryClient.invalidateQueries({ queryKey: ["/api/listings"] });
+            router.replace(`/inventory/${newListing.id}` as any);
+          } catch (e: any) {
+            Alert.alert("Error", "Could not duplicate the listing.");
+          }
+        },
+      },
+    ]);
+  }
+
   function handleSell() {
     const hasExistingBuyer = selectedBuyer?.id;
     const newBuyerName = selectedBuyer && !selectedBuyer.id ? selectedBuyer.name : undefined;
@@ -502,6 +522,28 @@ export default function ListingDetailScreen() {
                   </Pressable>
                 </>
               )}
+              {listing?.status === "SOLD" && (
+                <Pressable
+                  style={[styles.actionBtn, { backgroundColor: Colors.available }]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    Alert.alert("Mark as Available?", "This will move the item back to Available. The sale record will remain.", [
+                      { text: "Cancel", style: "cancel" },
+                      { text: "Mark Available", onPress: () => updateMutation.mutate({ status: "AVAILABLE" }) },
+                    ]);
+                  }}
+                >
+                  <Ionicons name="refresh-circle" size={18} color="#fff" />
+                  <Text style={styles.actionBtnText}>Unmark Sold</Text>
+                </Pressable>
+              )}
+              <Pressable
+                style={[styles.actionBtn, { backgroundColor: "rgba(14, 165, 233, 0.9)" }]}
+                onPress={handleDuplicate}
+              >
+                <Ionicons name="copy-outline" size={18} color="#fff" />
+                <Text style={styles.actionBtnText}>Duplicate</Text>
+              </Pressable>
               <Pressable
                 style={[styles.actionBtn, { backgroundColor: "rgba(168, 85, 247, 0.9)" }]}
                 onPress={() => {

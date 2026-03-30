@@ -337,6 +337,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/listings/:id/duplicate", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const original = await storage.getListingById(req.params.id);
+      if (!original) return res.status(404).json({ error: "Listing not found" });
+      const newSku = await generateSku(original.category || "OTHER");
+      const { id: _id, createdAt: _c, updatedAt: _u, status: _s, isPublished: _p, barcode: _b, photos: _ph, ...rest } = original as any;
+      const duplicate = await storage.createListing({
+        ...rest,
+        sku: newSku,
+        status: "AVAILABLE",
+        isPublished: false,
+        barcode: null,
+        photos: [],
+        title: `${original.title} (Copy)`,
+      });
+      return res.json(duplicate);
+    } catch (err) {
+      console.error("Duplicate listing error:", err);
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
   app.post("/api/listings/:id/sell", requireAuth, async (req: Request, res: Response) => {
     try {
       const listing = await storage.getListingById(req.params.id);
