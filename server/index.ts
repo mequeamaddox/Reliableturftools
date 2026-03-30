@@ -197,17 +197,8 @@ function configureExpoAndLanding(app: express.Application) {
       return serveExpoManifest(platform, res);
     }
 
-    if (req.path === "/admin") {
-      return serveLandingPage({
-        req,
-        res,
-        landingPageTemplate,
-        appName,
-      });
-    }
-
     if (req.path === "/") {
-      return res.redirect("/store");
+      return next();
     }
 
     next();
@@ -215,6 +206,17 @@ function configureExpoAndLanding(app: express.Application) {
 
   app.use("/assets", express.static(path.resolve(process.cwd(), "assets")));
   app.use(express.static(path.resolve(process.cwd(), "static-build")));
+
+  const staticIndex = path.resolve(process.cwd(), "static-build", "index.html");
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.path.startsWith("/api") || req.path.startsWith("/store") || req.path.startsWith("/uploads") || req.path === "/sitemap.xml" || req.path === "/robots.txt") {
+      return next();
+    }
+    if (fs.existsSync(staticIndex)) {
+      return res.sendFile(staticIndex);
+    }
+    next();
+  });
 
   log("Expo routing: Checking expo-platform header on / and /manifest");
 }
