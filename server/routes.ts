@@ -1018,6 +1018,11 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
     return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
 
+  function buildGa4Script(): string {
+    const id = process.env.GA4_MEASUREMENT_ID;
+    if (!id) return "";
+    return `<!-- Google tag (gtag.js) -->\n  <script async src="https://www.googletagmanager.com/gtag/js?id=${id}"></script>\n  <script>\n    window.dataLayer = window.dataLayer || [];\n    function gtag(){dataLayer.push(arguments);}\n    gtag('js', new Date());\n    gtag('config', '${id}');\n  </script>`;
+  }
 
   const storeListingTemplatePath = path.resolve(process.cwd(), "server", "templates", "store-listing.html");
   const storeDetailTemplatePath = path.resolve(process.cwd(), "server", "templates", "store-detail.html");
@@ -1081,6 +1086,7 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
       const countText = totalCount === 1 ? "1 item" : `${totalCount} items`;
       const html = template
         .replace(/BASE_URL_PLACEHOLDER/g, baseUrl)
+        .replace("GA4_SCRIPT_PLACEHOLDER", buildGa4Script())
         .replace("LISTINGS_COUNT_PLACEHOLDER", countText)
         .replace("LISTINGS_HTML_PLACEHOLDER", cardsHtml)
         .replace("LISTINGS_DATA_JSON_PLACEHOLDER", listingsJson);
@@ -1257,6 +1263,7 @@ window.onload=function(){var el=document.getElementById('bars');drawCode39(el,'$
         .replace(/LISTING_OG_IMAGE_PLACEHOLDER/g, escapeHtml(ogImage))
         .replace(/LISTING_OG_CONDITION_PLACEHOLDER/g, ogCondition)
         .replace(/LISTING_PRICE_RAW_PLACEHOLDER/g, Number(listing.price).toFixed(2))
+        .replace("GA4_SCRIPT_PLACEHOLDER", buildGa4Script())
         .replace("LISTING_JSONLD_PLACEHOLDER", jsonLd)
         .replace("LISTING_GALLERY_PLACEHOLDER", galleryHtml)
         .replace(/LISTING_CATEGORY_PLACEHOLDER/g, escapeHtml(formatCategory(listing.category)))
