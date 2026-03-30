@@ -295,9 +295,25 @@ export default function ListingDetailScreen() {
         boxHeightIn: boxHeightIn || "8",
       });
       const rates = await res.json();
-      setShipRates(rates);
+      if (!Array.isArray(rates) || rates.length === 0) {
+        setShipError("No rates found for that ZIP. Check the ZIP code and try again.");
+      } else {
+        setShipRates(rates);
+      }
     } catch (e: any) {
-      setShipError(e?.message || "Could not get rates. Check the ZIP and try again.");
+      // Parse JSON error body if present (e.message may be "500: {json}")
+      const raw = e?.message || "";
+      const jsonStart = raw.indexOf("{");
+      if (jsonStart !== -1) {
+        try {
+          const parsed = JSON.parse(raw.slice(jsonStart));
+          setShipError(parsed.error || "Could not get rates. Check the ZIP and try again.");
+        } catch {
+          setShipError("Could not get rates. Check the ZIP and try again.");
+        }
+      } else {
+        setShipError(raw || "Could not get rates. Check the ZIP and try again.");
+      }
     } finally {
       setShipLoading(false);
     }
