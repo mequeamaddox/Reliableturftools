@@ -198,7 +198,13 @@ function configureExpoAndLanding(app: express.Application) {
     }
 
     if (req.path === "/") {
-      return next();
+      return res.redirect("/store");
+    }
+
+    if (req.path === "/admin") {
+      if (fs.existsSync(path.resolve(process.cwd(), "static-build", "index.html"))) {
+        return res.sendFile(path.resolve(process.cwd(), "static-build", "index.html"));
+      }
     }
 
     next();
@@ -209,7 +215,7 @@ function configureExpoAndLanding(app: express.Application) {
 
   const staticIndex = path.resolve(process.cwd(), "static-build", "index.html");
   app.use((req: Request, res: Response, next: NextFunction) => {
-    if (req.path.startsWith("/api") || req.path.startsWith("/store") || req.path.startsWith("/uploads") || req.path === "/sitemap.xml" || req.path === "/robots.txt") {
+    if (req.path.startsWith("/api") || req.path.startsWith("/store") || req.path.startsWith("/uploads") || req.path === "/sitemap.xml" || req.path === "/robots.txt" || req.path === "/") {
       return next();
     }
     if (fs.existsSync(staticIndex)) {
