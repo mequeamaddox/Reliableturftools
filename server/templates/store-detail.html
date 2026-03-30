@@ -463,6 +463,33 @@
       margin-bottom: 6px;
       color: rgba(255,255,255,0.6);
     }
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .radio-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      cursor: pointer;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 400;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .radio-option input[type="radio"] {
+      width: auto;
+      accent-color: #4ade80;
+      margin: 0;
+    }
+    .radio-option:has(input:checked) {
+      border-color: #4ade80;
+      background: rgba(74,222,128,0.08);
+    }
     .form-group input,
     .form-group textarea {
       width: 100%;
@@ -619,6 +646,19 @@
           <h3 id="inquiry-heading">Reserve / Ask About This</h3>
           <form id="inquiry-form">
             <input type="hidden" name="listingId" value="LISTING_ID_PLACEHOLDER" />
+            <div class="form-group" id="fulfillment-group" style="display:none">
+              <label>How would you like to receive this item?</label>
+              <div class="radio-group">
+                <label class="radio-option">
+                  <input type="radio" name="fulfillment" value="shipping" checked />
+                  <span>Ship to my address</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="fulfillment" value="pickup" />
+                  <span>Local pickup — Columbia, SC</span>
+                </label>
+              </div>
+            </div>
             <div class="form-group">
               <label for="inq-name">Your Name *</label>
               <input type="text" id="inq-name" name="name" required />
@@ -819,20 +859,19 @@
     var w = parseFloat(WEIGHT_LBS);
     var isShippable = w && w > 0;
 
+    var buyLocalEl = document.getElementById('buy-local-section');
+    if (buyLocalEl) buyLocalEl.style.display = 'none';
+    var orEl = document.querySelector('.or-divider');
+    if (orEl) orEl.style.display = 'none';
+
     if (isShippable) {
-      var buyLocalEl = document.getElementById('buy-local-section');
-      if (buyLocalEl) buyLocalEl.style.display = 'none';
-      var orEl = document.querySelector('.or-divider');
-      if (orEl) orEl.style.display = 'none';
-      var inquiryEl = document.querySelector('.inquiry-section');
-      if (inquiryEl) inquiryEl.style.display = 'none';
-    } else {
+      var fulfillmentGroup = document.getElementById('fulfillment-group');
+      if (fulfillmentGroup) fulfillmentGroup.style.display = 'block';
       var inquiryHeading = document.getElementById('inquiry-heading');
-      if (inquiryHeading) inquiryHeading.textContent = "I'm Interested";
-      var buyLocalEl2 = document.getElementById('buy-local-section');
-      if (buyLocalEl2) buyLocalEl2.style.display = 'none';
-      var orEl2 = document.querySelector('.or-divider');
-      if (orEl2) orEl2.style.display = 'none';
+      if (inquiryHeading) inquiryHeading.textContent = 'Reserve / Ask About This';
+    } else {
+      var inquiryHeading2 = document.getElementById('inquiry-heading');
+      if (inquiryHeading2) inquiryHeading2.textContent = "I'm Interested";
     }
 
     document.getElementById('inquiry-form').addEventListener('submit', function(e) {
@@ -851,7 +890,14 @@
           name: document.getElementById('inq-name').value,
           phone: document.getElementById('inq-phone').value,
           email: document.getElementById('inq-email').value,
-          message: document.getElementById('inq-message').value
+          message: (function() {
+            var fulfillmentEl = document.querySelector('[name="fulfillment"]:checked');
+            var pref = fulfillmentEl ? fulfillmentEl.value : null;
+            var msg = document.getElementById('inq-message').value;
+            if (pref === 'pickup') return '[Prefers local pickup — Columbia, SC]\n' + msg;
+            if (pref === 'shipping') return '[Prefers shipping]\n' + msg;
+            return msg;
+          })()
         })
       })
       .then(function(resp) { return resp.json(); })
