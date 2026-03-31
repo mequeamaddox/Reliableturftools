@@ -54,8 +54,7 @@
     },
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true,
-      "baseUrl": "/admin"
+      "reactCompiler": true
     },
     "extra": {
       "router": {

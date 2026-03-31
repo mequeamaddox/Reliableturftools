@@ -205,7 +205,7 @@ function configureExpoAndLanding(app: express.Application) {
   });
 
   app.use("/assets", express.static(path.resolve(process.cwd(), "assets")));
-  app.use("/admin", express.static(path.resolve(process.cwd(), "static-build")));
+  app.use(express.static(path.resolve(process.cwd(), "static-build")));
 
   const staticIndex = path.resolve(process.cwd(), "static-build", "index.html");
   app.use((req: Request, res: Response, next: NextFunction) => {
