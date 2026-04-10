@@ -208,6 +208,7 @@ export default function BatchLabelsScreen() {
         format: "png",
         quality: 1,
         result: "tmpfile",
+        scale: 4,
       });
       await MediaLibrary.saveToLibraryAsync(uri);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -246,6 +247,7 @@ export default function BatchLabelsScreen() {
             format: "png",
             quality: 1,
             result: "tmpfile",
+            scale: 4,
           });
           await MediaLibrary.saveToLibraryAsync(uri);
           saved++;

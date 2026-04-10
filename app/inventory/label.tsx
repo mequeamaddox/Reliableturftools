@@ -173,6 +173,7 @@ export default function LabelScreen() {
           format: "png",
           quality: 1,
           result: "tmpfile",
+          scale: 4,
         });
         await MediaLibrary.saveToLibraryAsync(uri);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -454,8 +455,8 @@ const styles = StyleSheet.create({
     top: -9999,
   },
   captureLabel: {
-    width: 750,
-    height: 300,
+    width: 240,
+    height: 96,
   },
 });
 
