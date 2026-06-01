@@ -6,6 +6,7 @@ import * as path from "path";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
 import { users, listings, messageTemplates } from "@shared/schema";
+import { saveBackup, restoreBackup, schedulePeriodicBackup } from "./backup";
 
 const app = express();
 const log = console.log;
@@ -318,27 +319,35 @@ async function ensureAdminAndData() {
 
     const existingListings = await db.select().from(listings).limit(1);
     if (existingListings.length === 0) {
-      log("No listings found — seeding initial inventory...");
-      await db.insert(listings).values({
-        title: "Ryobi Gas Chainsaw",
-        sku: "RTT-CHA-0001",
-        barcode: "046396015198",
-        condition: "USED",
-        powerType: "GAS",
-        category: "CHAINSAW",
-        brand: "Ryobi",
-        price: "100.00",
-        quantity: 1,
-        status: "AVAILABLE",
-        notes: "Like New Condition",
-        isPublished: true,
-        weightLbs: "10.00",
-        boxLengthIn: "12.00",
-        boxWidthIn: "12.00",
-        boxHeightIn: "48.00",
-        listingType: "ITEM",
-      });
-      log("Initial inventory seeded successfully");
+      log("No listings found — checking Object Storage for backup...");
+      const restored = await restoreBackup();
+      if (!restored) {
+        log("No backup found — seeding demo inventory...");
+        await db.insert(listings).values({
+          title: "Ryobi Gas Chainsaw",
+          sku: "RTT-CHA-0001",
+          barcode: "046396015198",
+          condition: "USED",
+          powerType: "GAS",
+          category: "CHAINSAW",
+          brand: "Ryobi",
+          price: "100.00",
+          quantity: 1,
+          status: "AVAILABLE",
+          notes: "Like New Condition",
+          isPublished: true,
+          weightLbs: "10.00",
+          boxLengthIn: "12.00",
+          boxWidthIn: "12.00",
+          boxHeightIn: "48.00",
+          listingType: "ITEM",
+        });
+        log("Demo inventory seeded");
+      }
+    } else {
+      // DB has real data — save a backup now so it's always fresh
+      log("DB has data — saving backup to Object Storage...");
+      await saveBackup();
     }
   } catch (err) {
     console.error("Error ensuring admin/data:", err);
@@ -351,6 +360,7 @@ async function ensureAdminAndData() {
   setupRequestLogging(app);
 
   await ensureAdminAndData();
+  schedulePeriodicBackup();
 
   configureExpoAndLanding(app);
 
