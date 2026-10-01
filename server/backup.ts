@@ -11,27 +11,10 @@ import {
   settings,
 } from "@shared/schema";
 import { sql } from "drizzle-orm";
+import { putObject, getObject } from "./objectStorage";
 
 const log = console.log;
-const SIDECAR = "http://127.0.0.1:1106";
-const BUCKET_ID = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID!;
 const BACKUP_OBJECT = "backups/db-backup-latest.json";
-
-async function signedUrl(objectName: string, method: "GET" | "PUT"): Promise<string> {
-  const res = await fetch(`${SIDECAR}/object-storage/signed-object-url`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      bucket_name: BUCKET_ID,
-      object_name: objectName,
-      method,
-      expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-    }),
-  });
-  if (!res.ok) throw new Error(`sign failed ${res.status}: ${await res.text()}`);
-  const { signed_url } = await res.json();
-  return signed_url;
-}
 
 export async function saveBackup(): Promise<void> {
   try {
@@ -85,25 +68,14 @@ export async function saveBackup(): Promise<void> {
     };
 
     const body = Buffer.from(JSON.stringify(backup, null, 2), "utf-8");
-    const url = await signedUrl(BACKUP_OBJECT, "PUT");
-    const uploadRes = await fetch(url, {
-      method: "PUT",
-      body,
-      headers: { "Content-Type": "application/json" },
-    });
-    if (!uploadRes.ok) throw new Error(`backup upload failed: ${uploadRes.status}`);
+    await putObject(BACKUP_OBJECT, body, "application/json");
 
     log(`[backup] Saved backup: ${JSON.stringify(backup.counts)}`);
 
     // Also save a dated daily snapshot (overwrite same day)
     const dateStr = new Date().toISOString().slice(0, 10);
     const dailyObject = `backups/db-backup-${dateStr}.json`;
-    const dailyUrl = await signedUrl(dailyObject, "PUT");
-    await fetch(dailyUrl, {
-      method: "PUT",
-      body,
-      headers: { "Content-Type": "application/json" },
-    });
+    await putObject(dailyObject, body, "application/json");
     log(`[backup] Also saved daily snapshot: ${dailyObject}`);
   } catch (err) {
     console.error("[backup] saveBackup failed:", err);
@@ -112,14 +84,15 @@ export async function saveBackup(): Promise<void> {
 
 export async function restoreBackup(): Promise<boolean> {
   try {
-    const url = await signedUrl(BACKUP_OBJECT, "GET");
-    const res = await fetch(url);
-    if (!res.ok) {
+    const stream = await getObject(BACKUP_OBJECT);
+    if (!stream) {
       log("[backup] No backup found in Object Storage (this is normal on first run)");
       return false;
     }
 
-    const backup = await res.json() as {
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+    const backup = JSON.parse(Buffer.concat(chunks).toString("utf-8")) as {
       version: number;
       savedAt: string;
       counts: Record<string, number>;

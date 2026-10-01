@@ -60,14 +60,11 @@ export function getApiUrl(): string {
   const envDomain = process.env.EXPO_PUBLIC_DOMAIN;
 
   if (envDomain) {
-    const hostname = envDomain.replace(/:\d+$/, "");
-    if (Platform.OS === "web" && typeof window !== "undefined" && window.location) {
-      const origin = window.location.origin;
-      if (origin.includes("replit.dev") || origin.includes("replit.app")) {
-        return `https://${envDomain}/`;
-      }
+    // Local dev (e.g. localhost:5000) talks plain HTTP and keeps the port
+    if (/^(localhost|127\.0\.0\.1|\d+\.\d+\.\d+\.\d+)(:\d+)?$/.test(envDomain)) {
+      return `http://${envDomain}/`;
     }
-    return `https://${hostname}/`;
+    return `https://${envDomain.replace(/:\d+$/, "")}/`;
   }
 
   if (Platform.OS === "web" && typeof window !== "undefined" && window.location) {
@@ -79,7 +76,7 @@ export function getApiUrl(): string {
     return `https://${domain}/`;
   }
 
-  return "https://reliableturftools.replit.app/";
+  return "https://reliableturftools.com/";
 }
 
 async function throwIfResNotOk(res: Response) {

@@ -78,7 +78,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   });
 
-  const isProduction = process.env.NODE_ENV === "production" || !!process.env.REPLIT_DEPLOYMENT;
+  const isProduction = process.env.NODE_ENV === "production";
 
   app.set("trust proxy", 1);
 

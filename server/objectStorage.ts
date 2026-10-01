@@ -1,55 +1,44 @@
-import { Storage } from "@google-cloud/storage";
-import path from "path";
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
+import type { Readable } from "stream";
 
-const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
+// Railway Storage Bucket (S3-compatible). Credentials come from the
+// AWS_* / S3_BUCKET variables on the Railway service.
+const BUCKET = process.env.S3_BUCKET!;
 
-const BUCKET_ID = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID!;
-
-const objectStorageClient = new Storage({
-  credentials: {
-    audience: "replit",
-    subject_token_type: "access_token",
-    token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
-    type: "external_account",
-    credential_source: {
-      url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
-      format: {
-        type: "json",
-        subject_token_field_name: "access_token",
-      },
-    },
-    universe_domain: "googleapis.com",
-  } as any,
-  projectId: "",
+const s3 = new S3Client({
+  endpoint: process.env.AWS_ENDPOINT_URL_S3,
+  region: process.env.AWS_REGION || "auto",
 });
 
-async function signObjectURL({
-  objectName,
-  method,
-  ttlSec,
-}: {
-  objectName: string;
-  method: "GET" | "PUT" | "DELETE" | "HEAD";
-  ttlSec: number;
-}): Promise<string> {
-  const response = await fetch(
-    `${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        bucket_name: BUCKET_ID,
-        object_name: objectName,
-        method,
-        expires_at: new Date(Date.now() + ttlSec * 1000).toISOString(),
-      }),
-    },
+export async function putObject(
+  key: string,
+  body: Buffer,
+  contentType: string,
+): Promise<void> {
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    }),
   );
-  if (!response.ok) {
-    throw new Error(`Failed to sign object URL: ${response.status}`);
+}
+
+export async function getObject(key: string): Promise<Readable | null> {
+  try {
+    const res = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+    return (res.Body as Readable) ?? null;
+  } catch (err: any) {
+    if (err?.name === "NoSuchKey" || err?.$metadata?.httpStatusCode === 404) {
+      return null;
+    }
+    throw err;
   }
-  const { signed_url } = await response.json();
-  return signed_url;
 }
 
 export async function uploadBuffer(
@@ -57,27 +46,10 @@ export async function uploadBuffer(
   filename: string,
   contentType: string,
 ): Promise<string> {
-  const objectName = `public/uploads/${filename}`;
-  const signedUrl = await signObjectURL({
-    objectName,
-    method: "PUT",
-    ttlSec: 900,
-  });
-  const uploadRes = await fetch(signedUrl, {
-    method: "PUT",
-    body: buffer,
-    headers: { "Content-Type": contentType },
-  });
-  if (!uploadRes.ok) {
-    throw new Error(`GCS upload failed: ${uploadRes.status}`);
-  }
+  await putObject(`public/uploads/${filename}`, buffer, contentType);
   return `/uploads/${filename}`;
 }
 
 export async function getFileStream(filename: string) {
-  const objectName = `public/uploads/${filename}`;
-  const file = objectStorageClient.bucket(BUCKET_ID).file(objectName);
-  const [exists] = await file.exists();
-  if (!exists) return null;
-  return file.createReadStream();
+  return getObject(`public/uploads/${filename}`);
 }

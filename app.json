@@ -31,7 +31,7 @@
       [
         "expo-router",
         {
-          "origin": "https://reliableturftools.replit.app"
+          "origin": "https://reliableturftools.com"
         }
       ],
       "expo-font",
@@ -58,7 +58,7 @@
     },
     "extra": {
       "router": {
-        "origin": "https://reliableturftools.replit.app"
+        "origin": "https://reliableturftools.com"
       },
       "eas": {
         "projectId": "b8c16f7d-ef18-4c2b-b143-e60face938a1"

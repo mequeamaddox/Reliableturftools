@@ -8,21 +8,21 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_DOMAIN": "reliableturftools.replit.app"
+        "EXPO_PUBLIC_DOMAIN": "reliableturftools.com"
       }
     },
     "preview": {
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_DOMAIN": "reliableturftools.replit.app"
+        "EXPO_PUBLIC_DOMAIN": "reliableturftools.com"
       }
     },
     "production": {
       "autoIncrement": true,
       "channel": "production",
       "env": {
-        "EXPO_PUBLIC_DOMAIN": "reliableturftools.replit.app"
+        "EXPO_PUBLIC_DOMAIN": "reliableturftools.com"
       }
     }
   },

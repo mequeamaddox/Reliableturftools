@@ -39,3 +39,7 @@ yarn-error.*
 .vercel
 
 .env
+
+# build output
+static-build/
+server_dist/

@@ -41,8 +41,8 @@ Preferred communication style: Simple, everyday language.
 - **Entry Point**: `server/index.ts`
 - **Routes**: `server/routes.ts` — Registers all API routes including auth, CRUD for listings/buyers/sales/follow-ups, dashboard stats, storefront endpoints, file uploads
 - **Authentication**: Session-based auth using `express-session` with `connect-pg-simple` for PostgreSQL session storage. Passwords hashed with bcryptjs.
-- **File Uploads**: Multer (memory storage) receives files, uploads them to Replit Object Storage (Google Cloud Storage bucket). Paths stored in DB as `/uploads/{filename}`. The `/uploads/:filename` route proxies from cloud storage. Files persist across deployments.
-- **CORS**: Dynamic origin allowlist based on Replit environment variables, plus localhost support for dev
+- **File Uploads**: Multer (memory storage) receives files, uploads them to a Railway Storage Bucket (S3-compatible). Paths stored in DB as `/uploads/{filename}`. The `/uploads/:filename` route proxies from cloud storage. Files persist across deployments.
+- **CORS**: Origin allowlist (reliableturftools.com, the Railway public domain, optional `CORS_ORIGINS`), plus localhost support for dev
 - **Storage Layer**: `server/storage.ts` — Data access layer wrapping Drizzle ORM queries
 
 ### Database
@@ -125,5 +125,10 @@ All API routes are prefixed with `/api/`:
 - `DATABASE_URL` — PostgreSQL connection string
 - `SESSION_SECRET` — Express session secret (falls back to default in dev)
 - `EXPO_PUBLIC_DOMAIN` — Domain for API requests from the Expo frontend
-- `REPLIT_DEV_DOMAIN` — Auto-set by Replit for development
-- `REPLIT_DOMAINS` — Auto-set by Replit for CORS configuration
+- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ENDPOINT_URL_S3`, `AWS_REGION`, `S3_BUCKET` — Railway Storage Bucket for photo uploads and DB backups
+- `CORS_ORIGINS` — Optional comma-separated extra allowed origins
+
+### Deployment (Railway)
+- Hosted on Railway (`railway.json`): builds with `npm run expo:static:build && npm run server:build`, starts with `npm run server:prod`
+- Database is Neon Postgres (`DATABASE_URL`). After changing `shared/schema.ts`, run `npm run db:push` against it
+- Custom domain: reliableturftools.com

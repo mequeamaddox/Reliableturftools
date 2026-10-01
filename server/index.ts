@@ -21,17 +21,17 @@ function setupCors(app: express.Application) {
   app.use((req, res, next) => {
     const origins = new Set<string>();
 
-    if (process.env.REPLIT_DEV_DOMAIN) {
-      origins.add(`https://${process.env.REPLIT_DEV_DOMAIN}`);
+    if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+      origins.add(`https://${process.env.RAILWAY_PUBLIC_DOMAIN}`);
     }
 
-    if (process.env.REPLIT_DOMAINS) {
-      process.env.REPLIT_DOMAINS.split(",").forEach((d) => {
-        origins.add(`https://${d.trim()}`);
+    if (process.env.CORS_ORIGINS) {
+      process.env.CORS_ORIGINS.split(",").forEach((o) => {
+        origins.add(o.trim());
       });
     }
 
-    origins.add("https://reliableturftools.replit.app");
+    origins.add("https://reliableturftools.com");
     origins.add("https://www.reliableturftools.com");
 
     const origin = req.header("origin");
