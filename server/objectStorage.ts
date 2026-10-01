@@ -5,13 +5,16 @@ import {
 } from "@aws-sdk/client-s3";
 import type { Readable } from "stream";
 
-// Railway Storage Bucket (S3-compatible). Credentials come from the
+// Neon Storage bucket (S3-compatible). Credentials come from the
 // AWS_* / S3_BUCKET variables on the Railway service.
 const BUCKET = process.env.S3_BUCKET!;
 
 const s3 = new S3Client({
   endpoint: process.env.AWS_ENDPOINT_URL_S3,
   region: process.env.AWS_REGION || "auto",
+  // Neon's TLS cert only covers one subdomain level, so the bucket must go
+  // in the path rather than the hostname
+  forcePathStyle: true,
 });
 
 export async function putObject(
