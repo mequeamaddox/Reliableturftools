@@ -1,0 +1,15 @@
+name: Publish OTA update
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  publish:
+    name: Publish Android update (production + preview)
+    steps:
+      - uses: eas/checkout
+      - uses: eas/install_node_modules
+      - name: Publish to production channel
+        run: EXPO_PUBLIC_DOMAIN=reliableturftools.com npx eas-cli@latest update --channel production --platform android --message "Point app at reliableturftools.com" --non-interactive
+      - name: Publish to preview channel
+        run: EXPO_PUBLIC_DOMAIN=reliableturftools.com npx eas-cli@latest update --channel preview --platform android --message "Point app at reliableturftools.com" --non-interactive
