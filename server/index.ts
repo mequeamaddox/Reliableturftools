@@ -257,23 +257,20 @@ async function ensureAdminAndData() {
       await db.execute(rawSql.raw(`ALTER TABLE buyers ALTER COLUMN phone DROP NOT NULL`));
     } catch (_) {}
 
-    const adminEmail = "mequeamaddox@gmail.com";
+    // Bootstrap the first admin on an empty database from env vars
+    // (never hardcode credentials — this repo is public)
     const existingUsers = await db.select().from(users).limit(1);
     if (existingUsers.length === 0) {
-      log("No users found — creating admin account...");
-      const hashedPw = await bcrypt.hash("Sparky15!", 10);
-      await db.insert(users).values({ email: adminEmail, password: hashedPw });
-      log("Admin account created successfully");
-    }
-
-    const secondAdminEmail = "ishmel_maddox12@yahoo.com";
-    const { sql } = await import("drizzle-orm");
-    const [existingSecond] = await db.select().from(users).where(sql`LOWER(${users.email}) = LOWER(${secondAdminEmail})`);
-    if (!existingSecond) {
-      log("Creating second admin account...");
-      const hashedPw2 = await bcrypt.hash("Ursula93", 10);
-      await db.insert(users).values({ email: secondAdminEmail, password: hashedPw2 });
-      log("Second admin account created successfully");
+      const adminEmail = process.env.ADMIN_EMAIL;
+      const adminPassword = process.env.ADMIN_PASSWORD;
+      if (adminEmail && adminPassword) {
+        log("No users found — creating admin account from ADMIN_EMAIL...");
+        const hashedPw = await bcrypt.hash(adminPassword, 10);
+        await db.insert(users).values({ email: adminEmail, password: hashedPw });
+        log("Admin account created successfully");
+      } else {
+        log("No users found — set ADMIN_EMAIL and ADMIN_PASSWORD to create the first admin");
+      }
     }
 
     const DEFAULT_TEMPLATES: { name: string; template: string; type: "CHECK_IN" | "NEW_INVENTORY" | "MEETUP_REMINDER" | "BACK_IN_STOCK" | "PRICE_DROP" | "CUSTOM" }[] = [

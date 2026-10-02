@@ -127,6 +127,7 @@ All API routes are prefixed with `/api/`:
 - `EXPO_PUBLIC_DOMAIN` — Domain for API requests from the Expo frontend
 - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ENDPOINT_URL_S3`, `AWS_REGION`, `S3_BUCKET` — Neon Storage bucket for photo uploads and DB backups
 - `CORS_ORIGINS` — Optional comma-separated extra allowed origins
+- `ADMIN_EMAIL`, `ADMIN_PASSWORD` — Only used to create the first admin when the database has no users
 
 ### Deployment (Railway)
 - Hosted on Railway (`railway.json`): builds with `npm run expo:static:build && npm run server:build`, starts with `npm run server:prod`
